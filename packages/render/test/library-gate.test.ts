@@ -1,7 +1,7 @@
 import { defaultCatalog } from '@stick/library'
 import { describe, expect, test } from 'vitest'
 import { checkMotion } from '../src/index.js'
-import { soloTimeline } from './solo.js'
+import { soloTimeline } from '../src/solo.js'
 
 /** Longest film the gate plays for one action (talk's max is 30 s). */
 const GATE_MAX_S = 5

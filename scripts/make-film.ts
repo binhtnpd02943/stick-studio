@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util'
 import { defaultCatalog } from '@stick/library'
 import { solveTimeline } from '@stick/pipeline'
 import { SCREENPLAY_PROMPT_VERSION, STORY_PROMPT_VERSION } from '@stick/prompts'
+import { renderContactSheet } from '@stick/render'
 import { CliError } from './lib/cli-error.js'
 import { describeFailure } from './lib/make-errors.js'
 import { loadDotEnv, makeProviders } from './lib/make-providers.js'
@@ -67,6 +68,11 @@ async function main(): Promise<void> {
       rmSync(partial, { force: true })
     }
     run.markStep('render')
+  }
+  const contact = join(opts.out, 'contact.png')
+  if (!run.snapshot().steps.contact || !existsSync(contact)) {
+    await renderContactSheet(tl, contact)
+    run.markStep('contact')
   }
   const done = run.snapshot()
   console.log(`out path: ${film}`)

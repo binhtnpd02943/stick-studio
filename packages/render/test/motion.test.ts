@@ -4,7 +4,7 @@ import { solveTimeline } from '@stick/pipeline'
 import { describe, expect, test } from 'vitest'
 import { specExample } from '../../core/test/fixtures.js'
 import { checkMotion } from '../src/index.js'
-import { soloTimeline } from './solo.js'
+import { soloTimeline } from '../src/solo.js'
 
 const snap: ActionDef = {
   id: 'snap',

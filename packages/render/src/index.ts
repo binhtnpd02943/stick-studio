@@ -5,3 +5,5 @@ export { drawCaption, layoutCaption, pageCaption, type CaptionPage } from './cap
 export { renderVideo, type RenderOptions } from './video.js'
 export { muxAudio, type AudioClip } from './audio.js'
 export { checkMotion, type MotionFinding, type MotionKind } from './motion.js'
+export { renderContactSheet, type ContactSheetOptions } from './contact-sheet.js'
+export { soloTimeline } from './solo.js'

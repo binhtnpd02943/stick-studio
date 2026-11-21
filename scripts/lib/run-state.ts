@@ -5,7 +5,7 @@ import { costUsd } from '@stick/providers'
 import { CliError } from './cli-error.js'
 import { writeArtifact } from './run-dir.js'
 
-const STEP_ORDER = ['story', 'screenplay', 'voice', 'render'] as const
+const STEP_ORDER = ['story', 'screenplay', 'voice', 'render', 'contact'] as const
 type StepName = (typeof STEP_ORDER)[number]
 
 export interface RunJson {

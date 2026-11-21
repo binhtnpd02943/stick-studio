@@ -9,7 +9,8 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
     "render": "tsx scripts/render-film.ts",
-    "make": "tsx scripts/make-film.ts"
+    "make": "tsx scripts/make-film.ts",
+    "preview": "tsx scripts/preview-action.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

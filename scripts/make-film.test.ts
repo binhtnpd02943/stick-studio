@@ -32,6 +32,8 @@ describe('make-film CLI', () => {
     const r = make(['Phân số là gì?', '--fake', '--out', out])
     expect(r.status, r.stdout + r.stderr).toBe(0)
     expect(probe(join(out, 'film.mp4'), 'stream=width,height')).toBe('1080,1920')
+    expect(existsSync(join(out, 'contact.png'))).toBe(true)
+    expect(readRun(out).steps.contact).toBeTruthy()
     const seconds = Number(probe(join(out, 'film.mp4'), 'format=duration'))
     expect(Math.abs(seconds - readRun(out).durationSec)).toBeLessThan(0.1)
     expect(r.stdout).toContain('cost: $0.0000')
@@ -62,7 +64,7 @@ describe('make-film CLI', () => {
     const r = make(['Phân số là gì?', '--fake', '--out', dir])
     expect(r.status, r.stdout + r.stderr).toBe(0)
     const after = readRun(dir).steps
-    for (const step of ['screenplay', 'voice', 'render']) expect(after[step], step).not.toBe(before[step])
+    for (const step of ['screenplay', 'voice', 'render', 'contact']) expect(after[step], step).not.toBe(before[step])
     expect(after.story).toBe(before.story)
     expect(existsSync(join(dir, 'film.partial.mp4'))).toBe(false)
   }, SLOW)

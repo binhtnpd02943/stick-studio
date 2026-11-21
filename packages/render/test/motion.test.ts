@@ -1,5 +1,5 @@
 import { parseScreenplay } from '@stick/core'
-import { defaultCatalog, type ActionDef } from '@stick/library'
+import { defaultCatalog, type ActionDef, type PropDef } from '@stick/library'
 import { solveTimeline } from '@stick/pipeline'
 import { describe, expect, test } from 'vitest'
 import { specExample } from '../../core/test/fixtures.js'
@@ -13,6 +13,19 @@ const snap: ActionDef = {
   duration: { min: 0.5, ideal: 1, max: 2 },
   description: 'test-only: bare switch from rest to cheer',
   apply: ({ rig, k, base }) => ({ pose: k < 0.5 ? base : rig.P({ hF: [14, -132], hB: [-10, -130], head: [3, -118] }) }),
+}
+
+// Props draw before figures, so to put this one in front, later drawing (the figure) goes underneath it.
+const visor: PropDef = {
+  id: 'visor',
+  version: 1,
+  width: 30,
+  description: 'test-only: an opaque block in front of the head',
+  draw: (g, _rig, x) => {
+    g.fillStyle = '#ffffff'
+    g.fillRect(x - 15, -140, 30, 60)
+    g.globalCompositeOperation = 'destination-over'
+  },
 }
 
 describe('checkMotion', () => {
@@ -30,5 +43,12 @@ describe('checkMotion', () => {
     const catalog = { ...defaultCatalog, actions: { ...defaultCatalog.actions, snap } }
     const found = checkMotion(soloTimeline('snap', 1), catalog)
     expect(found.some((f) => f.kind === 'jump')).toBe(true)
+  }, 30_000)
+
+  test('detects a covered head', () => {
+    const catalog = { ...defaultCatalog, props: { ...defaultCatalog.props, visor } }
+    const solo = soloTimeline('nod', 0.6)
+    const tl = { ...solo, scenes: solo.scenes.map((s) => ({ ...s, props: [{ id: 'v', type: 'visor', mark: 'left' as const }] })) }
+    expect(checkMotion(tl, catalog).map((f) => f.kind)).toEqual(['head-covered'])
   }, 30_000)
 })

@@ -4,7 +4,8 @@ export const walkTo: ActionDef = {
   id: 'walk_to',
   version: 1,
   needsTarget: true,
-  duration: { min: 0.6, ideal: 1.2, max: 3.0 },
+  // min: crossing left->right (190 world units) faster than 1.1 s snaps the knees and skates the feet (motion gate).
+  duration: { min: 1.1, ideal: 1.2, max: 3.0 },
   description: 'Walk to a world x position, turning to face it. Arms stay relaxed.',
   apply({ rig, self, targetX, T, dur, base }) {
     const to = targetX ?? self.x

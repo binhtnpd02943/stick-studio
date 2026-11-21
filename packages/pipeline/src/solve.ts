@@ -1,12 +1,10 @@
-import { beatId, type Beat, type Screenplay, type TimedAction, type TimedBeat, type TimedScene, type Timeline } from '@stick/core'
+import { beatId, estimateLineDuration, type Beat, type Screenplay, type TimedAction, type TimedBeat, type TimedScene, type Timeline } from '@stick/core'
 import { lookup, markX, resolveTarget, type ActionDef, type Catalog } from '@stick/library'
 
 export const LINE_LEAD = 0.15
 export const BEAT_PAD = 0.3
 export const MIN_BEAT = 0.8
 export const SCENE_TAIL = 0.4
-const SECONDS_PER_WORD = 0.33
-const MIN_LINE = 1.0
 /** World units per second a character covers walking. */
 export const WALK_SPEED = 110
 
@@ -15,10 +13,6 @@ type Action = NonNullable<Beat['do']>[number]
 type Duration = ActionDef['duration']
 /** An action paired with the duration it was sized to. */
 type Sized = { action: Action; d: Duration }
-
-export function estimateLineDuration(text: string): number {
-  return Math.max(MIN_LINE, text.trim().split(/\s+/).length * SECONDS_PER_WORD)
-}
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 

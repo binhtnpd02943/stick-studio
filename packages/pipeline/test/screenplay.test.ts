@@ -66,13 +66,57 @@ describe('draftScreenplay', () => {
     expect(llm.requests[1]!.messages[2]!.content).toContain('minh')
   })
 
-  test('a dropped story line triggers missing_line repair', async () => {
-    const bad = llmScreenplay()
-    const dropped = bad.scenes[0]!.beats[1]!.say!.text
-    bad.scenes[0]!.beats[1]!.say!.text = 'Một câu khác hẳn.'
-    const llm = new FakeLlm([bad, llmScreenplay()])
-    const r = await draftScreenplay(llm, story(), catalog)
-    expect(r.rounds).toBe(1)
-    expect(llm.requests[1]!.messages[2]!.content).toContain(`missing_line scenes ${dropped}`)
+  describe('line_mismatch', () => {
+    const repairText = (llm: FakeLlm) => llm.requests[1]!.messages[2]!.content as string
+
+    test('a dropped story line triggers line_mismatch repair', async () => {
+      const bad = llmScreenplay()
+      const expected = { ...bad.scenes[0]!.beats[1]!.say! }
+      bad.scenes[0]!.beats[1]!.say!.text = 'Một câu khác hẳn.'
+      const llm = new FakeLlm([bad, llmScreenplay()])
+      const r = await draftScreenplay(llm, story(), catalog)
+      expect(r.rounds).toBe(1)
+      expect(repairText(llm)).toContain(`line_mismatch scenes beat 1: expected ${expected.who}: "${expected.text}", got ${expected.who}: "Một câu khác hẳn."`)
+    })
+
+    test('a line given to the wrong speaker triggers line_mismatch repair', async () => {
+      const bad = llmScreenplay()
+      const say = bad.scenes[0]!.beats[0]!.say!
+      say.who = say.who === 'minh' ? 'lan' : 'minh'
+      const llm = new FakeLlm([bad, llmScreenplay()])
+      const r = await draftScreenplay(llm, story(), catalog)
+      expect(r.rounds).toBe(1)
+      expect(repairText(llm)).toContain('line_mismatch scenes beat 0: expected')
+    })
+
+    test('swapped line order triggers line_mismatch', async () => {
+      const bad = llmScreenplay()
+      const [a, b] = [bad.scenes[0]!.beats[0]!, bad.scenes[0]!.beats[1]!]
+      ;[a.say, b.say] = [b.say, a.say]
+      const llm = new FakeLlm([bad, llmScreenplay()])
+      const r = await draftScreenplay(llm, story(), catalog)
+      expect(r.rounds).toBe(1)
+      expect(repairText(llm)).toContain('line_mismatch scenes beat 0: expected')
+    })
+
+    test('NFC vs NFD Vietnamese text is still a match', async () => {
+      const nfd = llmScreenplay()
+      const say = nfd.scenes[0]!.beats[0]!.say!
+      say.text = say.text.normalize('NFD')
+      expect(say.text).not.toBe(say.text.normalize('NFC'))
+      const llm = new FakeLlm([nfd])
+      const r = await draftScreenplay(llm, story(), catalog)
+      expect(r.rounds).toBe(0)
+    })
+
+    test('an added line not in the story triggers line_mismatch', async () => {
+      const bad = llmScreenplay()
+      bad.scenes[0]!.beats.push({ say: { who: 'minh', text: 'Thêm một câu thừa.' } } as (typeof bad.scenes)[0]['beats'][0])
+      const llm = new FakeLlm([bad, llmScreenplay()])
+      const r = await draftScreenplay(llm, story(), catalog)
+      expect(r.rounds).toBe(1)
+      expect(repairText(llm)).toContain('line_mismatch scenes')
+      expect(repairText(llm)).toContain('got minh: "Thêm một câu thừa."')
+    })
   })
 })

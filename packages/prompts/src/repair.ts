@@ -1,8 +1,8 @@
-import type { Issue } from '@stick/pipeline'
+import type { Issue } from '@stick/core'
 
 const UNKNOWN_CODES = new Set(['unknown_action', 'unknown_prop', 'unknown_backdrop'])
 
-/** `code` is printed as a plain string so codes added later (schema, missing_line) need no change here. */
+/** `code` is printed as a plain string so codes added later (schema, line_mismatch) need no change here. */
 export function repairUser(issues: Issue[]): string {
   const lines = issues.map((i) => `${i.code} ${i.path} ${i.message}`)
   const parts = [

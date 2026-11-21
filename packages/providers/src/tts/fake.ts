@@ -1,5 +1,4 @@
-import { silentWav, type TtsProvider, type VoiceId } from '@stick/core'
-import { estimateLineDuration } from '@stick/pipeline'
+import { estimateLineDuration, silentWav, type TtsProvider, type VoiceId } from '@stick/core'
 
 export class FakeTts implements TtsProvider {
   readonly id = 'fake'

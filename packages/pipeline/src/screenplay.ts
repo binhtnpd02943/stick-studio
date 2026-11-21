@@ -6,12 +6,13 @@ import {
   type LlmProvider,
   type LlmScreenplay,
   type LlmUsage,
+  type Issue,
   type Screenplay,
   type Story,
 } from '@stick/core'
 import type { Catalog } from '@stick/library'
 import { repairUser, screenplaySystem, screenplayUser } from '@stick/prompts'
-import { validateScreenplay, type Issue } from './validate.js'
+import { validateScreenplay } from './validate.js'
 
 export class ScreenplayRejectedError extends Error {
   constructor(
@@ -37,12 +38,22 @@ function duplicateStarts(raw: LlmScreenplay): Issue[] {
   })
 }
 
-function missingLines(story: Story, sp: Screenplay): Issue[] {
-  const said = new Set(sp.scenes.flatMap((s) => s.beats.flatMap((b) => (b.say ? [b.say.text.trim()] : []))))
-  return story.scenes
-    .flatMap((s) => s.beats.map((b) => b.line.trim()))
-    .filter((line) => !said.has(line))
-    .map((line) => ({ code: 'missing_line' as const, path: 'scenes', message: line }))
+interface Said {
+  who: string
+  text: string
+}
+const show = (l: Said | undefined) => (l ? `${l.who}: "${l.text}"` : 'nothing')
+const normalize = (l: Said): Said => ({ who: l.who, text: l.text.normalize('NFC').trim() })
+
+/** The spoken lines must be the story's lines, same speaker, same order. Reports the first difference. */
+function lineMismatch(story: Story, sp: Screenplay): Issue[] {
+  const want = story.scenes.flatMap((s) => s.beats.map((b) => normalize({ who: b.who, text: b.line })))
+  const got = sp.scenes.flatMap((s) => s.beats.flatMap((b) => (b.say ? [normalize(b.say)] : [])))
+  const i = Array.from({ length: Math.max(want.length, got.length) }, (_, k) => k).find(
+    (k) => want[k]?.who !== got[k]?.who || want[k]?.text !== got[k]?.text,
+  )
+  if (i === undefined) return []
+  return [{ code: 'line_mismatch', path: 'scenes', message: `beat ${i}: expected ${show(want[i])}, got ${show(got[i])}` }]
 }
 
 function check(raw: LlmScreenplay, story: Story, catalog: Catalog): { screenplay?: Screenplay; issues: Issue[] } {
@@ -55,7 +66,7 @@ function check(raw: LlmScreenplay, story: Story, catalog: Catalog): { screenplay
     })
     return { issues: [...issues, ...schema] }
   }
-  issues.push(...validateScreenplay(parsed.value, catalog), ...missingLines(story, parsed.value))
+  issues.push(...validateScreenplay(parsed.value, catalog), ...lineMismatch(story, parsed.value))
   return { screenplay: parsed.value, issues }
 }
 

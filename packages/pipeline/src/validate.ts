@@ -1,26 +1,7 @@
-import type { Screenplay } from '@stick/core'
+import type { Issue, IssueCode, Screenplay } from '@stick/core'
 import { lookup, type Catalog } from '@stick/library'
 
-export type IssueCode =
-  | 'unknown_action'
-  | 'unknown_prop'
-  | 'unknown_backdrop'
-  | 'unknown_cast'
-  | 'unknown_target'
-  | 'missing_target'
-  | 'not_on_stage'
-  | 'mark_collision'
-  | 'duplicate_id'
-  | 'schema'
-  | 'missing_line'
-
-export interface Issue {
-  code: IssueCode
-  path: string
-  message: string
-  /** Missing library key for unknown_action / unknown_prop / unknown_backdrop. */
-  key?: string
-}
+export type { Issue, IssueCode } from '@stick/core'
 
 const BARE_MARKS = new Set(['left', 'center', 'right'])
 const NEAR = 'near:'

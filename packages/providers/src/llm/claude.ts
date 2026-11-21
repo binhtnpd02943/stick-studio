@@ -22,25 +22,23 @@ export class ClaudeLlm implements LlmProvider {
       messages: req.messages,
       output_config: { effort: req.effort, format: zodOutputFormat(req.schema) },
     })
-    if (res.stop_reason === 'refusal') throw new LlmRefusalError('model refused the request')
-    if (res.stop_reason === 'max_tokens') throw new LlmTruncatedError(`output hit max_tokens (${req.maxTokens})`)
-    const text = res.content.find((b) => b.type === 'text')
-    if (!text || text.type !== 'text') throw new LlmSchemaError('response has no text block')
-    let json: unknown
-    try { json = JSON.parse(text.text) } catch { throw new LlmSchemaError('response is not valid JSON') }
-    const parsed = req.schema.safeParse(json)
-    if (!parsed.success) throw new LlmSchemaError(parsed.error.message)
     const u = res.usage
-    return {
-      value: parsed.data,
-      usage: {
-        model: this.model, // priced by the configured id, which the CLI validated at startup
-        servedModel: res.model,
-        inputTokens: u.input_tokens,
-        outputTokens: u.output_tokens,
-        cacheReadTokens: u.cache_read_input_tokens ?? 0,
-        cacheWriteTokens: u.cache_creation_input_tokens ?? 0,
-      },
+    const usage: LlmUsage = {
+      model: this.model, // priced by the configured id, which the CLI validated at startup
+      servedModel: res.model,
+      inputTokens: u.input_tokens,
+      outputTokens: u.output_tokens,
+      cacheReadTokens: u.cache_read_input_tokens ?? 0,
+      cacheWriteTokens: u.cache_creation_input_tokens ?? 0,
     }
+    if (res.stop_reason === 'refusal') throw new LlmRefusalError('model refused the request', usage)
+    if (res.stop_reason === 'max_tokens') throw new LlmTruncatedError(`output hit max_tokens (${req.maxTokens})`, usage)
+    const text = res.content.find((b) => b.type === 'text')
+    if (!text || text.type !== 'text') throw new LlmSchemaError('response has no text block', usage)
+    let json: unknown
+    try { json = JSON.parse(text.text) } catch { throw new LlmSchemaError('response is not valid JSON', usage) }
+    const parsed = req.schema.safeParse(json)
+    if (!parsed.success) throw new LlmSchemaError(parsed.error.issues.map((i) => `${i.path.join('.') || '$'}: ${i.message}`).join('; '), usage)
+    return { value: parsed.data, usage }
   }
 }

@@ -15,16 +15,17 @@ export function llmScreenplay(): LlmScreenplay {
 /** A story whose lines are exactly the say texts of llmScreenplay(). */
 export function story(): Story {
   const sp = llmScreenplay()
+  const scenes = sp.scenes.map((s) => ({
+    setting: s.backdrop,
+    beats: s.beats.flatMap((b) => (b.say ? [{ who: b.say.who, line: b.say.text }] : [])),
+  }))
   return {
     title: 'Phân số là gì?',
     logline: 'Lan giải thích phân số bằng cái bánh.',
     genre: 'explainer',
-    hook: 'Phân số là gì vậy?',
+    hook: scenes[0]!.beats[0]!.line, // the hook is the first spoken line
     cast: sp.cast.map((c) => ({ ...c, look: { ink: c.look.ink, ...(c.look.hair && { hair: c.look.hair }) } })),
-    scenes: sp.scenes.map((s) => ({
-      setting: s.backdrop,
-      beats: s.beats.flatMap((b) => (b.say ? [{ who: b.say.who, line: b.say.text }] : [])),
-    })),
+    scenes,
     content_warnings: [],
   }
 }

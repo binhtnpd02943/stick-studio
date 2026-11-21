@@ -1,6 +1,6 @@
 import { VOICE_IDS } from '@stick/core'
 
-export const STORY_PROMPT_VERSION = 'story@1'
+export const STORY_PROMPT_VERSION = 'story@2'
 
 export interface RecentStory { title: string; logline: string }
 export interface StoryUserInput { topic: string; genre?: 'story' | 'explainer'; recent: RecentStory[] }
@@ -17,11 +17,11 @@ Thể loại (genre):
 - "explainer": giải thích một khái niệm bằng ví dụ trực quan. Với explainer, mọi khẳng định thực tế mà bạn không chắc chắn phải được ghi vào content_warnings.
 
 Cấu trúc bắt buộc, theo thứ tự: móc → diễn biến → cao trào/twist → kết.
-- "hook" là câu thoại ĐẦU TIÊN của phim, tối đa 12 từ, là một câu hỏi cụ thể, một mâu thuẫn hoặc một tương phản bất ngờ. Không chào hỏi ("Xin chào", "Hôm nay...").
+- "hook" là câu thoại ĐẦU TIÊN của phim, tối đa 12 tiếng (đếm theo dấu cách), là một câu hỏi cụ thể, một mâu thuẫn hoặc một tương phản bất ngờ. Không chào hỏi ("Xin chào", "Hôm nay...").
 - Phần thân phải trả lời đúng điều mà hook đã hứa. Không bỏ lửng, không đổi chủ đề.
 - Câu thoại đầu tiên của beat đầu tiên trong scenes phải đúng bằng "hook".
 
-Độ dài: tổng thời lượng đọc to khoảng 20-60 giây (khoảng 50-150 từ thoại, tương đương 6-14 beat). Mỗi câu thoại ngắn, tối đa 160 ký tự, một người nói một câu mỗi beat.
+Độ dài: tổng thời lượng đọc to khoảng 20-60 giây (khoảng 60-170 tiếng thoại, đếm theo dấu cách, tương đương 6-14 beat). Mỗi câu thoại ngắn, tối đa 160 ký tự, một người nói một câu mỗi beat.
 
 Ngôn ngữ: toàn bộ thoại (line), title, logline bằng tiếng Việt tự nhiên, dễ đọc thành tiếng. title tối đa 80 ký tự. Giữ nguyên id và khóa JSON bằng tiếng Anh.
 
@@ -38,11 +38,11 @@ Tự kiểm tra an toàn nội dung trước khi trả lời: bạo lực chi ti
 }
 
 // Angle brackets would let a topic close its own <topic> tag.
-const escapeTopic = (t: string) => t.replaceAll('<', '‹').replaceAll('>', '›')
+export const escapeAngles = (t: string) => t.replaceAll('<', '‹').replaceAll('>', '›')
 
 export function storyUser({ topic, genre, recent }: StoryUserInput): string {
   const parts = [
-    `<topic>${escapeTopic(topic)}</topic>`,
+    `<topic>${escapeAngles(topic)}</topic>`,
     genre ? `Thể loại yêu cầu: ${genre}.` : 'Hãy tự chọn genre phù hợp nhất ("story" hoặc "explainer") cho chủ đề này.',
   ]
   const list = recent.slice(0, MAX_RECENT)

@@ -18,6 +18,16 @@ export interface LlmProvider { generate<T>(req: LlmRequest<T>): Promise<{ value:
 /** `synthesize` returns WAV bytes. */
 export interface TtsProvider { readonly id: string; synthesize(text: string, voice: VoiceId): Promise<Buffer> }
 
-export class LlmRefusalError extends Error { override name = 'LlmRefusalError' }
-export class LlmTruncatedError extends Error { override name = 'LlmTruncatedError' }
-export class LlmSchemaError extends Error { override name = 'LlmSchemaError' }
+/** The paid call already returned when these are thrown, so they carry its usage for the budget. */
+export class LlmRefusalError extends Error {
+  override name = 'LlmRefusalError'
+  constructor(message: string, readonly usage?: LlmUsage) { super(message) }
+}
+export class LlmTruncatedError extends Error {
+  override name = 'LlmTruncatedError'
+  constructor(message: string, readonly usage?: LlmUsage) { super(message) }
+}
+export class LlmSchemaError extends Error {
+  override name = 'LlmSchemaError'
+  constructor(message: string, readonly usage?: LlmUsage) { super(message) }
+}

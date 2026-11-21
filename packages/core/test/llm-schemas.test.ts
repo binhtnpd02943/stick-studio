@@ -39,7 +39,7 @@ function findConstraints(node: unknown, path = '$'): string[] {
 const story = (hook: string) => ({
   title: 'T', logline: 'L', genre: 'story', hook,
   cast: [{ id: 'a', name: 'A', voice: 'narrator', look: { ink: '#141414' } }],
-  scenes: [{ setting: 's', beats: [{ who: 'a', line: 'hi' }] }],
+  scenes: [{ setting: 's', beats: [{ who: 'a', line: hook }, { who: 'a', line: 'tiếp' }] }],
   content_warnings: [],
 })
 
@@ -65,6 +65,21 @@ describe('llm schemas', () => {
   it('StorySchema rejects a 13-word hook and accepts 12', () => {
     expect(StorySchema.safeParse(story('một hai ba bốn năm sáu bảy tám chín mười mười_một mười_hai mười_ba')).success).toBe(false)
     expect(StorySchema.safeParse(story('một hai ba bốn năm sáu bảy tám chín mười mười_một mười_hai')).success).toBe(true)
+  })
+
+  it('StorySchema requires the first line of the first beat to be the hook', () => {
+    const bad = story('hook thật')
+    bad.scenes[0]!.beats[0]!.line = 'câu khác'
+    const r = StorySchema.safeParse(bad)
+    expect(r.success).toBe(false)
+    if (!r.success) expect(r.error.issues[0]).toMatchObject({ path: ['hook'], message: expect.stringContaining('exactly the hook') })
+    const padded = story('hook thật')
+    padded.scenes[0]!.beats[0]!.line = '  hook thật '
+    expect(StorySchema.safeParse(padded).success).toBe(true)
+  })
+
+  it('the phan-so example story passes', () => {
+    expect(StorySchema.safeParse(JSON.parse(readFileSync(new URL('../../../examples/phan-so.story.json', import.meta.url), 'utf8'))).success).toBe(true)
   })
 
   it('VOICE_IDS has 6 entries', () => {

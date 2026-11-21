@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, wri
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import type Anthropic from '@anthropic-ai/sdk'
-import type { LlmUsage } from '@stick/core'
+import { LlmTruncatedError, type LlmUsage } from '@stick/core'
 import { ScreenplayRejectedError } from '@stick/pipeline'
 import { ClaudeLlm } from '@stick/providers'
 import { z } from 'zod/v4'
@@ -133,6 +133,19 @@ describe('budget', () => {
     await paid.generate({ system: 's', cacheSystem: false, messages: [], schema: z.object({ ok: z.boolean() }), effort: 'low', maxTokens: 10 })
     expect(run.snapshot().costUsd).toBeCloseTo(2)
     expect(run.snapshot().usage[0]).toMatchObject({ model: 'claude-sonnet-5-5', servedModel: 'claude-sonnet-5-5-20261101' })
+  })
+
+  test('a paid call that fails after returning is booked and the error still propagates', async () => {
+    const dir = mkdtempSync(join(tmp, 'budget5-'))
+    const run = RunState.open(dir, 'topic', 'claude-sonnet-5-5', false)
+    const err = new LlmTruncatedError('cut off', usage(1_000_000))
+    const paid = budgeted({ generate: async () => { throw err } }, run, 10)
+    await expect(paid.generate(req)).rejects.toBe(err)
+    expect(run.snapshot().costUsd).toBeCloseTo(2)
+    expect(JSON.parse(readFileSync(join(dir, 'run.json'), 'utf8')).usage).toHaveLength(1)
+    const plain = budgeted({ generate: async () => { throw new Error('network') } }, run, 10)
+    await expect(plain.generate(req)).rejects.toThrow('network')
+    expect(run.snapshot().usage).toHaveLength(1)
   })
 
   test('usage is saved even if pricing throws', () => {

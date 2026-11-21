@@ -24,6 +24,6 @@ export const StorySchema = z.object({
     })),
   })).min(1).max(6),
   content_warnings: z.array(z.string()),
-})
+}).refine((s) => s.scenes[0]!.beats[0]?.line.trim() === s.hook.trim(), { message: 'the first line of the first beat must be exactly the hook', path: ['hook'] })
 
 export type Story = z.infer<typeof StorySchema>

@@ -98,16 +98,23 @@ export class RunState {
 }
 
 /**
- * Books every call into run.json as it returns (the repair loop's rejected drafts included) and refuses the
+ * Books every call into run.json as it returns or fails after returning (the repair loop's rejected drafts included) and refuses the
  * next call once the cap is passed. A call that ends over the cap is kept, so the film still finishes.
  */
 export function budgeted(inner: LlmProvider, run: RunState, maxCostUsd: number): LlmProvider {
   return {
     async generate(req) {
       run.assertBudget(maxCostUsd)
-      const res = await inner.generate(req)
-      run.book(res.usage)
-      return res
+      try {
+        const res = await inner.generate(req)
+        run.book(res.usage)
+        return res
+      } catch (e) {
+        // A call that returned but failed validation was still paid for.
+        const usage = (e as { usage?: LlmUsage }).usage
+        if (usage) run.book(usage)
+        throw e
+      }
     },
   }
 }

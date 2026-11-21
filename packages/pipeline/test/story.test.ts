@@ -17,7 +17,9 @@ describe('writeStory', () => {
   })
 
   test('rejects a story that breaks StorySchema (hook over 12 words)', async () => {
-    const bad = { ...story(), hook: 'một hai ba bốn năm sáu bảy tám chín mười mười-một mười-hai mười-ba' }
+    const hook = 'một hai ba bốn năm sáu bảy tám chín mười mười-một mười-hai mười-ba'
+    const s = story()
+    const bad = { ...s, hook, scenes: [{ ...s.scenes[0]!, beats: [{ ...s.scenes[0]!.beats[0]!, line: hook }, ...s.scenes[0]!.beats.slice(1)] }, ...s.scenes.slice(1)] }
     await expect(writeStory(new FakeLlm([bad]), { topic: 't', recent: [] })).rejects.toThrow(StoryRejectedError)
   })
 })

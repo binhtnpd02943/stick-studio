@@ -73,6 +73,21 @@ describe('ClaudeLlm', () => {
     await expect(stub(r).llm.generate(req())).rejects.toBeInstanceOf(LlmTruncatedError)
   })
 
+  it('attaches the call usage to errors thrown after the call returned', async () => {
+    const r = reply({ stop_reason: 'max_tokens', content: [{ type: 'text', text: '{"ok":' }] })
+    const e = await stub(r).llm.generate(req()).catch((x) => x)
+    expect(e).toBeInstanceOf(LlmTruncatedError)
+    expect(e.usage).toEqual({ model: 'claude-sonnet-5-5', servedModel: 'claude-sonnet-5-5', inputTokens: 10, outputTokens: 5, cacheReadTokens: 7, cacheWriteTokens: 3 })
+  })
+
+  it('reports schema issues as one line of path: message', async () => {
+    const e = await stub(reply({ content: [{ type: 'text', text: '{"ok":"yes"}' }] })).llm.generate(req()).catch((x) => x)
+    expect(e).toBeInstanceOf(LlmSchemaError)
+    expect(e.message).toMatch(/^ok: .+/)
+    expect(e.message).not.toContain('\n')
+    expect(e.usage.inputTokens).toBe(10)
+  })
+
   it.each([
     ['text that is not JSON', [{ type: 'text', text: 'nope' }]],
     ['JSON that fails the schema', [{ type: 'text', text: '{"ok":"yes"}' }]],

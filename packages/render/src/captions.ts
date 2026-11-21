@@ -38,33 +38,39 @@ function ellipsize(g: SKRSContext2D, lines: string[]): string[] {
 
 export interface CaptionPage { lines: string[]; size: number; text: string }
 
-export function layoutCaption(g: SKRSContext2D, text: string): { lines: string[]; size: number } {
+function layoutWords(g: SKRSContext2D, words: string[]): { lines: string[]; size: number; truncated: boolean } {
   registerFonts()
-  const words = text.split(/\s+/).filter(Boolean)
   g.save()
   try {
     for (let size = CAPTION.size; size >= CAPTION.minSize; size -= SIZE_STEP) {
       g.font = fontOf(size)
       const lines = wrap(g, words)
-      if (lines.length <= CAPTION.maxLines) return { lines, size }
+      if (lines.length <= CAPTION.maxLines) return { lines, size, truncated: false }
     }
     // Only a single page with a giant word still lands here; pageCaption keeps every other line whole.
     g.font = fontOf(CAPTION.minSize)
-    return { lines: ellipsize(g, wrap(g, words)), size: CAPTION.minSize }
+    return { lines: ellipsize(g, wrap(g, words)), size: CAPTION.minSize, truncated: true }
   } finally {
     g.restore()
   }
+}
+
+const splitWords = (text: string): string[] => text.split(/\s+/).filter(Boolean)
+
+export function layoutCaption(g: SKRSContext2D, text: string): { lines: string[]; size: number } {
+  const { lines, size } = layoutWords(g, splitWords(text))
+  return { lines, size }
 }
 
 const countWords = (lines: string[]): number => lines.reduce((n, l) => n + l.split(' ').length, 0)
 
 /** One page when the text fits layoutCaption's 2 lines; otherwise pages that each fill 2 lines at pageSize. */
 export function pageCaption(g: SKRSContext2D, text: string): CaptionPage[] {
-  const whole = layoutCaption(g, text)
-  const clean = text.split(/\s+/).filter(Boolean).join(' ')
-  if (!whole.lines.at(-1)?.endsWith(ELLIPSIS) || clean.endsWith(ELLIPSIS)) return [{ ...whole, text: clean }]
+  const all = splitWords(text)
+  const whole = layoutWords(g, all)
+  if (!whole.truncated) return [{ lines: whole.lines, size: whole.size, text: all.join(' ') }]
   const pages: CaptionPage[] = []
-  let rest = clean.split(' ')
+  let rest = all
   g.save()
   g.font = fontOf(CAPTION.pageSize)
   while (rest.length > 0) {

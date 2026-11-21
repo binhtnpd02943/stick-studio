@@ -39,6 +39,13 @@ describe('layoutCaption', () => {
     expect(pages.map((p) => p.text).join(' ')).toBe(text)
   })
 
+  test('overflowing text ending in an ellipsis is still paged', () => {
+    const text = `${words(120)}…`
+    const pages = pageCaption(g, text)
+    expect(pages.length).toBeGreaterThanOrEqual(3)
+    expect(pages.map((p) => p.text).join(' ')).toBe(text)
+  })
+
   test('text that fits stays a single page', () => {
     expect(pageCaption(g, words(12))).toHaveLength(1)
   })

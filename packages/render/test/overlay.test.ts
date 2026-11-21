@@ -126,7 +126,7 @@ describe('hand-held overlays follow the near hand, mirrored for both facings', (
     }
   })
 
-  test.each(['sleep', 'phone_call', 'drink', 'read_book'])('%s overlay is deterministic and moves with t', (id) => {
+  test.each(['sleep', 'knock', 'phone_call', 'drink', 'read_book'])('%s overlay is deterministic and moves with t', (id) => {
     const tl = timeline('left', id)
     const a = render(tl, 0.8)
     expect(Buffer.from(render(tl, 0.8)).equals(Buffer.from(a))).toBe(true)

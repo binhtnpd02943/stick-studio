@@ -312,6 +312,9 @@ describe('real contact actions', () => {
   }
   test.each([
     ['type_laptop', 'thing', 'desk'],
+    ['push', 'thing', 'desk'],
+    ['knock', 'thing', 'desk'],
+    ['hug', 'lan', undefined],
     ['sit', 'thing', 'stool'],
   ] as const)('%s on %s: far is out_of_reach, near after walk_to is fine', (action, target, type) => {
     expect(defaultCatalog.actions[action]?.contact).toBe(true)

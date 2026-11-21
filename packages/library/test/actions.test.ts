@@ -28,9 +28,9 @@ const near = (a: number[], b: number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1
 describe('actions', () => {
   it('catalog ids are exact', () => {
     expect(Object.keys(defaultCatalog.actions).sort()).toEqual([
-      'bow', 'cheer', 'clap', 'cross_arms', 'cry', 'drink', 'facepalm', 'fall_down', 'jump', 'laugh',
-      'look_around', 'nod', 'phone_call', 'point_at', 'read_book', 'run_to', 'scratch_head', 'shake_head', 'shrug', 'sit',
-      'sleep', 'stomp', 'talk', 'think', 'type_laptop', 'walk_to', 'wave',
+      'bow', 'cheer', 'clap', 'cross_arms', 'cry', 'dance', 'drink', 'facepalm', 'fall_down', 'hug', 'jump', 'knock', 'laugh',
+      'look_around', 'nod', 'phone_call', 'point_at', 'push', 'read_book', 'run_to', 'scratch_head', 'shake_head', 'shrug',
+      'sit', 'sleep', 'stomp', 'talk', 'think', 'type_laptop', 'walk_to', 'wave',
     ])
     expect(Object.keys(defaultCatalog.props).sort()).toEqual(['desk', 'whiteboard'])
     expect(Object.keys(defaultCatalog.backdrops).sort()).toEqual(['blank', 'classroom'])

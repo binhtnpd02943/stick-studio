@@ -106,9 +106,10 @@ describe('render-film CLI', () => {
 describe('gateMotion (exit 3)', () => {
   const tl = {} as Timeline
   const finding = { kind: 'jump' as const, from: 1, to: 1.1, note: 'fig0 handF 6.5' }
+  const idle = { kind: 'idle' as const, start: 1, end: 4 }
 
   test('throws CliError(3) listing the findings', () => {
-    const run = () => gateMotion(tl, false, () => [finding])
+    const run = () => gateMotion(tl, false, () => [finding], () => [])
     expect(run).toThrow(CliError)
     expect(run).toThrow(/jump 1\.00-1\.10s fig0 handF 6\.5/)
     try {
@@ -118,11 +119,21 @@ describe('gateMotion (exit 3)', () => {
     }
   })
 
-  test('--skip-motion bypasses the check', () => {
-    expect(() => gateMotion(tl, true, () => [finding])).not.toThrow()
+  test('pacing findings throw CliError(3) as `pacing idle <start>-<end>s`', () => {
+    const run = () => gateMotion(tl, false, () => [], () => [idle])
+    expect(run).toThrow(/pacing idle 1\.00-4\.00s/)
+    try {
+      run()
+    } catch (e) {
+      expect((e as CliError).exitCode).toBe(3)
+    }
+  })
+
+  test('--skip-motion bypasses both checks', () => {
+    expect(() => gateMotion(tl, true, () => [finding], () => [idle])).not.toThrow()
   })
 
   test('clean film passes', () => {
-    expect(() => gateMotion(tl, false, () => [])).not.toThrow()
+    expect(() => gateMotion(tl, false, () => [], () => [])).not.toThrow()
   })
 })

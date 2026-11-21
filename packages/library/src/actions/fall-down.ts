@@ -19,14 +19,18 @@ const rot = (p: number[], c: number[], a: number): Pt => {
   return [c[0]! + rx * Math.cos(a) + ry * Math.sin(a), c[1]! - rx * Math.sin(a) + ry * Math.cos(a)]
 }
 
+/** Seconds until the body is flat on the ground. */
+const fallSeconds = (dur: number): number => Math.max(FALL_MIN_S, dur * FALL_SHARE)
+
 export const fallDown: ActionDef = {
   id: 'fall_down',
   version: 1,
   needsTarget: false,
   duration: { min: 1.2, ideal: 1.8, max: 3.0 },
   description: 'Slips and topples backwards to lie flat on the ground, lies there a moment, then gets back up.',
+  sfx: (dur) => [{ id: 'thud', at: fallSeconds(dur) }],
   apply({ rig, T, dur, base }) {
-    const fall = Math.max(FALL_MIN_S, dur * FALL_SHARE), up = Math.max(UP_MIN_S, dur * UP_SHARE)
+    const fall = fallSeconds(dur), up = Math.max(UP_MIN_S, dur * UP_SHARE)
     const k = rig.E.soft(rig.seg(T, 0, fall)) * (1 - rig.E.soft(rig.seg(T, dur - up, dur)))
     const a = MAX_ANGLE * k
     const drop = 1 - Math.cos(a)

@@ -7,17 +7,26 @@ const FULL_RISE_AIR_S = 0.22
 const SQUAT_S = 0.3
 const MIN_TUCK_AIR_S = 0.15
 
+/** Crouch and landing bottoms (`a`, `b`) and the key phases between them, as shares of the action. */
+const jumpKeys = (dur: number) => {
+  const a = Math.max(0.2, SQUAT_S / dur), b = 1 - a
+  const span = b - a
+  return { a, b, airFrom: a + 0.15 * span, standAt: a + 0.4 * span, tuckAt: a + 0.58 * span, fallAt: a + 0.78 * span, airTo: a + 0.88 * span }
+}
+
 export const jump: ActionDef = {
   id: 'jump',
   version: 1,
   needsTarget: false,
   duration: { min: 0.8, ideal: 1.0, max: 1.6 },
   description: 'Crouches, jumps up with arms raised, lands.',
+  sfx(dur) {
+    const { airFrom, airTo } = jumpKeys(dur)
+    return [{ id: 'whoosh', at: airFrom * dur }, { id: 'thud', at: airTo * dur }]
+  },
   apply({ rig, T, dur, base }) {
     const k = T / dur
-    const a = Math.max(0.2, SQUAT_S / dur), b = 1 - a // crouch bottom, landing bottom
-    const span = b - a
-    const airFrom = a + 0.15 * span, standAt = a + 0.4 * span, tuckAt = a + 0.58 * span, fallAt = a + 0.78 * span, airTo = a + 0.88 * span
+    const { a, b, airFrom, standAt, tuckAt, fallAt, airTo } = jumpKeys(dur)
     // Legs and arms run on separate, sparse timelines so the arms never stop dead at a leg key.
     const crouchLegs = { hip: [-2, -49], chest: [4, -79], head: [8, -104], kF: [32, -28], kB: [22, -28] }
     const airS = (airTo - airFrom) * dur

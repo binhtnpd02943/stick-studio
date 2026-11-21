@@ -1,9 +1,10 @@
 import type { ActionDef } from '../types'
-import { bump } from './bump'
+import { bump, rampSeconds } from './bump'
 
 const PUMP_HZ = 3
 /** The arms travel far (rest to a Y); ramping in/out faster than this snaps the hands (motion gate `jump`). */
 const RAMP_S = 0.3
+const cheerEdge = (dur: number): number => Math.max(0.3, RAMP_S / dur)
 
 export const cheer: ActionDef = {
   id: 'cheer',
@@ -11,8 +12,10 @@ export const cheer: ActionDef = {
   needsTarget: false,
   duration: { min: 0.6, ideal: 1.0, max: 2.0 },
   description: 'Both arms up in a Y, with a small pump.',
+  // The arms reach the top of the Y when the ramp-in ends.
+  sfx: (dur) => [{ id: 'pop', at: rampSeconds(dur, cheerEdge(dur)) }],
   apply({ rig, T, dur, base }) {
-    const w = bump(rig, T, dur, Math.max(0.3, RAMP_S / dur))
+    const w = bump(rig, T, dur, cheerEdge(dur))
     const pump = Math.sin(T * PUMP_HZ * 2 * Math.PI) * 3 * w
     const target = rig.P({ hF: [14, -132 + pump], hB: [-10, -130 - pump], head: [3, -118] })
     return { pose: rig.mix(base, target, w) }

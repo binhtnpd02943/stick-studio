@@ -1,3 +1,4 @@
+import type { SfxId } from '@stick/core'
 import type { Pose, Rig } from '@stick/engine'
 
 export interface CharacterState {
@@ -42,6 +43,12 @@ export interface OverlayAt {
   hands: { near: [number, number]; far: [number, number] }
 }
 
+/** What an action's `sfx` needs beyond its duration: the rig (for gait and ramp math) and, for locomotion, how far it travels. */
+export interface SfxEnv {
+  rig: Rig
+  distance: number
+}
+
 export interface ActionDef {
   id: string
   version: number
@@ -54,6 +61,8 @@ export interface ActionDef {
   speed?: number
   duration: { min: number; ideal: number; max: number }
   description: string
+  /** Sound cues, `at` in seconds from the action start, taken from the same phase math as `apply` so they land on the visible contact. */
+  sfx?: (dur: number, env: SfxEnv) => { id: SfxId; at: number }[]
   apply(ctx: ActionContext): ActionResult
 }
 

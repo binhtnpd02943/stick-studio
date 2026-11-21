@@ -7,6 +7,12 @@ const RETRACT = 6 // the fist pulls back this far between knocks
 const FLICK_S = 0.04 // seconds, either side of contact, that show the impact flicks (a window of at least 2 frames at 30 fps)
 const FLICK_ANGLES = [-0.9, 0, 0.9]
 
+/** Seconds, from the action start, at which each knock lands (between the 0.3 s ramps). */
+const impacts = (dur: number): number[] => {
+  const span = Math.max(dur - 0.6, 0.01)
+  return Array.from({ length: KNOCKS }, (_, i) => 0.3 + ((i + 1) * span) / KNOCKS)
+}
+
 export const knock: ActionDef = {
   id: 'knock',
   version: 1,
@@ -14,6 +20,7 @@ export const knock: ActionDef = {
   contact: true,
   duration: { min: 0.8, ideal: 1.2, max: 2.5 },
   description: 'Near fist taps twice on the target (a door), the head cocked to listen.',
+  sfx: (dur) => impacts(dur).map((at) => ({ id: 'knock', at })),
   apply({ rig, self, targetX, T, dur, base }) {
     const w = bump(rig, T, dur)
     // The knocks sit between the ramps: each pulls the fist back, then lands at the end of its period.
@@ -22,8 +29,7 @@ export const knock: ActionDef = {
     const phase = u > 0 && u < 1 ? c % 1 : 0
     const target = rig.P({ chest: [5, -89], head: [11, -115], hF: [31 - Math.sin(Math.PI * phase) * RETRACT * w, -80], hB: [-1, -54], hang: 1, ef: 0.6 })
     // Judged on time, not on the clamped u: the last impact's flicks end just after it, not through the ramp-out.
-    const span = Math.max(dur - 0.6, 0.01)
-    const landing = Array.from({ length: KNOCKS }, (_, i) => 0.3 + ((i + 1) * span) / KNOCKS).some((at) => Math.abs(T - at) < FLICK_S)
+    const landing = impacts(dur).some((at) => Math.abs(T - at) < FLICK_S)
     const overlay: ActionResult['overlay'] = (g, r, at) => {
       if (!landing) return
       const [x, y] = at.hands.near

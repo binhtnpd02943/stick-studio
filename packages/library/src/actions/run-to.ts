@@ -1,9 +1,10 @@
 import type { ActionDef } from '../types'
+import { footfalls } from './gait'
 
 const RAMP = 0.26 // share of the run spent speeding up, and again slowing down
 
 /** Speed rises smoothly, holds, and falls smoothly: a runner holds a pace, so the peak stays near the average and the legs never outrun the stride cap. */
-const pace = (k: number): number => {
+export const pace = (k: number): number => {
   const up = (u: number) => RAMP * (u ** 3 - u ** 4 / 2) // integral of smoothstep speed over a ramp, u in 0..1
   if (k < RAMP) return up(k / RAMP) / (1 - RAMP)
   if (k > 1 - RAMP) return 1 - up((1 - k) / RAMP) / (1 - RAMP)
@@ -30,6 +31,7 @@ export const runTo: ActionDef = {
   // min: the longest hop (left -> right, 190 world units) at 0.95 s is the fastest the rig's legs run cleanly; any quicker snaps the knees or feet (motion gate).
   duration: { min: 0.95, ideal: 1.0, max: 2.0 },
   description: 'Run to a world x position, turning to face it. Leaning forward, arms pumping.',
+  sfx: (dur, { rig, distance }) => footfalls(rig, dur, distance, pace).map((at) => ({ id: 'step', at })),
   apply({ rig, self, targetX, T, dur, base }) {
     const { chest, head } = base
     const to = targetX ?? self.x

@@ -8,5 +8,6 @@ export type {
   CharacterState,
   OverlayAt,
   PropDef,
+  SfxEnv,
 } from './types'
 export * from './stage'

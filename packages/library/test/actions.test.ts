@@ -51,6 +51,20 @@ describe('actions', () => {
     expect(Math.max(...moved)).toBeGreaterThan(2)
   })
 
+  // The contract: ramp in/out over at least 0.3 s. A soft 0.3 s ramp is 25% done at 0.1 s (arm arcs run a little ahead); a 0.18 s ramp is 62% done.
+  // walk_to is locomotion, nod is a full oscillation from rest and talk may be 0.3 s long, so they are not ramped by contract.
+  it.each(
+    actions.filter((a) => !['walk_to', 'nod', 'talk'].includes(a.id)).flatMap((a) => (['min', 'ideal'] as const).map((w) => [`${a.id} at ${w}`, a, a.duration[w]] as const)),
+  )('%s is at rest at both ends and has not snapped by T=0.1s', (_name, def, dur) => {
+    const at = (T: number) => def.apply(ctxAt(def, T, { dur, k: T / dur })).pose
+    const dist = (T: number) => Math.max(...(['hF', 'hB', 'head', 'hip', 'fF', 'fB'] as const).map((j) => Math.hypot(at(T)[j][0] - base[j][0], at(T)[j][1] - base[j][1])))
+    const frames = Array.from({ length: 61 }, (_, i) => (dur * i) / 60)
+    const peak = Math.max(...frames.map(dist))
+    expect(dist(0)).toBeLessThan(1)
+    expect(dist(dur)).toBeLessThan(1)
+    expect(dist(0.1)).toBeLessThanOrEqual(0.45 * peak + 0.5)
+  })
+
   it('walk_to arrives', () => {
     const def = defaultCatalog.actions.walk_to!
     const end = def.apply(ctxAt(def, 1.2, { dur: 1.2, targetX: 50 }))

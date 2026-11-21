@@ -9,8 +9,12 @@ export const shrug: ActionDef = {
   description: 'Shoulders up, palms out at waist height, head tilts.',
   apply({ rig, T, dur, base }) {
     const w = bump(rig, T, dur)
-    const up = Math.sin(Math.PI * Math.min(1, T / dur)) * 4 // hands rise and settle with the shoulders
-    const target = rig.P({ hF: [26, -76 - up], hB: [15, -74 - up], head: [9, -108 + up * 0.5], chest: [1, -89] })
+    // The head sits at a fixed distance from the chest, so the shoulders cannot rise: the arms carry the shrug.
+    // Hands split front and back with one pop of chest and hands in the middle third.
+    const pop = Math.sin(Math.PI * rig.seg(T / dur, 0.35, 0.65))
+    const target = rig.P({
+      hF: [20, -62 - pop * 6], hB: [-13, -56 - pop * 6], head: [8, -113], chest: [0, -90 - pop * 4], hang: 0,
+    })
     return { pose: rig.mix(base, target, w) }
   },
 }

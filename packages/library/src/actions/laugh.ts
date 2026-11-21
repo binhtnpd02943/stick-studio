@@ -1,7 +1,7 @@
 import type { ActionDef } from '../types'
 import { bump } from './bump'
 
-const BOUNCE_HZ = 5
+const BOUNCE_HZ = 4
 
 export const laugh: ActionDef = {
   id: 'laugh',
@@ -11,8 +11,8 @@ export const laugh: ActionDef = {
   description: 'Leans back, hand on belly, shoulders bounce.',
   apply({ rig, T, dur, base }) {
     const w = bump(rig, T, dur)
-    const b = Math.sin(T * BOUNCE_HZ * 2 * Math.PI) * 1.5
-    const target = rig.P({ chest: [-5, -89 + b], head: [-11, -112 + b], hF: [5, -71 + b], hB: [-4, -64 + b] })
+    const b = Math.sin(T * BOUNCE_HZ * 2 * Math.PI) * 3
+    const target = rig.P({ chest: [-9, -88 + b], head: [-20, -107 + b], hF: [4, -66 + b], hB: [-6, -52 + b], hang: 0 })
     return { pose: rig.mix(base, target, w) }
   },
 }

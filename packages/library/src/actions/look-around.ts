@@ -11,8 +11,9 @@ export const lookAround: ActionDef = {
   apply({ rig, T, dur, base }) {
     const w = bump(rig, T, dur)
     const scan = Math.sin(((T / dur) * 2 + 0.25) * Math.PI) // back, then forward, then back
-    const chest: [number, number] = [0, -90], head: [number, number] = [scan * 6 + 3, -116]
-    const target = rig.P({ chest, head, hF: atHead(chest, head, 7, -5), hB: [-4, -54] })
+    const chest: [number, number] = [scan * 2.5, -90], head: [number, number] = [scan * 11 + 3, -116]
+    // Flat hand at the brow, in front of the eyes (scratch_head sits on top of the head).
+    const target = rig.P({ chest, head, hF: atHead(chest, head, 9, -3), hB: [-4, -54] })
     return { pose: rig.mix(base, target, w) }
   },
 }

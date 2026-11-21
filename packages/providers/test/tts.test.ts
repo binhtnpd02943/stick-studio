@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { TtsProvider } from '@stick/core'
-import { cachedTts, FakeTts, SayTts, silentWav, wavSeconds } from '../src/index.js'
+import { cachedTts, FakeTts, neutraliseSayCommands, SayTts, silentWav, wavSeconds } from '../src/index.js'
 
 let dir: string
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'tts-test-')) })
@@ -19,6 +19,15 @@ const counting = (): TtsProvider & { calls: number } => {
   }
   return t
 }
+
+describe('neutraliseSayCommands', () => {
+  it.each(['[[', '[[[', '[[[[', 'a[[b[[c', '[[slnc 3000]]', 'plain [ text ]'])('leaves no adjacent [ in %j', (t) => {
+    expect(neutraliseSayCommands(t)).not.toContain('[[')
+  })
+  it('keeps text without [[ unchanged', () => {
+    expect(neutraliseSayCommands('xin chào [a] b')).toBe('xin chào [a] b')
+  })
+})
 
 describe('FakeTts', () => {
   it('returns a wav as long as the estimated line duration', async () => {
@@ -101,8 +110,8 @@ describe.skipIf(process.platform !== 'darwin')('SayTts (macOS)', () => {
   }, 30_000)
 
   // the command is spoken as words (about 1.4 s) instead of obeyed (about +2.9 s of silence)
-  it('does not execute embedded [[slnc]] speech commands', async () => {
-    const [plain, cmd] = await Promise.all([new SayTts().synthesize('slnc 3000 xin chào', 'narrator'), new SayTts().synthesize('[[slnc 3000]] xin chào', 'narrator')])
+  it.each(['[[slnc 3000]] xin chào', '[[[slnc 3000]] xin chào'])('does not execute embedded speech commands in %s', async (text) => {
+    const [plain, cmd] = await Promise.all([new SayTts().synthesize('slnc 3000 xin chào', 'narrator'), new SayTts().synthesize(text, 'narrator')])
     expect(Math.abs(wavSeconds(cmd) - wavSeconds(plain))).toBeLessThan(1)
   }, 30_000)
 

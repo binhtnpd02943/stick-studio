@@ -18,6 +18,9 @@ export const VOICE_RATES: Record<VoiceId, number> = {
   child: 200,
 }
 
+/** `say` runs embedded [[slnc]]/[[rate]]/[[volm]] commands, so no two adjacent `[` may survive. */
+export const neutraliseSayCommands = (text: string): string => text.replace(/\[(?=\[)/g, '[ ')
+
 /** macOS `say -v Linh`. Text goes through a UTF-8 file (`-f`) and an args array: never parsed as a flag or by a shell. */
 export class SayTts implements TtsProvider {
   readonly id = 'macos-say-linh'
@@ -26,8 +29,7 @@ export class SayTts implements TtsProvider {
     try {
       const txt = join(dir, 'line.txt')
       const wav = join(dir, 'line.wav')
-      // `say` runs embedded [[slnc]]/[[rate]]/[[volm]] commands, so break the opener to keep the text literal
-      await writeFile(txt, text.replaceAll('[[', '[ ['), 'utf8')
+      await writeFile(txt, neutraliseSayCommands(text), 'utf8')
       await run('say', ['-v', 'Linh', '-r', String(VOICE_RATES[voice]), '-f', txt, '-o', wav, '--data-format=LEI16@22050'], { timeout: SAY_TIMEOUT_MS })
       return await readFile(wav)
     } finally {

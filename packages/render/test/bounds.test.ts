@@ -61,6 +61,10 @@ describe('catalog ids', () => {
     }
   })
 
+  test('backdrops are the 8 specified', () => {
+    expect(Object.keys(defaultCatalog.backdrops).sort()).toEqual([...BACKDROPS].sort())
+  })
+
   test('every prop and backdrop has a one-line description', () => {
     for (const d of [...Object.values(defaultCatalog.props), ...Object.values(defaultCatalog.backdrops)]) {
       expect(d.description.length, d.id).toBeGreaterThan(10)

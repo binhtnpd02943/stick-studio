@@ -33,7 +33,7 @@ describe('actions', () => {
       'sit', 'sleep', 'stomp', 'talk', 'think', 'type_laptop', 'walk_to', 'wave',
     ])
     expect(Object.keys(defaultCatalog.props).sort()).toEqual(['bed', 'bookshelf', 'box', 'chair', 'desk', 'door', 'lamp', 'plant', 'sofa', 'table', 'tree', 'whiteboard'])
-    expect(Object.keys(defaultCatalog.backdrops).sort()).toEqual(['blank', 'classroom'])
+    expect(Object.keys(defaultCatalog.backdrops).sort()).toEqual(['blank', 'cafe', 'classroom', 'home', 'office', 'park', 'stage', 'street'])
   })
 
   it.each(actions.map((a) => [a.id, a] as const))('%s starts at rest at k=0', (_id, def) => {

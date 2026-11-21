@@ -31,6 +31,12 @@ import { dance } from './actions/dance'
 import { hug } from './actions/hug'
 import { blank } from './backdrops/blank'
 import { classroom } from './backdrops/classroom'
+import { home } from './backdrops/home'
+import { office } from './backdrops/office'
+import { street } from './backdrops/street'
+import { park } from './backdrops/park'
+import { cafe } from './backdrops/cafe'
+import { stage } from './backdrops/stage'
 import { desk } from './props/desk'
 import { whiteboard } from './props/whiteboard'
 import { chair } from './props/chair'
@@ -58,5 +64,5 @@ export const defaultCatalog: Catalog = {
     sit, sleep, fallDown, typeLaptop, readBook, phoneCall, drink, push, knock, dance, hug,
   ]),
   props: byId<PropDef>([whiteboard, desk, chair, sofa, bed, table, door, tree, bookshelf, box, lamp, plant]),
-  backdrops: byId<BackdropDef>([blank, classroom]),
+  backdrops: byId<BackdropDef>([blank, classroom, home, office, street, park, cafe, stage]),
 }

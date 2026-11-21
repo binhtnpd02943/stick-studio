@@ -85,13 +85,3 @@ export function stepAction(a: StageAction, scene: StageScene, xs: Map<string, { 
   const at = resolveTarget(a.target, scene, xs, from, false, catalog)
   return { from, to: from, gap: Math.max(0, Math.abs(from - at) - surfaceHalf(a.target, scene, xs, catalog)) }
 }
-
-/** Each character's x at the start of every beat. */
-export function trackPositions(scene: PlayScene, catalog: Catalog = defaultCatalog): Array<Map<string, number>> {
-  const xs = startXs(scene, catalog)
-  return scene.beats.map((beat) => {
-    const atStart = new Map([...xs].map(([id, { x }]) => [id, x]))
-    for (const a of beat.do ?? []) stepAction(a, scene, xs, catalog)
-    return atStart
-  })
-}

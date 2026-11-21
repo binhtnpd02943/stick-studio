@@ -19,7 +19,6 @@ interface Ctx {
   /** Characters already reported as off-stage in this scene. */
   offStage: Set<string>
   add: (code: IssueCode, path: string, message: string, key?: string) => void
-  count: () => number
 }
 
 /** A mark is bare, or near:<prop in this scene>. */
@@ -92,8 +91,8 @@ function validateAction(c: Ctx, d: NonNullable<Beat['do']>[number], dp: string) 
 
 function checkSeat(c: Ctx, action: string, target: string, path: string) {
   const type = c.scene.props.find((p) => p.id === target)?.type
-  if (type !== undefined && lookup(c.catalog.props, type)?.seatY === undefined) {
-    c.add('unknown_target', path, `cannot ${action} on ${type}`)
+  if (type === undefined || lookup(c.catalog.props, type)?.seatY === undefined) {
+    c.add('unknown_target', path, `cannot ${action} on ${type ?? target}`)
   }
 }
 
@@ -104,11 +103,25 @@ function validateBeat(c: Ctx, beat: Beat, bp: string) {
   if (beat.say) checkWho(c, beat.say.who, `${bp}.say.who`)
 }
 
-/** Contact actions need the actor within REACH; earlier walks in the same beat count. Needs a scene whose targets all resolve. */
-function validateReach(c: Ctx, sp: Scene) {
+/** The scene minus whatever validation rejected, so that stepping through it cannot throw: bad props and start marks are dropped. */
+function steppable(c: Ctx): Scene {
+  const props = c.scene.props.filter((p) => lookup(c.catalog.props, p.type) && BARE_MARKS.has(p.mark))
+  const ids = new Set(props.map((p) => p.id))
+  const start = Object.fromEntries(
+    Object.entries(c.scene.start).filter(([who, mark]) => c.cast.has(who) && (BARE_MARKS.has(mark) || (mark.startsWith(NEAR) && ids.has(mark.slice(NEAR.length))))),
+  )
+  return { ...c.scene, props, start }
+}
+
+/** Contact actions need the actor within REACH; earlier walks in the same beat count. Actions whose actor or target failed validation are skipped. */
+function validateReach(c: Ctx) {
+  const sp = steppable(c)
   const xs = startXs(sp, c.catalog)
+  const ids = new Set(sp.props.map((p) => p.id))
+  const known = (t: string) => BARE_MARKS.has(t) || ids.has(t) || xs.has(t) || (t.startsWith(NEAR) && ids.has(t.slice(NEAR.length)))
   sp.beats.forEach((beat, bi) =>
     beat.do?.forEach((d, di) => {
+      if (!xs.has(d.who) || (d.target !== undefined && !known(d.target))) return
       const { gap } = stepAction(d, sp, xs, c.catalog)
       if (gap !== undefined && gap > REACH) {
         c.add('out_of_reach', `${c.path}.beats.${bi}.do.${di}`, `"${d.who}" is ${Math.round(gap)} from "${d.target}" (reach ${REACH}): add a walk_to before "${d.action}"`)
@@ -118,14 +131,13 @@ function validateReach(c: Ctx, sp: Scene) {
 }
 
 function validateScene(c: Ctx) {
-  const before = c.count()
   if (!lookup(c.catalog.backdrops, c.scene.backdrop)) {
     c.add('unknown_backdrop', `${c.path}.backdrop`, `unknown backdrop "${c.scene.backdrop}"`, c.scene.backdrop)
   }
   validateProps(c)
   validateStart(c)
   c.scene.beats.forEach((beat, bi) => validateBeat(c, beat, `${c.path}.beats.${bi}`))
-  if (c.count() === before) validateReach(c, c.scene)
+  validateReach(c)
 }
 
 /** Report each id that repeats one in `taken` (or a mark name), adding it otherwise. */
@@ -164,7 +176,6 @@ export function validateScreenplay(sp: Screenplay, catalog: Catalog): Issue[] {
       catalog,
       offStage: new Set(),
       add,
-      count: () => issues.length,
     }),
   )
   return issues

@@ -243,6 +243,31 @@ describe('out_of_reach', () => {
     expect(validateScreenplay(withBeats(beat(['minh', 'point_at', 'board'])), catalog)).toEqual([])
   })
 
+  test('an unrelated issue in the scene does not hide a far contact', () => {
+    const sp = withBeats(beat(['minh', 'grab', 'board']))
+    sp.scenes[0]!.backdrop = 'moon'
+    const issues = validateScreenplay(sp, catalog)
+    expect(issues.map((i) => i.code).sort()).toEqual(['out_of_reach', 'unknown_backdrop'])
+  })
+
+  test('only actions that failed validation are skipped', () => {
+    const sp = withBeats(beat(['zed', 'grab', 'board'], ['minh', 'grab', 'ghost'], ['minh', 'grab', 'board']))
+    const issues = validateScreenplay(sp, catalog)
+    expect(issues.map((i) => `${i.code} ${i.path}`)).toEqual([
+      'unknown_cast scenes.0.beats.0.do.0.who',
+      'unknown_target scenes.0.beats.0.do.1.target',
+      'out_of_reach scenes.0.beats.0.do.2',
+    ])
+  })
+
+  test('a bad prop or start mark skips only the actions that depend on it', () => {
+    const sp = withBeats(beat(['minh', 'grab', 'board']))
+    sp.scenes[0]!.props.push({ id: 'seat', type: 'trampoline', mark: 'center' })
+    sp.scenes[0]!.start.lan = 'near:ghost'
+    const codes = validateScreenplay(sp, catalog).map((i) => i.code).sort()
+    expect(codes).toEqual(['out_of_reach', 'unknown_prop', 'unknown_target'])
+  })
+
   test('a contact target that is not on stage is unknown_target, not a crash', () => {
     const sp = withBeats(beat(['minh', 'grab', 'lan']))
     delete sp.scenes[0]!.start.lan
@@ -261,6 +286,14 @@ describe('needsSeat', () => {
   test('sit on a desk is unknown_target "cannot sit on desk"', () => {
     const issue = expectOne(sitOn('desk'), 'unknown_target', 'scenes.0.beats.0.do.1.target')
     expect(issue.message).toBe('cannot sit on desk')
+  })
+
+  test('sit on anything that is not a seat prop is rejected, marks and cast included', () => {
+    for (const [target, name] of [['center', 'center'], ['lan', 'lan'], ['board', 'whiteboard']] as const) {
+      const sp = sample()
+      sp.scenes[0]!.beats = [{ do: [{ who: 'minh', action: 'sit', target }] }] as never
+      expect(validateScreenplay(sp, catalog).map((i) => i.message)).toContain(`cannot sit on ${name}`)
+    }
   })
 
   test('sit on a prop with seatY is fine', () => {

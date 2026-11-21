@@ -129,6 +129,20 @@ describe('make-film sound', () => {
     expect(r.stderr).toContain('missing "author"')
   }, SLOW)
 
+  test.each([
+    ['notes.txt', () => writeFileSync(join(tmp, 'notes.txt'), 'not audio at all\n')],
+    ['silent-video.mp4', () => spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=64x64:d=1', join(tmp, 'silent-video.mp4')])],
+  ] as const)('--music %s with no audio stream exits 1 before any LLM call', (name, create) => {
+    create()
+    const music = join(tmp, name)
+    writeFileSync(`${music}.license.json`, JSON.stringify(LICENSE))
+    const dir = join(tmp, `music-${name}`)
+    const r = make(['Phân số là gì?', '--fake', '--out', dir, '--music', music], { STICK_FAKE_EMPTY: '1' })
+    expect(r.status).toBe(1)
+    expect(r.stderr).toContain(`${music}: no audio stream`)
+    expect(existsSync(dir)).toBe(false)
+  }, SLOW)
+
   test('--music with a sidecar records run.json.music and mixes it in', () => {
     const music = synthMusic('ok.wav')
     writeFileSync(`${music}.license.json`, JSON.stringify(LICENSE))

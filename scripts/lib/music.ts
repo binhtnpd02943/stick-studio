@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { CliError } from './cli-error.js'
@@ -23,5 +24,15 @@ export function readMusic(file: string): { path: string; license: MusicLicense }
       return [f, v]
     }),
   ) as unknown as MusicLicense
+  if (!hasAudio(file)) throw new CliError(1, `--music: ${file}: no audio stream (ffprobe found none)`)
   return { path: resolve(file), license }
+}
+
+/** Checked up front: a non-audio file would otherwise fail inside ffmpeg after the paid steps. */
+function hasAudio(file: string): boolean {
+  try {
+    return execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', file], { encoding: 'utf8' }).trim() !== ''
+  } catch {
+    return false // ffprobe exits non-zero on files it cannot parse at all
+  }
 }

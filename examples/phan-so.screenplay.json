@@ -133,11 +133,11 @@
     },
     {
       "id": "s3",
-      "backdrop": "classroom",
+      "backdrop": "home",
       "props": [
         {
-          "id": "desk",
-          "type": "desk",
+          "id": "sofa",
+          "type": "sofa",
           "mark": "center"
         }
       ],
@@ -154,12 +154,22 @@
           "do": [
             {
               "who": "minh",
-              "action": "cheer"
+              "action": "walk_to",
+              "target": "sofa"
+            },
+            {
+              "who": "minh",
+              "action": "sit",
+              "target": "sofa"
+            },
+            {
+              "who": "lan",
+              "action": "drink"
             }
           ],
           "camera": {
             "zoom": 1.3,
-            "focus": "desk"
+            "focus": "sofa"
           }
         },
         {

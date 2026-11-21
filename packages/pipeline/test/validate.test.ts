@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { parseScreenplay, type Screenplay } from '@stick/core'
 import { defaultCatalog, type ActionDef, type Catalog, type PropDef } from '@stick/library'
 import { specExample } from '../../core/test/fixtures.js'
@@ -379,5 +380,31 @@ describe('start on a prop', () => {
     sp.scenes[0]!.start.minh = 'near:board'
     sp.scenes[0]!.beats = [sp.scenes[0]!.beats[0]!] // lan's walk to the board would stop on him
     expect(validateScreenplay(sp, catalog)).toEqual([])
+  })
+})
+
+// make --fake plays this screenplay end to end, so it must keep exercising the plan-3 library through the real gates.
+describe('the phan-so example (the --fake film)', () => {
+  const sp = parseScreenplay(JSON.parse(readFileSync(new URL('../../../examples/phan-so.screenplay.json', import.meta.url), 'utf8')))
+  if (!sp.ok) throw new Error(sp.issues.join('; '))
+  const steps = sp.value.scenes.flatMap((s) => s.beats.flatMap((b) => (b.do ?? []).map((d) => ({ ...d, scene: s }))))
+  const ink = (who: string) => sp.value.cast.find((c) => c.id === who)!.look.ink
+
+  test('is valid', () => expect(validateScreenplay(sp.value, defaultCatalog)).toEqual([]))
+
+  test('a contact action follows a walk_to by the same actor to the same target', () => {
+    expect(steps.some((d, i) => defaultCatalog.actions[d.action]?.contact && steps.slice(0, i).some((w) => w.action === 'walk_to' && w.who === d.who && w.target === d.target && w.scene === d.scene))).toBe(true)
+  })
+
+  test('a coloured-ink cast member does a hand-held overlay action', () => {
+    expect(steps.some((d) => ['phone_call', 'drink', 'read_book'].includes(d.action) && ink(d.who) !== '#141414')).toBe(true)
+  })
+
+  test('someone sits on a seat prop', () => {
+    expect(steps.some((d) => d.action === 'sit' && defaultCatalog.props[d.scene.props.find((p) => p.id === d.target)?.type ?? '']?.seatY !== undefined)).toBe(true)
+  })
+
+  test('a scene uses a plan-3 backdrop', () => {
+    expect(sp.value.scenes.some((s) => !['classroom', 'blank'].includes(s.backdrop))).toBe(true)
   })
 })

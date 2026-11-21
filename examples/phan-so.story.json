@@ -60,12 +60,12 @@
       ]
     },
     {
-      "setting": "Lớp học, cạnh bàn học",
+      "setting": "Ở nhà, phòng khách có ghế sofa",
       "beats": [
         {
           "who": "minh",
           "line": "À, mình hiểu rồi! Phân số là một phần của cả cái bánh.",
-          "action_hint": "Minh reo lên"
+          "action_hint": "Minh ngồi xuống sofa, Lan uống nước"
         },
         {
           "who": "lan",

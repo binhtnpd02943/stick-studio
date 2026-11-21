@@ -109,6 +109,45 @@ describe('draftScreenplay', () => {
       expect(r.rounds).toBe(0)
     })
 
+    test('three independent bad lines in a same-length screenplay all appear in the first repair message', async () => {
+      const bad = llmScreenplay()
+      for (const [si, bi] of [[0, 0], [1, 1], [2, 1]] as const) bad.scenes[si]!.beats[bi]!.say!.text = `Sai ${si}-${bi}`
+      const llm = new FakeLlm([bad, llmScreenplay()])
+      await draftScreenplay(llm, story(), catalog)
+      const text = repairText(llm)
+      expect(text.match(/line_mismatch scenes beat/g)).toHaveLength(3)
+      for (const idx of [0, 3, 6]) expect(text).toContain(`beat ${idx}: expected`)
+      expect(text).not.toContain('more lines differ')
+    })
+
+    test('an inserted line yields the first difference plus the count summary', async () => {
+      const bad = llmScreenplay()
+      bad.scenes[0]!.beats.splice(1, 0, { say: { who: 'minh', text: 'Chen một câu.' } } as (typeof bad.scenes)[0]['beats'][0])
+      const llm = new FakeLlm([bad, llmScreenplay()])
+      await draftScreenplay(llm, story(), catalog)
+      const text = repairText(llm)
+      expect(text.match(/line_mismatch scenes/g)).toHaveLength(2)
+      expect(text).toContain('beat 1: expected')
+      expect(text).toContain('line_mismatch scenes expected 7 lines, got 8')
+    })
+
+    test('ten differing lines are capped at 8 plus "…and 2 more"', async () => {
+      const extra = { say: { who: 'minh', text: 'Câu thêm.' } } as ReturnType<typeof llmScreenplay>['scenes'][0]['beats'][0]
+      const good = llmScreenplay()
+      good.scenes[0]!.beats.push(extra, extra, extra)
+      const st = story()
+      st.scenes[0]!.beats.push(...[1, 2, 3].map(() => ({ who: 'minh', line: 'Câu thêm.' })))
+      const bad = structuredClone(good)
+      let n = 0
+      for (const s of bad.scenes) for (const b of s.beats) if (b.say) b.say.text = `Sai ${n++}`
+      expect(n).toBe(10)
+      const llm = new FakeLlm([bad, good])
+      await draftScreenplay(llm, st, catalog)
+      const text = repairText(llm)
+      expect(text.match(/line_mismatch scenes beat/g)).toHaveLength(8)
+      expect(text).toContain('line_mismatch scenes …and 2 more lines differ')
+    })
+
     test('an added line not in the story triggers line_mismatch', async () => {
       const bad = llmScreenplay()
       bad.scenes[0]!.beats.push({ say: { who: 'minh', text: 'Thêm một câu thừa.' } } as (typeof bad.scenes)[0]['beats'][0])

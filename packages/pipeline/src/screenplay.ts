@@ -45,15 +45,22 @@ interface Said {
 const show = (l: Said | undefined) => (l ? `${l.who}: "${l.text}"` : 'nothing')
 const normalize = (l: Said): Said => ({ who: l.who, text: l.text.normalize('NFC').trim() })
 
-/** The spoken lines must be the story's lines, same speaker, same order. Reports the first difference. */
+const MAX_LINE_ISSUES = 8
+
+/** The spoken lines must be the story's lines, same speaker, same order. */
 function lineMismatch(story: Story, sp: Screenplay): Issue[] {
   const want = story.scenes.flatMap((s) => s.beats.map((b) => normalize({ who: b.who, text: b.line })))
   const got = sp.scenes.flatMap((s) => s.beats.flatMap((b) => (b.say ? [normalize(b.say)] : [])))
-  const i = Array.from({ length: Math.max(want.length, got.length) }, (_, k) => k).find(
+  const issue = (message: string): Issue => ({ code: 'line_mismatch', path: 'scenes', message })
+  const differs = Array.from({ length: Math.max(want.length, got.length) }, (_, k) => k).filter(
     (k) => want[k]?.who !== got[k]?.who || want[k]?.text !== got[k]?.text,
   )
-  if (i === undefined) return []
-  return [{ code: 'line_mismatch', path: 'scenes', message: `beat ${i}: expected ${show(want[i])}, got ${show(got[i])}` }]
+  if (differs.length === 0) return []
+  const line = (k: number) => issue(`beat ${k}: expected ${show(want[k])}, got ${show(got[k])}`)
+  // After an insert or drop every later index shifts, so list only the first difference.
+  if (want.length !== got.length) return [line(differs[0]!), issue(`expected ${want.length} lines, got ${got.length}`)]
+  const more = differs.length - MAX_LINE_ISSUES
+  return [...differs.slice(0, MAX_LINE_ISSUES).map(line), ...(more > 0 ? [issue(`…and ${more} more lines differ`)] : [])]
 }
 
 function check(raw: LlmScreenplay, story: Story, catalog: Catalog): { screenplay?: Screenplay; issues: Issue[] } {

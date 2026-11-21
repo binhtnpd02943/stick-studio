@@ -1,8 +1,9 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 
-const PACKAGES = new URL('../../', import.meta.url).pathname
+const PACKAGES = fileURLToPath(new URL('../../', import.meta.url))
 type Pkg = { name: string; dependencies?: Record<string, string>; devDependencies?: Record<string, string> }
 
 const dirs = readdirSync(PACKAGES, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
@@ -31,7 +32,7 @@ describe('workspace packages', () => {
   })
 
   test('every package importing zod pins ~3.25.76', () => {
-    const importers = pkgs.filter(({ dir }) => sourceFiles(dir).some((f) => /from '(zod|zod\/v4)'/.test(readFileSync(f, 'utf8'))))
+    const importers = pkgs.filter(({ dir }) => sourceFiles(dir).some((f) => /from ['"](zod|zod\/v4)['"]/.test(readFileSync(f, 'utf8'))))
     expect(importers.length).toBeGreaterThan(0)
     for (const { pkg } of importers) {
       expect({ pkg: pkg.name, zod: pkg.dependencies?.zod ?? pkg.devDependencies?.zod }).toEqual({ pkg: pkg.name, zod: '~3.25.76' })

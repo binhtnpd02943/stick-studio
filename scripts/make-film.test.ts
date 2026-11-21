@@ -21,7 +21,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'stick-make-'))
 
 const make = (args: string[], env: NodeJS.ProcessEnv = {}, cwd = ROOT) =>
   spawnSync(TSX, [SCRIPT, ...args], { encoding: 'utf8', cwd, env: { ...process.env, ...env } })
-const readRun = (out: string) => JSON.parse(readFileSync(join(out, 'run.json'), 'utf8')) as { steps: Record<string, string>; durationSec: number; costUsd: number }
+const readRun = (out: string) => JSON.parse(readFileSync(join(out, 'run.json'), 'utf8')) as { steps: Record<string, string>; durationSec: number; costUsd: number; music?: Record<string, string> }
 const probe = (file: string, entries: string) =>
   spawnSync('ffprobe', ['-v', 'error', '-show_entries', entries, '-of', 'csv=p=0', file], { encoding: 'utf8' }).stdout.trim()
 
@@ -96,6 +96,60 @@ describe('make-film CLI', () => {
     expect(r.status).toBe(1)
     expect(r.stderr).toContain('story.json')
     expect(readFileSync(join(dir, 'story.json'), 'utf8')).toBe('{not json')
+  }, SLOW)
+})
+
+describe('make-film sound', () => {
+  const LICENSE = { title: 'Test Tone', author: 'ffmpeg', license: 'CC0-1.0', source: 'synthesised in the test' }
+  const synthMusic = (name: string): string => {
+    const file = join(tmp, name)
+    const r = spawnSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=f=330:d=30', file], { encoding: 'utf8' })
+    expect(r.status, r.stderr).toBe(0)
+    return file
+  }
+  const lufs = (file: string): number => {
+    const r = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', file, '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' })
+    return Number([...r.stderr.matchAll(/^\s+I:\s+(-?[\d.]+) LUFS/gm)].at(-1)![1])
+  }
+
+  test('--music without a sidecar exits 1 naming the license file, before any LLM call', () => {
+    const music = synthMusic('no-sidecar.wav')
+    const dir = join(tmp, 'music-missing')
+    const r = make(['Phân số là gì?', '--fake', '--out', dir, '--music', music], { STICK_FAKE_EMPTY: '1' })
+    expect(r.status).toBe(1)
+    expect(r.stderr).toContain(`${music}.license.json`)
+    expect(existsSync(dir)).toBe(false) // an empty FakeLlm queue would have failed any call; nothing ran at all
+  }, SLOW)
+
+  test('--music with an empty sidecar field exits 1 naming the field', () => {
+    const music = synthMusic('empty-field.wav')
+    writeFileSync(`${music}.license.json`, JSON.stringify({ ...LICENSE, author: ' ' }))
+    const r = make(['Phân số là gì?', '--fake', '--out', join(tmp, 'music-empty'), '--music', music], { STICK_FAKE_EMPTY: '1' })
+    expect(r.status).toBe(1)
+    expect(r.stderr).toContain('missing "author"')
+  }, SLOW)
+
+  test('--music with a sidecar records run.json.music and mixes it in', () => {
+    const music = synthMusic('ok.wav')
+    writeFileSync(`${music}.license.json`, JSON.stringify(LICENSE))
+    const dir = join(tmp, 'music-ok')
+    const r = make(['Phân số là gì?', '--fake', '--out', dir, '--music', music])
+    expect(r.status, r.stdout + r.stderr).toBe(0)
+    expect(readRun(dir).music).toEqual(LICENSE)
+    expect(Math.abs(lufs(join(dir, 'film.mp4')) + 14)).toBeLessThanOrEqual(1.5)
+    // dropping --music re-renders without it and forgets the licence
+    const again = make(['Phân số là gì?', '--fake', '--out', dir], { STICK_FAKE_EMPTY: '1' })
+    expect(again.status, again.stdout + again.stderr).toBe(0)
+    expect(readRun(dir).music).toBeUndefined()
+  }, SLOW)
+
+  test('--fake film has an audio stream at -14 ±1.5 LUFS, with the SFX cache beside .tts-cache', () => {
+    const dir = join(tmp, 'sound-fake')
+    const r = make(['Phân số là gì?', '--fake', '--out', dir])
+    expect(r.status, r.stdout + r.stderr).toBe(0)
+    expect(probe(join(dir, 'film.mp4'), 'stream=codec_name')).toContain('aac')
+    expect(Math.abs(lufs(join(dir, 'film.mp4')) + 14)).toBeLessThanOrEqual(1.5)
+    expect(existsSync(join(tmp, '.sfx-cache'))).toBe(true)
   }, SLOW)
 })
 

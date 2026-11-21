@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { LlmProvider, LlmUsage } from '@stick/core'
 import { costUsd } from '@stick/providers'
 import { CliError } from './cli-error.js'
+import type { MusicLicense } from './music.js'
 import { writeArtifact } from './run-dir.js'
 
 const STEP_ORDER = ['story', 'screenplay', 'voice', 'render', 'contact'] as const
@@ -17,6 +18,8 @@ export interface RunJson {
   libraryRequests: string[]
   repairRounds?: number
   durationSec?: number
+  /** Licence of the background music mixed into film.mp4; absent when the film has none. */
+  music?: MusicLicense
   steps: Partial<Record<StepName, string>>
 }
 
@@ -53,6 +56,7 @@ export class RunState {
       libraryRequests: fresh ? [] : (prior.libraryRequests ?? []),
       ...(fresh || prior.repairRounds === undefined ? {} : { repairRounds: prior.repairRounds }),
       ...(fresh || prior.durationSec === undefined ? {} : { durationSec: prior.durationSec }),
+      ...(fresh || prior.music === undefined ? {} : { music: prior.music }),
       steps: fresh ? {} : (prior.steps ?? {}),
     }
     const run = new RunState(dir, state)

@@ -9,3 +9,5 @@ export { renderContactSheet, type ContactSheetOptions } from './contact-sheet.js
 export { soloTimeline } from './solo.js'
 export { drawHair, jointWorld, type Hair, type Joint } from './look.js'
 export { checkPacing, MAX_IDLE_S, type PacingFinding } from './pacing.js'
+export { mixFilm, type FilmAudio } from './mix.js'
+export { ensureSfx, sfxCues, SFX_IDS, SFX_VERSION, type SfxId } from './sfx.js'

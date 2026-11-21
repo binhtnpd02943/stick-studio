@@ -1,4 +1,4 @@
-import type { z } from 'zod'
+import type { z } from 'zod/v4'
 
 export const VOICE_IDS = ['narrator', 'female_young', 'male_young', 'female_old', 'male_old', 'child'] as const
 export type VoiceId = (typeof VOICE_IDS)[number]

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod/v4'
 import { VOICE_IDS } from './providers.js'
 
 // Unconstrained twins of StorySchema/ScreenplaySchema: structured outputs reject

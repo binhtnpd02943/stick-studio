@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { z } from 'zod'
-import { LlmScreenplaySchema, VOICE_IDS, StorySchema, fromLlmScreenplay, parseScreenplay } from '../src/index.js'
+import { z } from 'zod/v4'
+import { LlmScreenplaySchema, LlmStorySchema, VOICE_IDS, StorySchema, fromLlmScreenplay, parseScreenplay } from '../src/index.js'
 
 const phanSo = JSON.parse(readFileSync(new URL('../../../examples/phan-so.screenplay.json', import.meta.url), 'utf8'))
 
@@ -20,20 +20,20 @@ function toLlmShape(sp: any) {
   }
 }
 
-/** Returns a description of every constraint found in the zod tree (empty when unconstrained). */
-function findConstraints(t: z.ZodTypeAny, path = '$'): string[] {
-  if (t instanceof z.ZodEffects) return [`${path}: ZodEffects`]
-  if (t instanceof z.ZodRecord) return [`${path}: ZodRecord`]
-  if (t instanceof z.ZodObject) return Object.entries(t.shape).flatMap(([k, v]) => findConstraints(v as z.ZodTypeAny, `${path}.${k}`))
-  if (t instanceof z.ZodArray) {
-    const d = t._def
-    const own = [d.minLength, d.maxLength, d.exactLength].some((x) => x != null) ? [`${path}: array length`] : []
-    return [...own, ...findConstraints(t.element, `${path}[]`)]
-  }
-  if (t instanceof z.ZodOptional || t instanceof z.ZodNullable) return findConstraints(t.unwrap(), path)
-  if (t instanceof z.ZodString || t instanceof z.ZodNumber) return t._def.checks.length ? [`${path}: ${t._def.checks.map((c: any) => c.kind)}`] : []
-  if (t instanceof z.ZodEnum || t instanceof z.ZodLiteral) return []
-  return [`${path}: unsupported ${t.constructor.name}`]
+const FORBIDDEN = ['minLength', 'maxLength', 'pattern', 'format', 'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minItems', 'maxItems', 'patternProperties', 'not', 'allOf']
+
+/** Walks the JSON schema structured outputs would receive; lists every constraint it rejects (empty when clean). */
+function findConstraints(node: unknown, path = '$'): string[] {
+  if (Array.isArray(node)) return node.flatMap((v, i) => findConstraints(v, `${path}[${i}]`))
+  if (node === null || typeof node !== 'object') return []
+  const o = node as Record<string, unknown>
+  const own = FORBIDDEN.filter((k) => k in o).map((k) => `${path}: ${k}`)
+  if (o.type === 'object' && o.additionalProperties !== false) own.push(`${path}: additionalProperties`)
+  // children of `properties` are field names (e.g. `format`), not schema keywords
+  const kids = Object.entries(o).flatMap(([k, v]) => k === 'properties'
+    ? Object.entries(v as object).flatMap(([f, fv]) => findConstraints(fv, `${path}.${f}`))
+    : findConstraints(v, `${path}.${k}`))
+  return [...own, ...kids]
 }
 
 const story = (hook: string) => ({
@@ -53,8 +53,13 @@ describe('llm schemas', () => {
     if (back.ok) expect(back.value.scenes[0]!.start).toEqual(phanSo.scenes[0].start)
   })
 
-  it('LlmScreenplaySchema has no string/number/array checks, refine, or record anywhere', () => {
-    expect(findConstraints(LlmScreenplaySchema)).toEqual([])
+  it.each([['LlmScreenplaySchema', LlmScreenplaySchema], ['LlmStorySchema', LlmStorySchema]])('%s has no constraints, refine, or record anywhere', (_n, schema) => {
+    expect(findConstraints(z.toJSONSchema(schema))).toEqual([])
+  })
+
+  it('findConstraints flags what structured outputs reject', () => {
+    const bad = z.object({ a: z.string().max(3), b: z.record(z.string(), z.string()), c: z.array(z.string()).min(1) })
+    expect(findConstraints(z.toJSONSchema(bad)).length).toBeGreaterThanOrEqual(3)
   })
 
   it('StorySchema rejects a 13-word hook and accepts 12', () => {

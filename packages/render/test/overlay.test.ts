@@ -114,6 +114,9 @@ function overlayInk(id: string, mark: 'left' | 'right', t: number) {
 
 describe('hand-held overlays follow the near hand, mirrored for both facings', () => {
   test.each([
+    ['phone_call', 1.2, 12],
+    ['drink', 0.9, 12],
+    ['read_book', 1.2, 14],
   ] as const)('%s draws within %i units of the hands (facing 1 on the left, -1 on the right)', (id, t, within) => {
     for (const mark of ['left', 'right'] as const) {
       const { n, c, near, far } = overlayInk(id, mark, t)
@@ -123,7 +126,7 @@ describe('hand-held overlays follow the near hand, mirrored for both facings', (
     }
   })
 
-  test.each(['sleep'])('%s overlay is deterministic and moves with t', (id) => {
+  test.each(['sleep', 'phone_call', 'drink', 'read_book'])('%s overlay is deterministic and moves with t', (id) => {
     const tl = timeline('left', id)
     const a = render(tl, 0.8)
     expect(Buffer.from(render(tl, 0.8)).equals(Buffer.from(a))).toBe(true)

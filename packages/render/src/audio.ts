@@ -1,4 +1,5 @@
 import { rm } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { killAndWait, runFfmpeg } from './ffmpeg.js'
 
 export interface AudioClip {
@@ -22,6 +23,8 @@ export async function muxAudio(
   outPath: string,
   opts: { ffmpegPath?: string } = {},
 ): Promise<void> {
+  // Checked first: the failure path below deletes outPath, which would delete the source.
+  if (resolve(outPath) === resolve(videoPath)) throw new Error('muxAudio: outPath must differ from videoPath')
   const { ffmpegPath = 'ffmpeg' } = opts
   const args =
     clips.length === 0

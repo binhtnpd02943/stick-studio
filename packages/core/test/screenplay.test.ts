@@ -50,6 +50,14 @@ describe('parseScreenplay', () => {
   })
 })
 
+test('rejects uppercase ids', () => {
+  const s = specExample()
+  ;(s.cast[0] as { id: string }).id = 'Minh'
+  const r = parseScreenplay(s)
+  expect(r.ok).toBe(false)
+  if (!r.ok) expect(r.issues.some((i) => i.startsWith('cast.0.id'))).toBe(true)
+})
+
 test('beatId joins scene id and index', () => {
   expect(beatId('s1', 0)).toBe('s1.b0')
 })

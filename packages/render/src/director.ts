@@ -2,6 +2,7 @@ import type { SKRSContext2D } from '@napi-rs/canvas'
 import type { Timeline } from '@stick/core'
 import { registerFonts, type Rig } from '@stick/engine'
 import type { Catalog } from '@stick/library'
+import { drawCaption } from './captions.js'
 import { FRAME, STAGE, TITLE, markX } from './layout.js'
 import { sceneStateAt, type SceneState } from './state.js'
 
@@ -71,6 +72,7 @@ export function drawFrame(g: SKRSContext2D, tl: Timeline, t: number, rig: Rig, c
   drawStage(g, tl, t, rig, catalog, st)
   g.restore()
   if (tl.title && st.scene === tl.scenes[0]) rig.text(g, tl.title, FRAME.w / 2, TITLE.y, TITLE.size, rig.C.ink)
-  // caption: Task 7 adds drawCaption here.
+  const line = st.scene.beats.find((b) => b.line && b.line.start <= t && t < b.line.end)?.line
+  if (line) drawCaption(g, line.text, t, line.start, line.end)
   g.restore()
 }

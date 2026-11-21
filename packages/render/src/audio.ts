@@ -1,5 +1,5 @@
 import { rm } from 'node:fs/promises'
-import { runFfmpeg } from './ffmpeg.js'
+import { killAndWait, runFfmpeg } from './ffmpeg.js'
 
 export interface AudioClip {
   path: string
@@ -31,11 +31,12 @@ export async function muxAudio(
           '-filter_complex', filterGraph(clips), '-map', '0:v', '-map', '[aout]',
           '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', outPath,
         ]
-  const { child, done } = runFfmpeg(ffmpegPath, args)
-  child.stdin.end()
+  const run = runFfmpeg(ffmpegPath, args)
+  run.child.stdin.end()
   try {
-    await done
+    await run.done
   } catch (e) {
+    await killAndWait(run)
     await rm(outPath, { force: true })
     throw e
   }

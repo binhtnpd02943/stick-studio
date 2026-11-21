@@ -2,6 +2,7 @@ import { spawn, type ChildProcessByStdio } from 'node:child_process'
 import type { Readable, Writable } from 'node:stream'
 
 const STDERR_LINES = 20
+const QUIET = ['-hide_banner', '-nostats', '-loglevel', 'error']
 
 export interface FfmpegRun {
   child: ChildProcessByStdio<Writable, null, Readable>
@@ -9,12 +10,19 @@ export interface FfmpegRun {
   done: Promise<void>
 }
 
+/** Stops a still-running ffmpeg and waits until it has exited, so its output file can't reappear. */
+export async function killAndWait({ child, done }: FfmpegRun): Promise<void> {
+  if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
+  await done.catch(() => {})
+}
+
 export function runFfmpeg(ffmpegPath: string, args: string[]): FfmpegRun {
-  const child = spawn(ffmpegPath, args, { stdio: ['pipe', 'ignore', 'pipe'] })
+  const child = spawn(ffmpegPath, [...QUIET, ...args], { stdio: ['pipe', 'ignore', 'pipe'] })
   const tail: string[] = []
   let partial = ''
-  child.stderr.on('data', (chunk: Buffer) => {
-    const lines = (partial + chunk.toString()).split(/\r?\n|\r/)
+  child.stderr.setEncoding('utf8')
+  child.stderr.on('data', (chunk: string) => {
+    const lines = (partial + chunk).split(/\r?\n|\r/)
     partial = lines.pop() ?? ''
     tail.push(...lines)
     if (tail.length > STDERR_LINES) tail.splice(0, tail.length - STDERR_LINES)

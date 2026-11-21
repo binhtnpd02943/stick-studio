@@ -5,7 +5,7 @@ import type { Timeline } from '@stick/core'
 import { loadRig, registerFonts } from '@stick/engine'
 import { defaultCatalog, type Catalog } from '@stick/library'
 import { drawFrame } from './director.js'
-import { runFfmpeg } from './ffmpeg.js'
+import { killAndWait, runFfmpeg } from './ffmpeg.js'
 import { FRAME } from './layout.js'
 
 const FPS = 30
@@ -32,12 +32,13 @@ export async function renderVideo(
 ): Promise<{ frames: number; seconds: number }> {
   const { ffmpegPath = 'ffmpeg', catalog = defaultCatalog, onProgress } = opts
   const started = performance.now()
-  const frames = Math.ceil(tl.duration * FPS)
+  const frames = Math.ceil(tl.duration * FPS - 1e-9)
   registerFonts()
   const rig = loadRig()
   const canvas = createCanvas(FRAME.w, FRAME.h)
   const g = canvas.getContext('2d')
-  const { child, done } = runFfmpeg(ffmpegPath, encodeArgs(outPath))
+  const run = runFfmpeg(ffmpegPath, encodeArgs(outPath))
+  const { child, done } = run
   let exited = false
   done.then(() => (exited = true), () => (exited = true))
   try {
@@ -50,6 +51,7 @@ export async function renderVideo(
     await done
   } catch (e) {
     child.stdin.destroy()
+    await killAndWait(run)
     await rm(outPath, { force: true })
     throw e
   }

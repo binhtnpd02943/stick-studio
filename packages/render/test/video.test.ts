@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync } from 'node:fs'
+import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parseScreenplay, type Timeline } from '@stick/core'
@@ -44,6 +44,21 @@ describe('renderVideo', () => {
     const out = join(dir, 'early.mp4')
     await expect(renderVideo(tl, out, { ffmpegPath: '/usr/bin/false' })).rejects.toThrow(/exited with code 1/)
     expect(existsSync(out)).toBe(false)
+  }, SLOW)
+
+  test('kills ffmpeg and leaves no file when drawing/progress throws', async () => {
+    const out = join(dir, 'aborted.mp4')
+    const pidFile = join(dir, 'ffmpeg.pid')
+    const wrapper = join(dir, 'ffmpeg-wrapper.sh')
+    writeFileSync(wrapper, `#!/bin/sh\necho $$ > '${pidFile}'\nexec ffmpeg "$@"\n`)
+    chmodSync(wrapper, 0o755)
+    const boom = () => {
+      throw new Error('boom')
+    }
+    await expect(renderVideo(tl, out, { ffmpegPath: wrapper, onProgress: boom })).rejects.toThrow('boom')
+    expect(existsSync(out)).toBe(false)
+    const pid = Number(readFileSync(pidFile, 'utf8'))
+    expect(() => process.kill(pid, 0)).toThrow(/ESRCH/)
   }, SLOW)
 })
 

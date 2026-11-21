@@ -11,6 +11,8 @@ export type IssueCode =
   | 'not_on_stage'
   | 'mark_collision'
   | 'duplicate_id'
+  | 'schema'
+  | 'missing_line'
 
 export interface Issue {
   code: IssueCode

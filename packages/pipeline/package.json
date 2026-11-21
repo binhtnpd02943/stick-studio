@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@stick/core": "0.0.0",
-    "@stick/library": "0.0.0"
+    "@stick/library": "0.0.0",
+    "@stick/prompts": "0.0.0"
   }
 }

@@ -8,15 +8,14 @@ export const whiteboard: PropDef = {
   id: 'whiteboard',
   version: 1,
   width: W,
-  description: 'A paper board on legs with a header line and rows of text; one row highlighted.',
+  description: 'A paper board on legs with a header line and rows of grey scribble; one row highlighted.',
   draw(g, rig, x) {
-    const { C, rr, inkFill, ln, words, stand, text } = rig
+    const { C, rr, inkFill, ln, words, stand } = rig
     const left = x - W / 2
     stand(g, x - W / 2 + 14, x + W / 2 - 14, TOP + H, 5)
     rr(g, left, TOP, W, H, 5)
     inkFill(g, C.paper, 1.7)
     ln(g, left, TOP + 14, left + W, TOP + 14, 1.3)
-    text(g, 'plan.md', left + 8, TOP + 10, 8, C.ink, 'left')
     for (let i = 0; i < 4; i++) {
       const y = TOP + 26 + i * 10
       if (i === 2) {

@@ -4,6 +4,7 @@ import { registerFonts, type Rig } from '@stick/engine'
 import { lookup, type Catalog } from '@stick/library'
 import { drawCaption } from './captions.js'
 import { FRAME, STAGE, TITLE, propX } from './layout.js'
+import { drawHair } from './look.js'
 import { sceneStateAt, type SceneState } from './state.js'
 
 const GROUND_LINE = 3
@@ -54,11 +55,13 @@ function drawStage(g: SKRSContext2D, tl: Timeline, t: number, rig: Rig, catalog:
   for (const p of scene.props) need(lookup(catalog.props, p.type), `prop type ${p.type}`).draw(dom, rig, propX(p.id, scene), t)
   rig.setSettle(1)
   for (const c of st.chars) {
-    const ink = tl.cast.find((m) => m.id === c.id)?.look.ink ?? rig.C.ink
+    const look = tl.cast.find((m) => m.id === c.id)?.look
+    const ink = look?.ink ?? rig.C.ink
     const gait = c.gait
     const pose = rig.legs(c.pose, gait?.ph ?? 0, gait?.amp ?? 0, { arms: false, ...(gait?.stride ? { stride: gait.stride } : {}) })
     const colour = ink.toLowerCase() === rig.C.ink ? {} : { ink, far: tint(ink, FAR_TINT) }
     rig.fig(g, pose, c.x, 0, { sx: c.facing, ...colour })
+    drawHair(g, rig, pose, c.x, c.facing, look?.hair ?? 'none', ink, t)
   }
 }
 

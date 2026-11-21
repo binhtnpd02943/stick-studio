@@ -1,17 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { parseScreenplay, type Screenplay } from '@stick/core'
-import { defaultCatalog, type Catalog } from '@stick/library'
+import { defaultCatalog as catalog } from '@stick/library'
 import { specExample } from '../../core/test/fixtures.js'
 import { validateScreenplay } from '../src/index.js'
-
-// The spec example uses scratch_head, which the starter library lacks; stub it here.
-const catalog: Catalog = {
-  ...defaultCatalog,
-  actions: {
-    ...defaultCatalog.actions,
-    scratch_head: { ...defaultCatalog.actions.nod!, id: 'scratch_head' },
-  },
-}
 
 // Fresh, mutable, schema-valid screenplay per call.
 function sample() {
@@ -37,6 +28,13 @@ describe('validateScreenplay', () => {
     sp.scenes[0]!.beats[0]!.do![0]!.action = 'ride_bike'
     const issue = expectOne(sp, 'unknown_action', 'scenes.0.beats.0.do.0.action')
     expect(issue.key).toBe('ride_bike')
+  })
+
+  test('unknown_action for scratch_head, which the starter library lacks', () => {
+    const sp = sample()
+    sp.scenes[0]!.beats[0]!.do![0]!.action = 'scratch_head'
+    const issue = expectOne(sp, 'unknown_action', 'scenes.0.beats.0.do.0.action')
+    expect(issue.key).toBe('scratch_head')
   })
 
   test('unknown_prop', () => {
@@ -81,6 +79,12 @@ describe('validateScreenplay', () => {
     const sp = sample()
     sp.scenes[0]!.beats[1]!.do![0]!.target = 'near:door'
     expectOne(sp, 'unknown_target', 'scenes.0.beats.1.do.0.target')
+  })
+
+  test('unknown_target for camera focus', () => {
+    const sp = sample()
+    sp.scenes[0]!.beats[1]!.camera!.focus = 'door'
+    expectOne(sp, 'unknown_target', 'scenes.0.beats.1.camera.focus')
   })
 
   test('accepts marks, prop ids and cast ids as targets', () => {

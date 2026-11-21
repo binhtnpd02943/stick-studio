@@ -15,7 +15,7 @@ export const specExample = () => ({
       beats: [
         {
           say: { who: 'minh', text: 'Lan ơi, phân số là gì vậy?' },
-          do: [{ who: 'minh', action: 'scratch_head' }],
+          do: [{ who: 'minh', action: 'think' }],
         },
         {
           do: [

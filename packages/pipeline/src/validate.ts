@@ -43,6 +43,13 @@ export function validateScreenplay(sp: Screenplay, catalog: Catalog): Issue[] {
       }
     }
 
+    // A target is a mark, a prop id in this scene, or a cast id.
+    const checkTarget = (t: string, path: string) => {
+      if (BARE_MARKS.has(t) || propIds.has(t) || cast.has(t)) return
+      if (t.startsWith(NEAR)) return checkMark(t, path)
+      add('unknown_target', path, `target "${t}" is not a mark, prop or cast id`)
+    }
+
     scene.props.forEach((p, pi) => {
       if (!(p.type in catalog.props)) {
         add('unknown_prop', `${sp0}.props.${pi}.type`, `unknown prop type "${p.type}"`, p.type)
@@ -89,11 +96,9 @@ export function validateScreenplay(sp: Screenplay, catalog: Catalog): Issue[] {
           if (def.needsTarget) add('missing_target', `${dp}.target`, `action "${d.action}" needs a target`)
           return
         }
-        const t = d.target
-        if (BARE_MARKS.has(t) || propIds.has(t) || cast.has(t)) return
-        if (t.startsWith(NEAR)) return checkMark(t, `${dp}.target`)
-        add('unknown_target', `${dp}.target`, `target "${t}" is not a mark, prop or cast id`)
+        checkTarget(d.target, `${dp}.target`)
       })
+      if (beat.camera) checkTarget(beat.camera.focus, `${bp}.camera.focus`)
       // Actions are checked before the line so not_on_stage lands on the action when both apply.
       if (beat.say) checkWho(beat.say.who, `${bp}.say.who`)
     })

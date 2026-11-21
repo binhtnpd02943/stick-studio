@@ -83,3 +83,50 @@ describe('overlay hook', () => {
     expect(Buffer.from(render(tl, 1.3)).equals(Buffer.from(a))).toBe(false)
   })
 })
+
+// The overlay's own ink: pixels that differ from the same frame rendered with the overlay stripped.
+const plain = (id: string): Catalog => ({ ...defaultCatalog, actions: { ...defaultCatalog.actions, [id]: { ...defaultCatalog.actions[id]!, apply: (c) => ({ ...defaultCatalog.actions[id]!.apply(c), overlay: undefined }) } } })
+
+function overlayInk(id: string, mark: 'left' | 'right', t: number) {
+  const rig = loadRig({ instrument: true })
+  const tl = timeline(mark, id)
+  const draw = (cat: Catalog, r = rig) => {
+    const g = createCanvas(FRAME.w, FRAME.h).getContext('2d')
+    r.__shim.__rec = []
+    drawFrame(g, tl, t, r, cat)
+    return g.getImageData(0, 0, FRAME.w, FRAME.h).data
+  }
+  const withOverlay = draw(catalog)
+  const f = (rig.__shim.__rec as Array<{ x: number; y: number; s: number; sx: number; handF: [number, number]; handB: [number, number] }>)[0]!
+  const without = draw(plain(id))
+  let n = 0, sx = 0, sy = 0
+  for (let i = 0; i < withOverlay.length; i += 4) {
+    if (Math.abs(withOverlay[i]! - without[i]!) + Math.abs(withOverlay[i + 1]! - without[i + 1]!) + Math.abs(withOverlay[i + 2]! - without[i + 2]!) > 60) {
+      const p = i / 4
+      n++
+      sx += p % FRAME.w
+      sy += Math.floor(p / FRAME.w)
+    }
+  }
+  const w = (h: [number, number]) => [f.x + h[0] * f.s * f.sx, f.y + h[1] * f.s] as const
+  return { n, c: [(sx / n - FRAME.w / 2) / STAGE.scale, (sy / n - STAGE.groundY) / STAGE.scale] as const, near: w(f.handF), far: w(f.handB) }
+}
+
+describe('hand-held overlays follow the near hand, mirrored for both facings', () => {
+  test.each([
+  ] as const)('%s draws within %i units of the hands (facing 1 on the left, -1 on the right)', (id, t, within) => {
+    for (const mark of ['left', 'right'] as const) {
+      const { n, c, near, far } = overlayInk(id, mark, t)
+      expect(n, `${id} ${mark}`).toBeGreaterThan(30)
+      const target = id === 'read_book' ? [(near[0] + far[0]) / 2, (near[1] + far[1]) / 2] : near
+      expect(Math.hypot(c[0] - target[0]!, c[1] - target[1]!), `${id} ${mark}`).toBeLessThan(within)
+    }
+  })
+
+  test.each(['sleep'])('%s overlay is deterministic and moves with t', (id) => {
+    const tl = timeline('left', id)
+    const a = render(tl, 0.8)
+    expect(Buffer.from(render(tl, 0.8)).equals(Buffer.from(a))).toBe(true)
+    expect(Buffer.from(render(tl, 1.85)).equals(Buffer.from(a))).toBe(false)
+  })
+})

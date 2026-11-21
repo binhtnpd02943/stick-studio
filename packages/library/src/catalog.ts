@@ -18,6 +18,10 @@ import { think } from './actions/think'
 import { walkTo } from './actions/walk-to'
 import { runTo } from './actions/run-to'
 import { wave } from './actions/wave'
+import { sit } from './actions/sit'
+import { sleep } from './actions/sleep'
+import { fallDown } from './actions/fall-down'
+import { typeLaptop } from './actions/type-laptop'
 import { blank } from './backdrops/blank'
 import { classroom } from './backdrops/classroom'
 import { desk } from './props/desk'
@@ -34,6 +38,7 @@ export const defaultCatalog: Catalog = {
   actions: byId<ActionDef>([
     walkTo, runTo, pointAt, think, cheer, wave, nod, talk,
     shrug, shakeHead, facepalm, clap, cry, laugh, stomp, lookAround, scratchHead, crossArms, bow, jump,
+    sit, sleep, fallDown, typeLaptop,
   ]),
   props: byId<PropDef>([whiteboard, desk]),
   backdrops: byId<BackdropDef>([blank, classroom]),

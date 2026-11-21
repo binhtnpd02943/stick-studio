@@ -1,4 +1,4 @@
-import { defaultCatalog } from '@stick/library'
+import { defaultCatalog, type Catalog } from '@stick/library'
 import { describe, expect, test } from 'vitest'
 import { checkMotion } from '../src/index.js'
 import { soloTimeline } from '../src/solo.js'
@@ -31,5 +31,14 @@ const sweep = Object.values(defaultCatalog.actions)
 describe('locomotion duration sweep', () => {
   test.each(sweep)('%s to %s over %ss moves cleanly', (id, target, dur) => {
     expect(checkMotion(soloTimeline(id, dur, target), defaultCatalog)).toEqual([])
+  }, 30_000)
+})
+
+// sit steps onto the seat by however far the prop is (chair 35, sofa 63, bed 73 after a walk_to); the gate's own mark target is the 75 cap.
+const sit = defaultCatalog.actions.sit!
+describe('sit at real prop offsets', () => {
+  test.each([15, 35, 55, 73].flatMap((dx) => [1.0, 1.5].map((dur) => [dx, dur] as const)))('%s units away over %ss moves cleanly', (dx, dur) => {
+    const catalog: Catalog = { ...defaultCatalog, actions: { ...defaultCatalog.actions, sit: { ...sit, apply: (c) => sit.apply({ ...c, targetX: c.self.x + dx }) } } }
+    expect(checkMotion(soloTimeline('sit', dur, 'right'), catalog)).toEqual([])
   }, 30_000)
 })

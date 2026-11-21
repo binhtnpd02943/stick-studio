@@ -28,8 +28,9 @@ const near = (a: number[], b: number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1
 describe('actions', () => {
   it('catalog ids are exact', () => {
     expect(Object.keys(defaultCatalog.actions).sort()).toEqual([
-      'bow', 'cheer', 'clap', 'cross_arms', 'cry', 'facepalm', 'jump', 'laugh', 'look_around', 'nod', 'point_at',
-      'run_to', 'scratch_head', 'shake_head', 'shrug', 'stomp', 'talk', 'think', 'walk_to', 'wave',
+      'bow', 'cheer', 'clap', 'cross_arms', 'cry', 'facepalm', 'fall_down', 'jump', 'laugh', 'look_around',
+      'nod', 'point_at', 'run_to', 'scratch_head', 'shake_head', 'shrug', 'sit', 'sleep', 'stomp', 'talk',
+      'think', 'type_laptop', 'walk_to', 'wave',
     ])
     expect(Object.keys(defaultCatalog.props).sort()).toEqual(['desk', 'whiteboard'])
     expect(Object.keys(defaultCatalog.backdrops).sort()).toEqual(['blank', 'classroom'])
@@ -63,6 +64,28 @@ describe('actions', () => {
     expect(dist(0)).toBeLessThan(1)
     expect(dist(dur)).toBeLessThan(1)
     expect(dist(0.1)).toBeLessThanOrEqual(0.45 * peak + 0.5)
+  })
+
+  // Task 6 gives chair/sofa/bed seatY -30/-28/-32 (world): the seated hip must sit on that, within a few units.
+  it('sit puts the hip on the seat surface and holds it there', () => {
+    const def = defaultCatalog.actions.sit!
+    const hipY = def.apply(ctxAt(def, def.duration.ideal / 2, { targetX: -60 })).pose.hip[1] * 0.88
+    for (const seatY of [-30, -28, -32]) expect(Math.abs(hipY - seatY)).toBeLessThan(5)
+  })
+
+  it('sit moves the hip over the seat, facing it, and the feet follow', () => {
+    const def = defaultCatalog.actions.sit!
+    const r = def.apply(ctxAt(def, def.duration.ideal / 2, { targetX: -60 }))
+    expect(r.facing).toBe(1)
+    expect(r.pose.hip[0] * 0.88).toBeCloseTo(35, 0)
+    expect(r.pose.fF[0]).toBeGreaterThan(r.pose.hip[0])
+  })
+
+  it('fall_down ends lying and gets up', () => {
+    const def = defaultCatalog.actions.fall_down!
+    const lying = def.apply(ctxAt(def, def.duration.ideal / 2)).pose
+    expect(lying.head[1]).toBeGreaterThan(-25)
+    expect(lying.chest[1]).toBeGreaterThan(-25)
   })
 
   it('walk_to arrives', () => {

@@ -4,12 +4,12 @@ import { defaultCatalog, type ActionDef, type Catalog, type PropDef } from '@sti
 import { specExample } from '../../core/test/fixtures.js'
 import { validateScreenplay } from '../src/index.js'
 
-// Test-only actions: the real contact and seat actions arrive with the rest of the action library.
+// `grab` is a test-only contact action; sit is the real one. A real chair arrives with the props task, so a stool stands in.
 const stub = (id: string, extra: Partial<ActionDef>): ActionDef => ({ id, version: 1, needsTarget: true, duration: { min: 1, ideal: 1, max: 1 }, description: id, apply: ({ base }) => ({ pose: base }), ...extra })
 const stool: PropDef = { id: 'stool', version: 1, width: 20, seatY: -20, description: 'stool', draw: () => {} }
 const catalog: Catalog = {
   ...defaultCatalog,
-  actions: { ...defaultCatalog.actions, grab: stub('grab', { contact: true }), sit: stub('sit', { needsSeat: true }) },
+  actions: { ...defaultCatalog.actions, grab: stub('grab', { contact: true }) },
   props: { ...defaultCatalog.props, stool },
 }
 
@@ -298,5 +298,26 @@ describe('needsSeat', () => {
 
   test('sit on a prop with seatY is fine', () => {
     expect(validateScreenplay(sitOn('stool'), catalog)).toEqual([])
+  })
+})
+
+// One test per real contact action: far is out_of_reach, after a walk_to it is fine.
+describe('real contact actions', () => {
+  const run = (action: string, target: string, walk: boolean, type?: string) => {
+    const sp = sample()
+    sp.scenes[0]!.props.push({ id: 'thing', type: type ?? 'desk', mark: 'right' })
+    const walkTo = walk ? [{ who: 'minh', action: 'walk_to', target }] : []
+    sp.scenes[0]!.beats = [{ do: [...walkTo, { who: 'minh', action, target }] }] as never
+    return validateScreenplay(sp, catalog)
+  }
+  test.each([
+    ['type_laptop', 'thing', 'desk'],
+    ['sit', 'thing', 'stool'],
+  ] as const)('%s on %s: far is out_of_reach, near after walk_to is fine', (action, target, type) => {
+    expect(defaultCatalog.actions[action]?.contact).toBe(true)
+    const far = run(action, target, false, type)
+    expect(far.map((i) => i.code)).toEqual(['out_of_reach'])
+    expect(far[0]!.path).toBe('scenes.0.beats.0.do.0')
+    expect(run(action, target, true, type)).toEqual([])
   })
 })

@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "format": {
+    "aspect": "9:16",
+    "fps": 30
+  },
+  "title": "Phân số là gì?",
+  "cast": [
+    {
+      "id": "minh",
+      "name": "Minh",
+      "look": {
+        "ink": "#141414",
+        "hair": "short"
+      },
+      "voice": "male_young"
+    },
+    {
+      "id": "lan",
+      "name": "Lan",
+      "look": {
+        "ink": "#d97757",
+        "hair": "ponytail"
+      },
+      "voice": "female_young"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "s1",
+      "backdrop": "classroom",
+      "props": [
+        {
+          "id": "board",
+          "type": "whiteboard",
+          "mark": "right"
+        }
+      ],
+      "start": {
+        "minh": "left",
+        "lan": "center"
+      },
+      "beats": [
+        {
+          "say": {
+            "who": "minh",
+            "text": "Lan ơi, phân số là gì vậy?"
+          },
+          "do": [
+            {
+              "who": "minh",
+              "action": "think"
+            }
+          ]
+        },
+        {
+          "say": {
+            "who": "lan",
+            "text": "Để mình chỉ cho cậu xem nhé."
+          },
+          "do": [
+            {
+              "who": "lan",
+              "action": "nod"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "backdrop": "classroom",
+      "props": [
+        {
+          "id": "board",
+          "type": "whiteboard",
+          "mark": "center"
+        }
+      ],
+      "start": {
+        "minh": "left",
+        "lan": "right"
+      },
+      "beats": [
+        {
+          "say": {
+            "who": "lan",
+            "text": "Mình chia cái bánh thành bốn phần bằng nhau."
+          },
+          "do": [
+            {
+              "who": "lan",
+              "action": "walk_to",
+              "target": "board"
+            },
+            {
+              "who": "lan",
+              "action": "point_at",
+              "target": "board"
+            }
+          ],
+          "camera": {
+            "zoom": 1.3,
+            "focus": "board"
+          }
+        },
+        {
+          "say": {
+            "who": "minh",
+            "text": "Mình ăn một phần thì còn lại ba phần, đúng không?"
+          },
+          "do": [
+            {
+              "who": "minh",
+              "action": "nod"
+            }
+          ]
+        },
+        {
+          "say": {
+            "who": "lan",
+            "text": "Đúng rồi! Phần cậu ăn là một phần tư, viết là một trên bốn."
+          },
+          "do": [
+            {
+              "who": "lan",
+              "action": "point_at",
+              "target": "board"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "backdrop": "classroom",
+      "props": [
+        {
+          "id": "desk",
+          "type": "desk",
+          "mark": "center"
+        }
+      ],
+      "start": {
+        "minh": "left",
+        "lan": "right"
+      },
+      "beats": [
+        {
+          "say": {
+            "who": "minh",
+            "text": "À, mình hiểu rồi! Phân số là một phần của cả cái bánh."
+          },
+          "do": [
+            {
+              "who": "minh",
+              "action": "cheer"
+            }
+          ],
+          "camera": {
+            "zoom": 1.3,
+            "focus": "desk"
+          }
+        },
+        {
+          "say": {
+            "who": "lan",
+            "text": "Chuẩn luôn! Cậu giỏi lắm."
+          },
+          "do": [
+            {
+              "who": "lan",
+              "action": "wave"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

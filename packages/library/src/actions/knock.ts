@@ -4,7 +4,7 @@ import { toward } from './face'
 
 const KNOCKS = 2
 const RETRACT = 6 // the fist pulls back this far between knocks
-const LANDING = 0.08 // share of a knock, either side of contact, that shows the impact flicks
+const FLICK_S = 0.04 // seconds, either side of contact, that show the impact flicks (a window of at least 2 frames at 30 fps)
 const FLICK_ANGLES = [-0.9, 0, 0.9]
 
 export const knock: ActionDef = {
@@ -21,7 +21,9 @@ export const knock: ActionDef = {
     const c = u * KNOCKS
     const phase = u > 0 && u < 1 ? c % 1 : 0
     const target = rig.P({ chest: [5, -89], head: [11, -115], hF: [31 - Math.sin(Math.PI * phase) * RETRACT * w, -80], hB: [-1, -54], hang: 1, ef: 0.6 })
-    const landing = u > 0 && Math.abs(c - Math.round(c)) < LANDING && Math.round(c) >= 1
+    // Judged on time, not on the clamped u: the last impact's flicks end just after it, not through the ramp-out.
+    const span = Math.max(dur - 0.6, 0.01)
+    const landing = Array.from({ length: KNOCKS }, (_, i) => 0.3 + ((i + 1) * span) / KNOCKS).some((at) => Math.abs(T - at) < FLICK_S)
     const overlay: ActionResult['overlay'] = (g, r, at) => {
       if (!landing) return
       const [x, y] = at.hands.near

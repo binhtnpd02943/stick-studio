@@ -3,8 +3,8 @@ import { describe, expect, test } from 'vitest'
 import { checkMotion } from '../src/index.js'
 import { soloTimeline } from '../src/solo.js'
 
-/** Longest film the gate plays for one action (talk's max is 30 s). */
-const GATE_MAX_S = 5
+/** Longest film the gate plays for one action: every hold action's true max (10 s); only talk (30 s) is capped. */
+const GATE_MAX_S = 10
 
 const cases = Object.values(defaultCatalog.actions).flatMap((a) =>
   (['min', 'ideal', 'max'] as const).map((which) => [a.id, which, Math.min(a.duration[which], GATE_MAX_S), a.needsTarget] as const),

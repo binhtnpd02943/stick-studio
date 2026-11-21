@@ -69,7 +69,7 @@ describe('actions', () => {
   // Task 6 gives chair/sofa/bed seatY -30/-28/-32 (world): the seated hip must sit on that, within a few units.
   it('sit puts the hip on the seat surface and holds it there', () => {
     const def = defaultCatalog.actions.sit!
-    const hipY = def.apply(ctxAt(def, def.duration.ideal / 2, { targetX: -60 })).pose.hip[1] * 0.88
+    const hipY = def.apply(ctxAt(def, def.duration.ideal / 2, { targetX: -60 })).pose.hip[1] * rig.FS
     for (const seatY of [-30, -28, -32]) expect(Math.abs(hipY - seatY)).toBeLessThan(5)
   })
 
@@ -77,7 +77,7 @@ describe('actions', () => {
     const def = defaultCatalog.actions.sit!
     const r = def.apply(ctxAt(def, def.duration.ideal / 2, { targetX: -60 }))
     expect(r.facing).toBe(1)
-    expect(r.pose.hip[0] * 0.88).toBeCloseTo(35, 0)
+    expect(r.pose.hip[0] * rig.FS).toBeCloseTo(35, 0)
     expect(r.pose.fF[0]).toBeGreaterThan(r.pose.hip[0])
   })
 

@@ -37,6 +37,8 @@ export interface OverlayAt {
   /** global seconds */
   t: number
   head: [number, number]
+  /** The character's ink colour, for hand-held props' fingers. */
+  ink: string
   hands: { near: [number, number]; far: [number, number] }
 }
 

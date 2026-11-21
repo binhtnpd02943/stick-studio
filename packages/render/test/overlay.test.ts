@@ -133,3 +133,13 @@ describe('hand-held overlays follow the near hand, mirrored for both facings', (
     expect(Buffer.from(render(tl, 1.85)).equals(Buffer.from(a))).toBe(false)
   })
 })
+
+describe('knock flicks', () => {
+  // soloTimeline(…, 2): knocks land at 1.0 s and 1.7 s, then the 0.3 s ramp-out.
+  test.each([1.0, 1.7])('show at the impact (%ss)', (t) => {
+    expect(overlayInk('knock', 'left', t).n).toBeGreaterThan(5)
+  })
+  test.each([0.6, 1.4, 1.9])('are absent between impacts and through the ramp-out (%ss)', (t) => {
+    expect(overlayInk('knock', 'left', t).n).toBe(0)
+  })
+})

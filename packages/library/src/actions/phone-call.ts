@@ -20,7 +20,7 @@ function drawPhone(g: CanvasRenderingContext2D, rig: Rig, at: OverlayAt, w: numb
   rig.rr(g, -PHONE.w / 2, -PHONE.h * 0.8, PHONE.w, PHONE.h, 1.6)
   rig.inkFill(g, rig.C.paper, 1.3)
   rig.ln(g, -1, -PHONE.h * 0.8 + 2, 1, -PHONE.h * 0.8 + 2, 0.9, rig.C.soft)
-  g.fillStyle = rig.C.ink
+  g.fillStyle = at.ink
   g.beginPath()
   g.arc(0, 0.6, 2.4, 0, Math.PI * 2) // the fingers wrapped round it
   g.fill()

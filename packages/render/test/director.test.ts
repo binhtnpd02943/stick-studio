@@ -100,3 +100,46 @@ describe('cameraShift', () => {
     expect(-95 - 18 - shift).toBeGreaterThanOrEqual(-150 / 1.3 - 1e-9)
   })
 })
+
+describe('continuity', () => {
+  const FRAME_DT = 1 / 60
+  const withScene = (patch: (s: Timeline['scenes'][number]) => void): Timeline => {
+    const copy = structuredClone(tl)
+    patch(copy.scenes[0]!)
+    return copy
+  }
+  const frames = (from: number, to: number) => Array.from({ length: Math.round((to - from) / FRAME_DT) + 1 }, (_, i) => from + i * FRAME_DT)
+  const maxStep = (xs: number[]) => Math.max(...xs.slice(1).map((x, i) => Math.abs(x - xs[i]!)))
+
+  test('talk ramps in when the speaker’s action ends mid-line', () => {
+    const quiet = withScene((s) => {
+      s.beats[0]!.tracks = [{ who: 'minh', action: 'nod', params: {}, start: 0, end: 0.8 }]
+    })
+    const hands = frames(0.7, 0.9).map((t) => sceneStateAt(quiet, t, rig, catalog).chars.find((c) => c.id === 'minh')!.pose)
+    const jumps = hands.slice(1).map((p, i) => Math.max(...(['hF', 'hB'] as const).map((j) => Math.hypot(p[j][0] - hands[i]![j][0], p[j][1] - hands[i]![j][1]))))
+    expect(Math.max(...jumps)).toBeLessThan(3)
+  })
+
+  test('camera offset never jumps when figures cannot all fit', () => {
+    const wide = withScene((s) => {
+      s.start_marks = { minh: 'left', lan: 'right' }
+      s.beats[1]!.tracks = []
+      s.beats[1]!.camera = { zoom: 1.6, focus: 'board' }
+    })
+    const shifts = frames(b1.start - 0.1, b1.start + 0.7).map((t) => {
+      const st = sceneStateAt(wide, t, rig, catalog)
+      return cameraShift(st.zoom, st.focusX, st.chars.map((c) => c.x))
+    })
+    expect(maxStep(shifts)).toBeLessThan(6) // smooth easing peaks near 2.9 units per frame; the old snap was 21
+  })
+
+  test('focus eases between consecutive camera beats', () => {
+    const pan = withScene((s) => {
+      s.beats[0]!.camera = { zoom: 1.3, focus: 'left' }
+    })
+    const focus = frames(b1.start - 0.1, b1.start + 0.7).map((t) => sceneStateAt(pan, t, rig, catalog).focusX)
+    expect(focus.at(0)).toBe(-95)
+    expect(focus.at(-1)).toBe(95)
+    expect(maxStep(focus)).toBeLessThan(15) // a soft 0.5 s pan of 190 units peaks near 10 units per frame
+  })
+})

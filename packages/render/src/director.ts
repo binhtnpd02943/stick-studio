@@ -37,7 +37,7 @@ export function cameraShift(zoom: number, focusX: number, xs: number[]): number 
   const half = STAGE.worldWidth / 2 / zoom - FIG_HALF
   const lo = Math.max(...xs) - half
   const hi = Math.min(...xs) + half
-  return lo > hi ? want : Math.min(Math.max(want, lo), hi)
+  return lo > hi ? (lo + hi) / 2 : Math.min(Math.max(want, lo), hi) // midpoint keeps it continuous at lo == hi
 }
 
 function applyCamera(g: SKRSContext2D, st: SceneState): void {

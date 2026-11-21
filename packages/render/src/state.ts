@@ -48,22 +48,31 @@ function runTrack(tr: TimedAction, t: number, scene: TimedScene, states: Map<str
   return t < tr.end ? { pose: r.pose, gait: r.gait } : undefined
 }
 
+/** Talk over the part of the line not covered by the speaker's own actions, ramping in/out at each edge. */
 function talkPose(scene: TimedScene, self: CharacterState, t: number, rig: Rig, catalog: Catalog): Pose | undefined {
   const line = scene.beats.find((b) => b.line?.who === self.id && b.line.start <= t && t < b.line.end)?.line
   const talk = catalog.actions.talk
   if (!line || !talk) return undefined
-  const dur = line.end - line.start
-  const T = t - line.start
+  const own = scene.beats.flatMap((b) => b.tracks).filter((a) => a.who === self.id)
+  const from = Math.max(line.start, ...own.filter((a) => a.end <= t).map((a) => a.end))
+  const to = Math.min(line.end, ...own.filter((a) => a.start > t).map((a) => a.start))
+  const dur = to - from
+  const T = t - from
   return talk.apply({ rig, self, k: T / dur, T, dur, t, base: restPose(rig, t) }).pose
 }
 
-function zoomAt(beats: TimedBeat[], i: number, t: number, rig: Rig): number {
+interface Cam { zoom: number; focusX: number }
+
+/** Camera at t within beat i: zoom and focus both ease over ZOOM_EASE from where the previous beat left them. */
+function camAt(beats: TimedBeat[], i: number, t: number, rig: Rig, focusOf: (target: string) => number): Cam {
   const beat = beats[i]
-  if (!beat) return 1
-  const from = i === 0 ? 1 : zoomAt(beats, i - 1, beat.start, rig)
-  const to = beat.camera?.zoom ?? 1
+  if (!beat) return { zoom: 1, focusX: 0 }
+  const target = beat.camera ? focusOf(beat.camera.focus) : undefined
+  const from = i === 0 ? { zoom: 1, focusX: target ?? 0 } : camAt(beats, i - 1, beat.start, rig, focusOf)
+  const to = { zoom: beat.camera?.zoom ?? 1, focusX: target ?? from.focusX }
   const k = rig.E.soft(rig.seg(t - beat.start, 0, ZOOM_EASE))
-  return k >= 1 ? to : from + (to - from) * k
+  if (k >= 1) return to
+  return { zoom: from.zoom + (to.zoom - from.zoom) * k, focusX: from.focusX + (to.focusX - from.focusX) * k }
 }
 
 export function sceneStateAt(tl: Timeline, t: number, rig: Rig, catalog: Catalog): SceneState {
@@ -80,8 +89,6 @@ export function sceneStateAt(tl: Timeline, t: number, rig: Rig, catalog: Catalog
     const l = live.get(s.id)
     return { ...s, pose: l?.pose ?? talkPose(scene, s, t, rig, catalog) ?? restPose(rig, t), gait: l?.gait }
   })
-  const zoom = zoomAt(scene.beats, started.length - 1, t, rig)
-  const cam = started.filter((b) => b.camera).at(-1)?.camera
-  const focusX = cam ? resolveTarget(cam.focus, scene, states, undefined, false, catalog) : 0
-  return { scene, chars, zoom, focusX }
+  const focusOf = (target: string) => resolveTarget(target, scene, states, undefined, false, catalog)
+  return { scene, chars, ...camAt(scene.beats, started.length - 1, t, rig, focusOf) }
 }

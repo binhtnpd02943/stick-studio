@@ -1,34 +1,47 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { beatId, type Screenplay, type Timeline } from '@stick/core'
 import type { AudioClip } from '@stick/render'
+import { CliError } from './cli-error.js'
 
 const probeSeconds = (file: string): number => {
   const out = execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { encoding: 'utf8' })
   const s = Number(out.trim())
-  if (!Number.isFinite(s) || s <= 0) throw new Error(`cannot read duration of ${file}`)
+  if (!Number.isFinite(s) || s <= 0) throw new CliError(1, `cannot read duration of ${file}`)
   return s
 }
 
-const audioPath = (dir: string, id: string) => join(dir, `${id}.wav`)
+export const spokenBeatIds = (sp: Screenplay): string[] =>
+  sp.scenes.flatMap((scene) => scene.beats.flatMap((beat, i) => (beat.say ? [beatId(scene.id, i)] : [])))
 
-/** `<beatId>.wav` durations found in `dir`; they win over the durations file. */
-export function audioDurations(sp: Screenplay, dir: string): Record<string, number> {
-  const found: Record<string, number> = {}
-  for (const scene of sp.scenes) {
-    scene.beats.forEach((beat, i) => {
-      const id = beatId(scene.id, i)
-      if (beat.say && existsSync(audioPath(dir, id))) found[id] = probeSeconds(audioPath(dir, id))
-    })
+function listWavs(dir: string): string[] {
+  try {
+    return readdirSync(dir).filter((f) => f.endsWith('.wav'))
+  } catch (e) {
+    throw new CliError(1, `cannot read audio dir ${dir}: ${(e as Error).message}`)
   }
+}
+
+/** `<beatId>.wav` durations found in `dir`; they win over the durations file. Exits 1 if none match a spoken beat. */
+export function audioDurations(sp: Screenplay, dir: string): Record<string, number> {
+  const wavs = listWavs(dir)
+  const spoken = new Set(spokenBeatIds(sp))
+  for (const f of wavs) {
+    if (!spoken.has(f.slice(0, -'.wav'.length))) console.error(`warning: ${f} in ${dir} matches no spoken beat id`)
+  }
+  const found = Object.fromEntries(
+    [...spoken].filter((id) => wavs.includes(`${id}.wav`)).map((id) => [id, probeSeconds(join(dir, `${id}.wav`))]),
+  )
+  if (Object.keys(found).length === 0) throw new CliError(1, `no <beatId>.wav files for this screenplay in ${dir}`)
   return found
 }
 
 /** One clip per spoken beat that has audio, placed at the line's start. */
 export function audioClips(tl: Timeline, dir: string): AudioClip[] {
+  const have = new Set(listWavs(dir))
   return tl.scenes
     .flatMap((s) => s.beats)
-    .filter((b) => b.line && existsSync(audioPath(dir, b.id)))
-    .map((b) => ({ path: audioPath(dir, b.id), start: b.line!.start }))
+    .filter((b) => b.line && have.has(`${b.id}.wav`))
+    .map((b) => ({ path: join(dir, `${b.id}.wav`), start: b.line!.start }))
 }

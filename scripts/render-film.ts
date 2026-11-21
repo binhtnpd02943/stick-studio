@@ -2,22 +2,15 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { parseArgs } from 'node:util'
-import { parseScreenplay, type Timeline } from '@stick/core'
+import { parseScreenplay, type Screenplay, type Timeline } from '@stick/core'
 import { defaultCatalog } from '@stick/library'
 import { solveTimeline, validateScreenplay } from '@stick/pipeline'
-import { checkMotion, muxAudio, renderVideo } from '@stick/render'
-import { audioClips, audioDurations } from './lib/audio-clips.js'
+import { muxAudio, renderVideo } from '@stick/render'
+import { audioClips, audioDurations, spokenBeatIds } from './lib/audio-clips.js'
+import { CliError } from './lib/cli-error.js'
+import { gateMotion } from './lib/motion-gate.js'
 
 const USAGE = 'usage: npm run render -- <screenplay.json> [--durations d.json] [--audio dir] [--out out/film.mp4] [--skip-motion]'
-
-class CliError extends Error {
-  constructor(
-    readonly exitCode: 1 | 2 | 3,
-    message: string,
-  ) {
-    super(message)
-  }
-}
 
 function readJson(file: string): unknown {
   try {
@@ -45,22 +38,25 @@ function parseCli() {
   }
 }
 
+/** A durations file is { "<beatId>": seconds > 0 }; anything else is an input error, not a silent NaN. */
+function readDurations(file: string, sp: Screenplay): Record<string, number> {
+  const raw = readJson(file)
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new CliError(1, `${file}: expected a JSON object of beat id to seconds`)
+  const bad = Object.entries(raw).filter(([, v]) => typeof v !== 'number' || !Number.isFinite(v) || v <= 0)
+  if (bad.length) throw new CliError(1, `${file}: durations must be finite numbers > 0: ${bad.map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(', ')}`)
+  const known = new Set(spokenBeatIds(sp))
+  for (const k of Object.keys(raw)) if (!known.has(k)) console.error(`warning: ${file}: "${k}" matches no spoken beat id`)
+  return raw as Record<string, number>
+}
+
 function buildTimeline(opts: ReturnType<typeof parseCli>): Timeline {
   const parsed = parseScreenplay(readJson(opts.file))
   if (!parsed.ok) throw new CliError(2, parsed.issues.map((i) => `schema ${i}`).join('\n'))
   const issues = validateScreenplay(parsed.value, defaultCatalog)
   if (issues.length) throw new CliError(2, issues.map((i) => `${i.code} ${i.path} ${i.message}`).join('\n'))
-  const fromFile = opts.durations ? (readJson(opts.durations) as Record<string, number>) : {}
+  const fromFile = opts.durations ? readDurations(opts.durations, parsed.value) : {}
   const fromAudio = opts.audio ? audioDurations(parsed.value, opts.audio) : {}
   return solveTimeline(parsed.value, { ...fromFile, ...fromAudio }, defaultCatalog)
-}
-
-function gateMotion(tl: Timeline, skip: boolean): void {
-  if (skip) return
-  const findings = checkMotion(tl, defaultCatalog)
-  if (!findings.length) return
-  const lines = findings.map((f) => `${f.kind} ${f.from.toFixed(2)}-${f.to.toFixed(2)}s ${f.note}`)
-  throw new CliError(3, `${lines.join('\n')}\nmotion findings: film not rendered (use --skip-motion to override)`)
 }
 
 async function render(tl: Timeline, opts: ReturnType<typeof parseCli>): Promise<{ frames: number; seconds: number }> {

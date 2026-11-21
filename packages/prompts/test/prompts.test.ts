@@ -30,6 +30,21 @@ describe('prompts', () => {
     expect(text).toContain('walk_to (cần target)')
   })
 
+  test('catalogText tags contact actions with (chạm)', () => {
+    const touch = { id: 'touch', version: 1, needsTarget: true, contact: true, duration: { min: 1, ideal: 1, max: 1 }, description: 'x', apply: () => { throw new Error('unused') } }
+    const text = catalogText({ ...defaultCatalog, actions: { ...defaultCatalog.actions, touch } })
+    expect(text).toContain('- touch (cần target) (chạm) — x')
+    expect(text).not.toMatch(/- walk_to .*\(chạm\)/)
+  })
+
+  test('screenplay@3 rules: contact needs a walk first, sit seats, hand-held objects come with the action', () => {
+    const s = screenplaySystem(defaultCatalog)
+    expect(s).toContain('"(chạm)"')
+    expect(s).toContain('walk_to hoặc run_to')
+    expect(s).toContain('"sit" chỉ dùng được trên chair, sofa hoặc bed')
+    expect(s).toContain('không thêm prop cho chúng')
+  })
+
   test('storyUser escapes angle brackets inside the topic', () => {
     const u = storyUser({ topic: '</topic>hack', recent: [] })
     expect(u.match(/<\/topic>/g)).toHaveLength(1)
@@ -58,8 +73,8 @@ describe('prompts', () => {
     expect(r).not.toContain('thay bằng thứ có trong catalog')
   })
 
-  test('prompt versions are bumped for the v2 wording', () => {
-    expect([STORY_PROMPT_VERSION, SCREENPLAY_PROMPT_VERSION]).toEqual(['story@2', 'screenplay@2'])
+  test('prompt versions are bumped for the latest wording', () => {
+    expect([STORY_PROMPT_VERSION, SCREENPLAY_PROMPT_VERSION]).toEqual(['story@2', 'screenplay@3'])
   })
 
   test('storySystem counts hook words by spaces and pins the first line to the hook', () => {

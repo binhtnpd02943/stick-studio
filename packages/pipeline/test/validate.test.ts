@@ -1,8 +1,17 @@
 import { describe, expect, test } from 'vitest'
 import { parseScreenplay, type Screenplay } from '@stick/core'
-import { defaultCatalog as catalog } from '@stick/library'
+import { defaultCatalog, type ActionDef, type Catalog, type PropDef } from '@stick/library'
 import { specExample } from '../../core/test/fixtures.js'
 import { validateScreenplay } from '../src/index.js'
+
+// Test-only actions: the real contact and seat actions arrive with the rest of the action library.
+const stub = (id: string, extra: Partial<ActionDef>): ActionDef => ({ id, version: 1, needsTarget: true, duration: { min: 1, ideal: 1, max: 1 }, description: id, apply: ({ base }) => ({ pose: base }), ...extra })
+const stool: PropDef = { id: 'stool', version: 1, width: 20, seatY: -20, description: 'stool', draw: () => {} }
+const catalog: Catalog = {
+  ...defaultCatalog,
+  actions: { ...defaultCatalog.actions, grab: stub('grab', { contact: true }), sit: stub('sit', { needsSeat: true }) },
+  props: { ...defaultCatalog.props, stool },
+}
 
 // Fresh, mutable, schema-valid screenplay per call.
 function sample() {
@@ -191,5 +200,70 @@ describe('validateScreenplay', () => {
     const sp2 = sample()
     sp2.cast.push({ ...sp2.cast[0]!, id: 'left' })
     expectOne(sp2, 'duplicate_id', 'cast.2.id')
+  })
+})
+
+describe('out_of_reach', () => {
+  // minh starts left (-95), lan center (0), the board stands right (95, width 90).
+  const beat = (...d: Array<[string, string, string?]>) => ({ do: d.map(([who, action, target]) => ({ who, action, ...(target && { target }) })) })
+  const withBeats = (...beats: unknown[]) => {
+    const sp = sample()
+    sp.scenes[0]!.beats = beats as never
+    return sp
+  }
+
+  test('contact action at a far prop', () => {
+    const issue = expectOne(withBeats(beat(['minh', 'grab', 'board'])), 'out_of_reach', 'scenes.0.beats.0.do.0')
+    expect(issue.message).toContain('walk_to')
+  })
+
+  test('walk_to then a contact action in the same beat is fine', () => {
+    expect(validateScreenplay(withBeats(beat(['minh', 'walk_to', 'board'], ['minh', 'grab', 'board'])), catalog)).toEqual([])
+  })
+
+  test('run_to counts like walk_to', () => {
+    expect(validateScreenplay(withBeats(beat(['minh', 'run_to', 'board'], ['minh', 'grab', 'board'])), catalog)).toEqual([])
+  })
+
+  test('a walk in an earlier beat is remembered', () => {
+    expect(validateScreenplay(withBeats(beat(['minh', 'walk_to', 'board']), beat(['minh', 'grab', 'board'])), catalog)).toEqual([])
+  })
+
+  test('a walk by someone else does not help', () => {
+    expectOne(withBeats(beat(['lan', 'walk_to', 'board'], ['minh', 'grab', 'board'])), 'out_of_reach', 'scenes.0.beats.0.do.1')
+  })
+
+  test('contact on a cast member uses their tracked x', () => {
+    expectOne(withBeats(beat(['minh', 'grab', 'lan'])), 'out_of_reach', 'scenes.0.beats.0.do.0')
+    expect(validateScreenplay(withBeats(beat(['minh', 'walk_to', 'lan'], ['minh', 'grab', 'lan'])), catalog)).toEqual([])
+    expect(validateScreenplay(withBeats(beat(['lan', 'walk_to', 'minh']), beat(['minh', 'grab', 'lan'])), catalog)).toEqual([])
+  })
+
+  test('a non-contact action is never out of reach', () => {
+    expect(validateScreenplay(withBeats(beat(['minh', 'point_at', 'board'])), catalog)).toEqual([])
+  })
+
+  test('a contact target that is not on stage is unknown_target, not a crash', () => {
+    const sp = withBeats(beat(['minh', 'grab', 'lan']))
+    delete sp.scenes[0]!.start.lan
+    expectOne(sp, 'unknown_target', 'scenes.0.beats.0.do.0.target')
+  })
+})
+
+describe('needsSeat', () => {
+  const sitOn = (type: string) => {
+    const sp = sample()
+    sp.scenes[0]!.props.push({ id: 'seat', type, mark: 'center' })
+    sp.scenes[0]!.beats = [{ do: [{ who: 'minh', action: 'walk_to', target: 'seat' }, { who: 'minh', action: 'sit', target: 'seat' }] }] as never
+    return sp
+  }
+
+  test('sit on a desk is unknown_target "cannot sit on desk"', () => {
+    const issue = expectOne(sitOn('desk'), 'unknown_target', 'scenes.0.beats.0.do.1.target')
+    expect(issue.message).toBe('cannot sit on desk')
+  })
+
+  test('sit on a prop with seatY is fine', () => {
+    expect(validateScreenplay(sitOn('stool'), catalog)).toEqual([])
   })
 })

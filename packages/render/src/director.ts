@@ -60,8 +60,10 @@ function drawStage(g: SKRSContext2D, tl: Timeline, t: number, rig: Rig, catalog:
     const gait = c.gait
     const pose = rig.legs(c.pose, gait?.ph ?? 0, gait?.amp ?? 0, { arms: false, ...(gait?.stride ? { stride: gait.stride } : {}) })
     const colour = ink.toLowerCase() === rig.C.ink ? {} : { ink, far: tint(ink, FAR_TINT) }
-    rig.fig(g, pose, c.x, 0, { sx: c.facing, ...colour })
+    const J = rig.fig(g, pose, c.x, 0, { sx: c.facing, ...colour })
     drawHair(g, rig, pose, c.x, c.facing, look?.hair ?? 'none', ink, t)
+    // J.w holds the hands and head exactly as fig drew them (it may reach or clear the pose targets).
+    c.overlay?.(dom, rig, { x: c.x, facing: c.facing, pose, t, head: J.w.head, hands: { near: J.w.handF, far: J.w.handB } })
   }
 }
 

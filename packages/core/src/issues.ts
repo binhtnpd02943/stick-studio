@@ -8,6 +8,8 @@ export type IssueCode =
   | 'not_on_stage'
   | 'mark_collision'
   | 'duplicate_id'
+  /** A contact action whose actor stands farther than REACH from the target. */
+  | 'out_of_reach'
   | 'schema'
   /** Spoken lines differ from the story: wrong speaker, order, text, or an added/dropped line. */
   | 'line_mismatch'

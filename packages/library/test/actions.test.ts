@@ -29,7 +29,7 @@ describe('actions', () => {
   it('catalog ids are exact', () => {
     expect(Object.keys(defaultCatalog.actions).sort()).toEqual([
       'bow', 'cheer', 'clap', 'cross_arms', 'cry', 'facepalm', 'jump', 'laugh', 'look_around', 'nod', 'point_at',
-      'scratch_head', 'shake_head', 'shrug', 'stomp', 'talk', 'think', 'walk_to', 'wave',
+      'run_to', 'scratch_head', 'shake_head', 'shrug', 'stomp', 'talk', 'think', 'walk_to', 'wave',
     ])
     expect(Object.keys(defaultCatalog.props).sort()).toEqual(['desk', 'whiteboard'])
     expect(Object.keys(defaultCatalog.backdrops).sort()).toEqual(['blank', 'classroom'])

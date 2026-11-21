@@ -26,12 +26,30 @@ export interface ActionResult {
   x?: number
   facing?: 1 | -1
   gait?: { ph: number; amp: number; stride?: number }
+  /** Drawn after the figure and hair, in world coordinates; `hands` are where fig drew the hands, `head` the head centre. */
+  overlay?: (g: CanvasRenderingContext2D, rig: Rig, at: OverlayAt) => void
+}
+
+export interface OverlayAt {
+  x: number
+  facing: 1 | -1
+  pose: Pose
+  /** global seconds */
+  t: number
+  head: [number, number]
+  hands: { near: [number, number]; far: [number, number] }
 }
 
 export interface ActionDef {
   id: string
   version: number
   needsTarget: boolean
+  /** Touches its target: the actor must stand within REACH of it (validator `out_of_reach`). */
+  contact?: boolean
+  /** The target prop must have a `seatY` (validator `unknown_target` otherwise). */
+  needsSeat?: boolean
+  /** Locomotion, world units per second: the solver sizes the action by distance / speed and the actor ends at the target. */
+  speed?: number
   duration: { min: number; ideal: number; max: number }
   description: string
   apply(ctx: ActionContext): ActionResult
@@ -41,6 +59,8 @@ export interface PropDef {
   id: string
   version: number
   width: number
+  /** World y of the seat surface (ground 0, up is negative), for props a character can sit on. */
+  seatY?: number
   description: string
   draw(g: CanvasRenderingContext2D, rig: Rig, x: number, t: number): void
 }

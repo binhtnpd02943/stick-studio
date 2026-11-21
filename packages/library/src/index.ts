@@ -6,6 +6,7 @@ export type {
   BackdropDef,
   Catalog,
   CharacterState,
+  OverlayAt,
   PropDef,
 } from './types'
 export * from './stage'

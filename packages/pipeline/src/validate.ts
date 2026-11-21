@@ -1,5 +1,5 @@
 import type { Issue, IssueCode, Screenplay } from '@stick/core'
-import { lookup, type Catalog } from '@stick/library'
+import { lookup, REACH, startXs, stepAction, type Catalog } from '@stick/library'
 
 export type { Issue, IssueCode } from '@stick/core'
 
@@ -19,6 +19,7 @@ interface Ctx {
   /** Characters already reported as off-stage in this scene. */
   offStage: Set<string>
   add: (code: IssueCode, path: string, message: string, key?: string) => void
+  count: () => number
 }
 
 /** A mark is bare, or near:<prop in this scene>. */
@@ -30,7 +31,11 @@ function checkMark(c: Ctx, mark: string, path: string) {
 
 /** A target is a mark, a prop id in this scene, or a cast id. */
 function checkTarget(c: Ctx, t: string, path: string) {
-  if (BARE_MARKS.has(t) || c.propIds.has(t) || c.cast.has(t)) return
+  if (BARE_MARKS.has(t) || c.propIds.has(t)) return
+  if (c.cast.has(t)) {
+    if (!Object.hasOwn(c.scene.start, t)) c.add('unknown_target', path, `target "${t}" has no start mark in scene "${c.scene.id}"`)
+    return
+  }
   if (t.startsWith(NEAR)) return checkMark(c, t, path)
   c.add('unknown_target', path, `target "${t}" is not a mark, prop or cast id`)
 }
@@ -82,6 +87,14 @@ function validateAction(c: Ctx, d: NonNullable<Beat['do']>[number], dp: string) 
     return
   }
   checkTarget(c, d.target, `${dp}.target`)
+  if (def.needsSeat) checkSeat(c, d.action, d.target, `${dp}.target`)
+}
+
+function checkSeat(c: Ctx, action: string, target: string, path: string) {
+  const type = c.scene.props.find((p) => p.id === target)?.type
+  if (type !== undefined && lookup(c.catalog.props, type)?.seatY === undefined) {
+    c.add('unknown_target', path, `cannot ${action} on ${type}`)
+  }
 }
 
 function validateBeat(c: Ctx, beat: Beat, bp: string) {
@@ -91,13 +104,28 @@ function validateBeat(c: Ctx, beat: Beat, bp: string) {
   if (beat.say) checkWho(c, beat.say.who, `${bp}.say.who`)
 }
 
+/** Contact actions need the actor within REACH; earlier walks in the same beat count. Needs a scene whose targets all resolve. */
+function validateReach(c: Ctx, sp: Scene) {
+  const xs = startXs(sp, c.catalog)
+  sp.beats.forEach((beat, bi) =>
+    beat.do?.forEach((d, di) => {
+      const { gap } = stepAction(d, sp, xs, c.catalog)
+      if (gap !== undefined && gap > REACH) {
+        c.add('out_of_reach', `${c.path}.beats.${bi}.do.${di}`, `"${d.who}" is ${Math.round(gap)} from "${d.target}" (reach ${REACH}): add a walk_to before "${d.action}"`)
+      }
+    }),
+  )
+}
+
 function validateScene(c: Ctx) {
+  const before = c.count()
   if (!lookup(c.catalog.backdrops, c.scene.backdrop)) {
     c.add('unknown_backdrop', `${c.path}.backdrop`, `unknown backdrop "${c.scene.backdrop}"`, c.scene.backdrop)
   }
   validateProps(c)
   validateStart(c)
   c.scene.beats.forEach((beat, bi) => validateBeat(c, beat, `${c.path}.beats.${bi}`))
+  if (c.count() === before) validateReach(c, c.scene)
 }
 
 /** Report each id that repeats one in `taken` (or a mark name), adding it otherwise. */
@@ -136,6 +164,7 @@ export function validateScreenplay(sp: Screenplay, catalog: Catalog): Issue[] {
       catalog,
       offStage: new Set(),
       add,
+      count: () => issues.length,
     }),
   )
   return issues

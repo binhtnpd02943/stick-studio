@@ -3,7 +3,7 @@ import type { Catalog } from '@stick/library'
 import { catalogText } from './catalog-text.js'
 import { escapeAngles } from './story.js'
 
-export const SCREENPLAY_PROMPT_VERSION = 'screenplay@2'
+export const SCREENPLAY_PROMPT_VERSION = 'screenplay@3'
 
 /** Static per catalog: no topic or story text, so it stays byte-identical and cacheable. */
 export function screenplaySystem(catalog: Catalog): string {
@@ -51,15 +51,18 @@ Lưu ý: "start" là MỘT MẢNG các { "who", "mark" } (không phải object).
 9. "voice" của cast lấy nguyên từ story. "look" giữ nguyên từ story.
 10. Chuyển mỗi scene trong story thành một scene trong screenplay; chọn backdrop hợp với "setting". Dùng "action_hint" để chọn action cho beat tương ứng, nếu không có thì chọn action hợp với lời thoại (gật, chỉ, vẫy, đi...). Thêm beat không lời ("do" mà không "say") khi cần để nhân vật di chuyển cho tự nhiên.
 11. Một beat nên có 1-2 action. Nhân vật đang nói nên có action phù hợp hoặc đứng yên tự nhiên; tránh nhiều hơn 3 nhân vật hoạt động trong một beat.
-12. Chỉ dùng camera khi nó phục vụ nhịp phim (nhấn một đạo cụ hoặc nhân vật); mặc định có thể bỏ trống.
+12. Action ghi "(chạm)" chạm vào mục tiêu của nó: trước đó nhân vật phải đi tới mục tiêu bằng walk_to hoặc run_to (ở beat trước, hoặc đứng trước trong cùng danh sách "do"). Nếu không, kịch bản bị từ chối vì với không tới.
+13. "sit" chỉ dùng được trên chair, sofa hoặc bed.
+14. Vật cầm trên tay (điện thoại, sách, ly...) đã đi kèm action tương ứng: không thêm prop cho chúng.
+15. Chỉ dùng camera khi nó phục vụ nhịp phim (nhấn một đạo cụ hoặc nhân vật); mặc định có thể bỏ trống.
 
 ## CATALOG (id — mô tả)
-Mỗi dòng là một id hợp lệ. Action ghi "(cần target)" thì bắt buộc có "target". Prop ghi độ rộng theo đơn vị cảnh. Thứ tự: action, prop, backdrop.
+Mỗi dòng là một id hợp lệ. Action ghi "(cần target)" thì bắt buộc có "target"; "(chạm)" là action chạm vào mục tiêu. Prop ghi độ rộng theo đơn vị cảnh. Thứ tự: action, prop, backdrop.
 ${catalogText(catalog)}
 
 ## Trước khi trả lời, tự kiểm tra
 - Mọi action, prop type, backdrop có trong catalog.
-- Mọi action cần target đều có target hợp lệ và nhân vật đã ở gần hoặc đã đi tới.
+- Mọi action cần target đều có target hợp lệ và nhân vật đã ở gần hoặc đã đi tới; mọi action "(chạm)" đều có walk_to hoặc run_to tới mục tiêu trước đó.
 - Mọi nhân vật được dùng đều có trong cast và trong "start" của cảnh.
 - Không trùng mark trong "start". Props chỉ dùng mark trần.
 - Mọi line của story có đúng một "say" tương ứng, nguyên văn.`

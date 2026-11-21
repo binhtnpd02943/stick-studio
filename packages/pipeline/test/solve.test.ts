@@ -89,3 +89,11 @@ describe('walk_to duration', () => {
     expect(b1!.end).toBeGreaterThanOrEqual(near!.end)
   })
 })
+
+describe('run_to duration', () => {
+  test('is sized by run speed: 190/200 s, above the 0.9 s floor', () => {
+    const sp = twoScene([{ do: [{ who: 'minh', action: 'run_to', target: 'right' }] }])
+    const [run] = solveTimeline(sp, {}, catalog).scenes[0]!.beats[0]!.tracks
+    expect(run!.end - run!.start).toBeCloseTo(0.95, 3)
+  })
+})

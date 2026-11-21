@@ -2,7 +2,7 @@ import type { TimedAction, TimedBeat, TimedScene, Timeline } from '@stick/core'
 import type { Pose, Rig } from '@stick/engine'
 import { lookup, markX, resolveTarget, type ActionResult, type Catalog, type CharacterState } from '@stick/library'
 
-export type CharFrame = CharacterState & { pose: Pose; gait?: ActionResult['gait'] }
+export type CharFrame = CharacterState & { pose: Pose; gait?: ActionResult['gait']; overlay?: ActionResult['overlay'] }
 export interface SceneState { scene: TimedScene; chars: CharFrame[]; zoom: number; focusX: number }
 
 const ZOOM_EASE = 0.5
@@ -26,18 +26,18 @@ function startStates(scene: TimedScene, catalog: Catalog): Map<string, Character
   )
 }
 
-interface Live { pose: Pose; gait?: ActionResult['gait'] }
+interface Live { pose: Pose; gait?: ActionResult['gait']; overlay?: ActionResult['overlay'] }
 
 function runTrack(tr: TimedAction, t: number, scene: TimedScene, states: Map<string, CharacterState>, rig: Rig, catalog: Catalog): Live | undefined {
   const self = states.get(tr.who)
   const def = lookup(catalog.actions, tr.action)
   if (!self || !def) throw new Error(`director: unknown ${self ? 'action' : 'character'} in ${tr.who}:${tr.action}`)
-  const targetX = tr.target === undefined ? undefined : resolveTarget(tr.target, scene, states, self.x, tr.action === 'walk_to', catalog)
+  const targetX = tr.target === undefined ? undefined : resolveTarget(tr.target, scene, states, self.x, def.speed !== undefined, catalog)
   const dur = Math.max(tr.end - tr.start, 1e-6)
   const T = Math.min(t - tr.start, dur) // a finished action is evaluated at k=1 so its x/facing persist
   const r = def.apply({ rig, self, targetX, k: T / dur, T, dur, t, base: restPose(rig, t) })
   states.set(tr.who, { ...self, x: r.x ?? self.x, facing: r.facing ?? self.facing })
-  return t < tr.end ? { pose: r.pose, gait: r.gait } : undefined
+  return t < tr.end ? { pose: r.pose, gait: r.gait, overlay: r.overlay } : undefined
 }
 
 /** Talk over the part of the line not covered by the speaker's own actions, ramping in/out at each edge. */
@@ -80,7 +80,7 @@ export function sceneStateAt(tl: Timeline, t: number, rig: Rig, catalog: Catalog
   }
   const chars = [...states.values()].map((s) => {
     const l = live.get(s.id)
-    return { ...s, pose: l?.pose ?? talkPose(scene, s, t, rig, catalog) ?? restPose(rig, t), gait: l?.gait }
+    return { ...s, pose: l?.pose ?? talkPose(scene, s, t, rig, catalog) ?? restPose(rig, t), gait: l?.gait, overlay: l?.overlay }
   })
   const focusOf = (target: string) => resolveTarget(target, scene, states, undefined, false, catalog)
   return { scene, chars, ...camAt(scene.beats, started.length - 1, t, rig, focusOf) }

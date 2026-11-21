@@ -1,12 +1,10 @@
 import { beatId, estimateLineDuration, type Beat, type Screenplay, type TimedAction, type TimedBeat, type TimedScene, type Timeline } from '@stick/core'
-import { lookup, markX, resolveTarget, type ActionDef, type Catalog } from '@stick/library'
+import { lookup, startXs, stepAction, type ActionDef, type Catalog } from '@stick/library'
 
 export const LINE_LEAD = 0.15
 export const BEAT_PAD = 0.3
 export const MIN_BEAT = 0.8
 export const SCENE_TAIL = 0.4
-/** World units per second a character covers walking. */
-export const WALK_SPEED = 110
 
 type Scene = Screenplay['scenes'][number]
 type Action = NonNullable<Beat['do']>[number]
@@ -25,15 +23,13 @@ function sequences(actions: Sized[]): Map<string, Sized[]> {
 
 const idealOf = (seq: Sized[]) => seq.reduce((sum, s) => sum + s.d.ideal, 0)
 
-/** Catalog duration, except walk_to whose ideal is the walk's distance at WALK_SPEED. Advances `xs` to where each walker ends. */
+/** Catalog duration, except locomotion whose ideal is the distance at the action's `speed`. Advances `xs` to where each walker ends. */
 function sizeActions(beat: Beat, scene: Scene, xs: Map<string, { x: number }>, catalog: Catalog): Sized[] {
   return (beat.do ?? []).map((action) => {
-    const d = lookup(catalog.actions, action.action)!.duration
-    if (action.action !== 'walk_to' || action.target === undefined) return { action, d }
-    const from = xs.get(action.who)?.x ?? 0
-    const to = resolveTarget(action.target, scene, xs, from, true, catalog)
-    xs.set(action.who, { x: to })
-    return { action, d: { ...d, ideal: clamp(Math.abs(to - from) / WALK_SPEED, d.min, d.max) } }
+    const def = lookup(catalog.actions, action.action)!
+    const { from, to } = stepAction(action, scene, xs, catalog)
+    if (def.speed === undefined || action.target === undefined) return { action, d: def.duration }
+    return { action, d: { ...def.duration, ideal: clamp(Math.abs(to - from) / def.speed, def.duration.min, def.duration.max) } }
   })
 }
 
@@ -73,7 +69,7 @@ function solveBeat(beat: Beat, sized: Sized[], id: string, start: number, lineDu
 
 function solveScene(scene: Scene, start: number, durations: Record<string, number>, catalog: Catalog): TimedScene {
   let cursor = start
-  const xs = new Map(Object.entries(scene.start).map(([id, mark]) => [id, { x: markX(mark, scene, undefined, catalog) }]))
+  const xs = startXs(scene, catalog)
   const beats = scene.beats.map((beat, i) => {
     const id = beatId(scene.id, i)
     const d = lookup(durations, id)

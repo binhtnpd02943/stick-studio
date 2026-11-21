@@ -1,13 +1,13 @@
 import type { ActionDef } from '../types'
 import { atHead } from './face'
 import { bump } from './bump'
+import { drawTears } from './tears'
 
 const HEAVE_HZ = 2.5
 
-// Tears are an overlay (added with the overlay hook), not part of the pose.
 export const cry: ActionDef = {
   id: 'cry',
-  version: 1,
+  version: 2,
   needsTarget: false,
   duration: { min: 1.2, ideal: 2.0, max: 5.0 },
   description: 'Head down, both hands at the eyes, shoulders shaking; small tear drops fall.',
@@ -20,6 +20,6 @@ export const cry: ActionDef = {
       hip: [2, -58], chest, head, kF: [27, -30], kB: [15, -30],
       hF: atHead(chest, head, 7, 0), hB: atHead(chest, head, 4, 7), hang: 0,
     })
-    return { pose: rig.mix(base, target, w) }
+    return { pose: rig.mix(base, target, w), overlay: (g, r, at) => drawTears(g, r, at, w) }
   },
 }

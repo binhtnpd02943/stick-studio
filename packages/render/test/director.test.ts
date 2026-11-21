@@ -21,9 +21,9 @@ const char = (t: number, id: string) => sceneStateAt(tl, t, rig, catalog).chars.
 
 describe('markX', () => {
   test('near:<prop> picks the side facing fromX', () => {
-    expect(markX('near:board', scene, 0)).toBe(50)
-    expect(markX('near:board', scene)).toBe(50)
-    expect(markX('near:board', scene, 140)).toBe(140)
+    expect(markX('near:board', scene, 0)).toBe(32)
+    expect(markX('near:board', scene)).toBe(32)
+    expect(markX('near:board', scene, 140)).toBe(158)
     expect(markX('left', scene)).toBe(-95)
   })
 })
@@ -36,7 +36,7 @@ describe('sceneStateAt', () => {
 
   test('walk persists', () => {
     expect(char(b1.end, 'lan').x).toBe(markX('near:board', scene, 0))
-    expect(char(b1.end, 'lan').x).toBe(50)
+    expect(char(b1.end, 'lan').x).toBe(95 - (90 / 2 + 18))
     expect(char(b1.end - 0.1, 'lan').facing).toBe(1)
   })
 
@@ -44,7 +44,7 @@ describe('sceneStateAt', () => {
     const walk = b1.tracks[0]!
     const x = char((walk.start + walk.end) / 2, 'lan').x
     expect(x).toBeGreaterThan(0)
-    expect(x).toBeLessThan(50)
+    expect(x).toBeLessThan(32)
   })
 
   test('talk while speaking', () => {
@@ -92,11 +92,11 @@ describe('drawFrame', () => {
 
 describe('cameraShift', () => {
   test('zooms about the focus when everyone fits', () => {
-    expect(cameraShift(1.3, 95, [0, 50])).toBeCloseTo(95 * (1 - 1 / 1.3), 5)
-    expect(cameraShift(1, 95, [-95, 50])).toBe(0)
+    expect(cameraShift(1.3, 95, [0, 32])).toBeCloseTo(95 * (1 - 1 / 1.3), 5)
+    expect(cameraShift(1, 95, [-95, 32])).toBe(0)
   })
   test('slides back so the leftmost figure stays in frame', () => {
-    const shift = cameraShift(1.3, 95, [-95, 50])
+    const shift = cameraShift(1.3, 95, [-95, 32])
     expect(-95 - 18 - shift).toBeGreaterThanOrEqual(-150 / 1.3 - 1e-9)
   })
 })

@@ -50,7 +50,7 @@ function drawStage(g: SKRSContext2D, tl: Timeline, t: number, rig: Rig, catalog:
   const { scene } = st
   const dom = g as unknown as CanvasRenderingContext2D // library defs are typed against the DOM context
   need(catalog.backdrops[scene.backdrop], `backdrop ${scene.backdrop}`).draw(dom, rig, t)
-  for (const p of scene.props) need(catalog.props[p.type], `prop type ${p.type}`).draw(dom, rig, markX(p.mark, scene), t)
+  for (const p of scene.props) need(catalog.props[p.type], `prop type ${p.type}`).draw(dom, rig, markX(p.mark, scene, undefined, catalog), t)
   rig.setSettle(1)
   for (const c of st.chars) {
     const ink = tl.cast.find((m) => m.id === c.id)?.look.ink ?? rig.C.ink

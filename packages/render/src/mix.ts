@@ -96,7 +96,8 @@ export async function mixFilm(
   const parts = ['anchor']
   if (voice) {
     parts.push('vmix')
-    g.push(music !== undefined ? `[voice]asplit=2[vmix][vsc]` : `[voice]anull[vmix]`)
+    // apad: sidechaincompress stops when its sidechain ends, which would cut the music after the last line.
+    g.push(music !== undefined ? `[voice]asplit=2[vmix][vraw];[vraw]apad[vsc]` : `[voice]anull[vmix]`)
   }
   if (sfx) parts.push(sfx)
   if (music !== undefined) {

@@ -23,6 +23,13 @@ const lufs = (file: string): number => {
   return Number(all.at(-1)![1])
 }
 
+/** Mean level in dB of `[from, from + len]`, optionally through a narrow bandpass at `hz`. */
+const meanDb = (file: string, from: number, len: number, hz?: number): number => {
+  const filter = `${hz ? `bandpass=f=${hz}:width_type=h:w=60,` : ''}volumedetect`
+  const r = spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-ss', String(from), '-t', String(len), '-i', file, '-vn', '-af', filter, '-f', 'null', '-'], { encoding: 'utf8' })
+  return Number(r.stderr.match(/mean_volume:\s+(-?[\d.]+|-inf) dB/)![1])
+}
+
 beforeAll(() => {
   ff('-f', 'lavfi', '-i', `color=c=black:s=64x64:r=30:d=${VIDEO_S}`, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', video)
   // A speech-like stand-in: modulated tones at 22.05 kHz, as the TTS providers emit.
@@ -55,8 +62,19 @@ describe('mixFilm', () => {
     const out = join(dir, 'short-voice.mp4')
     const clip = join(dir, 'blip.wav')
     ff('-f', 'lavfi', '-i', 'sine=f=300:d=0.3:r=22050', '-ac', '1', clip)
-    await mixFilm(video, { voice: [{ path: clip, start: 0 }], sfx: [] }, out)
+    await mixFilm(video, { voice: [{ path: clip, start: 1 }], sfx: [], music }, out)
     expect(Math.abs(probe(out, 'format=duration') - VIDEO_S)).toBeLessThanOrEqual(0.05)
+    // the voice bus ends at 1.3 s; the music must keep playing to the end of the film
+    expect(meanDb(out, VIDEO_S - 1.5, 1)).toBeGreaterThan(-60)
+  }, 60_000)
+
+  test('music is ducked while the voice plays', async () => {
+    const out = join(dir, 'duck.mp4')
+    const tone = join(dir, 'tone3k.wav')
+    ff('-f', 'lavfi', '-i', 'sine=f=3000:d=2.5:r=22050', '-ac', '1', tone) // far above the 330 Hz music, so a bandpass tells them apart
+    await mixFilm(video, { voice: [{ path: tone, start: 2 }], sfx: [], music }, out)
+    const before = meanDb(out, 0.5, 1, 330), during = meanDb(out, 2.8, 1.2, 330)
+    expect(before - during).toBeGreaterThan(3)
   }, 60_000)
 
   test('no voice, no sfx, no music still produces a file of video length', async () => {

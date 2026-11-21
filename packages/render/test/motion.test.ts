@@ -39,6 +39,13 @@ describe('checkMotion', () => {
     expect(found).toEqual([])
   }, 60_000)
 
+  test('no talk sliver between a think and a long line', () => {
+    const r = parseScreenplay(specExample())
+    if (!r.ok) throw new Error(r.issues.join('; '))
+    const tl = solveTimeline(r.value, { 's1.b0': 3.0 }, defaultCatalog)
+    expect(checkMotion(tl, defaultCatalog)).toEqual([])
+  }, 60_000)
+
   test('detects a snap', () => {
     const catalog = { ...defaultCatalog, actions: { ...defaultCatalog.actions, snap } }
     const found = checkMotion(soloTimeline('snap', 1), catalog)

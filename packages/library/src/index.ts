@@ -1,4 +1,4 @@
-export { defaultCatalog } from './catalog'
+export { defaultCatalog, lookup } from './catalog'
 export type {
   ActionContext,
   ActionDef,

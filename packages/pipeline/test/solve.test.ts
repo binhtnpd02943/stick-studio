@@ -64,4 +64,12 @@ describe('solveTimeline', () => {
     expect(tl.duration).toBe(tl.scenes.at(-1)!.end)
     expect(tl.scenes[0]!.end).toBeCloseTo(1.5 + 0.4, 2)
   })
+
+  test.each([NaN, -1, 0])('line duration %s falls back to the estimate', (d) => {
+    const text = 'một hai ba bốn năm sáu'
+    const tl = solveTimeline(twoScene([{ say: { who: 'minh', text } }]), { 's1.b0': d }, catalog)
+    const line = tl.scenes[0]!.beats[0]!.line!
+    expect(line.end - line.start).toBeCloseTo(estimateLineDuration(text), 5)
+    expect(Number.isFinite(tl.duration)).toBe(true)
+  })
 })

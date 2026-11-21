@@ -1,5 +1,5 @@
 import { beatId, type Beat, type Screenplay, type TimedAction, type TimedBeat, type TimedScene, type Timeline } from '@stick/core'
-import type { Catalog } from '@stick/library'
+import { lookup, type Catalog } from '@stick/library'
 
 export const LINE_LEAD = 0.15
 export const BEAT_PAD = 0.3
@@ -25,7 +25,7 @@ function sequences(actions: Action[]): Map<string, Action[]> {
 }
 
 function packTrack(seq: Action[], start: number, beatLen: number, catalog: Catalog): TimedAction[] {
-  const durations = seq.map((a) => catalog.actions[a.action]!.duration)
+  const durations = seq.map((a) => lookup(catalog.actions, a.action)!.duration)
   const factor = beatLen / durations.reduce((sum, d) => sum + d.ideal, 0)
   let cursor = start
   return seq.map((a, i) => {
@@ -46,7 +46,7 @@ function packTrack(seq: Action[], start: number, beatLen: number, catalog: Catal
 
 function solveBeat(beat: Beat, id: string, start: number, lineDur: number, catalog: Catalog): TimedBeat {
   const seqs = sequences(beat.do ?? [])
-  const idealOf = (seq: Action[]) => seq.reduce((sum, a) => sum + catalog.actions[a.action]!.duration.ideal, 0)
+  const idealOf = (seq: Action[]) => seq.reduce((sum, a) => sum + lookup(catalog.actions, a.action)!.duration.ideal, 0)
   const lineLen = beat.say ? lineDur + LINE_LEAD + BEAT_PAD : 0
   const beatLen = Math.max(lineLen, MIN_BEAT, ...[...seqs.values()].map(idealOf))
   return {
@@ -65,7 +65,9 @@ function solveScene(scene: Scene, start: number, durations: Record<string, numbe
   let cursor = start
   const beats = scene.beats.map((beat, i) => {
     const id = beatId(scene.id, i)
-    const lineDur = durations[id] ?? (beat.say ? estimateLineDuration(beat.say.text) : 0)
+    const d = lookup(durations, id)
+    // Probed durations are untrusted: NaN, negative or zero fall back to the estimate.
+    const lineDur = d !== undefined && Number.isFinite(d) && d > 0 ? d : beat.say ? estimateLineDuration(beat.say.text) : 0
     const timed = solveBeat(beat, id, cursor, lineDur, catalog)
     cursor = timed.end
     return timed

@@ -5,10 +5,13 @@ export type Mark = 'left' | 'center' | 'right' | `near:${string}`
 const MARK_RE = /^(left|center|right|near:.+)$/
 const MarkSchema = z.string().regex(MARK_RE, 'must be left, center, right or near:<prop>') as unknown as z.ZodType<Mark>
 
+/** Filename-safe: beat ids become audio file names in plan 2. */
+const IdSchema = z.string().regex(/^[a-z0-9_-]{1,32}$/i, 'must be 1-32 letters, digits, _ or -')
+
 const HexSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be a #rrggbb hex color')
 
 const CastSchema = z.object({
-  id: z.string().min(1),
+  id: IdSchema,
   name: z.string().min(1),
   look: z.object({
     ink: HexSchema,
@@ -35,9 +38,9 @@ const BeatSchema = z
   })
 
 const SceneSchema = z.object({
-  id: z.string().min(1),
+  id: IdSchema,
   backdrop: z.string().min(1),
-  props: z.array(z.object({ id: z.string().min(1), type: z.string().min(1), mark: MarkSchema })),
+  props: z.array(z.object({ id: IdSchema, type: z.string().min(1), mark: MarkSchema })),
   start: z.record(MarkSchema),
   beats: z.array(BeatSchema).min(1),
 })

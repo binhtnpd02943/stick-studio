@@ -127,4 +127,69 @@ describe('validateScreenplay', () => {
     sp.scenes[0]!.start.lan = 'near:door'
     expectOne(sp, 'unknown_target', 'scenes.0.start.lan')
   })
+
+  // Prototype keys must not count as catalog or record entries.
+  test('prototype key as action is unknown_action', () => {
+    const sp = sample()
+    sp.scenes[0]!.beats[0]!.do![0]!.action = 'constructor'
+    expectOne(sp, 'unknown_action', 'scenes.0.beats.0.do.0.action')
+  })
+
+  test('prototype key as prop type is unknown_prop', () => {
+    const sp = sample()
+    sp.scenes[0]!.props[0]!.type = 'valueOf'
+    expectOne(sp, 'unknown_prop', 'scenes.0.props.0.type')
+  })
+
+  test('prototype key as backdrop is unknown_backdrop', () => {
+    const sp = sample()
+    sp.scenes[0]!.backdrop = 'toString'
+    expectOne(sp, 'unknown_backdrop', 'scenes.0.backdrop')
+  })
+
+  test('prototype key as cast id without a start mark is not_on_stage', () => {
+    const sp = sample()
+    sp.cast.push({ ...sp.cast[0]!, id: 'toString' })
+    sp.scenes[0]!.beats[0]!.do![0]!.who = 'toString'
+    expectOne(sp, 'not_on_stage', 'scenes.0.beats.0.do.0.who')
+  })
+
+  test('a prop may not use a near: mark', () => {
+    const sp = sample()
+    sp.scenes[0]!.props[0]!.mark = 'near:board'
+    expectOne(sp, 'unknown_target', 'scenes.0.props.0.mark')
+  })
+
+  test('duplicate_id for a repeated scene id', () => {
+    const sp = sample()
+    sp.scenes.push(structuredClone(sp.scenes[0]!))
+    expectOne(sp, 'duplicate_id', 'scenes.1.id')
+  })
+
+  test('duplicate_id for a repeated cast id', () => {
+    const sp = sample()
+    sp.cast.push({ ...sp.cast[0]! })
+    expectOne(sp, 'duplicate_id', 'cast.2.id')
+  })
+
+  test('duplicate_id for a repeated prop id in a scene', () => {
+    const sp = sample()
+    sp.scenes[0]!.props.push({ id: 'board', type: 'desk', mark: 'left' })
+    expectOne(sp, 'duplicate_id', 'scenes.0.props.1.id')
+  })
+
+  test('duplicate_id for a prop id equal to a cast id', () => {
+    const sp = sample()
+    sp.scenes[0]!.props.push({ id: 'minh', type: 'desk', mark: 'left' })
+    expectOne(sp, 'duplicate_id', 'scenes.0.props.1.id')
+  })
+
+  test('duplicate_id for ids equal to a mark name', () => {
+    const sp = sample()
+    sp.scenes[0]!.props.push({ id: 'center', type: 'desk', mark: 'left' })
+    expectOne(sp, 'duplicate_id', 'scenes.0.props.1.id')
+    const sp2 = sample()
+    sp2.cast.push({ ...sp2.cast[0]!, id: 'left' })
+    expectOne(sp2, 'duplicate_id', 'cast.2.id')
+  })
 })

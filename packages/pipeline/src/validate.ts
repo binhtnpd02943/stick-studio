@@ -1,5 +1,5 @@
 import type { Screenplay } from '@stick/core'
-import type { Catalog } from '@stick/library'
+import { lookup, type Catalog } from '@stick/library'
 
 export type IssueCode =
   | 'unknown_action'
@@ -10,6 +10,7 @@ export type IssueCode =
   | 'missing_target'
   | 'not_on_stage'
   | 'mark_collision'
+  | 'duplicate_id'
 
 export interface Issue {
   code: IssueCode
@@ -55,7 +56,7 @@ function checkTarget(c: Ctx, t: string, path: string) {
 function checkWho(c: Ctx, who: string, path: string) {
   if (!c.cast.has(who)) {
     c.add('unknown_cast', path, `"${who}" is not in cast`)
-  } else if (!(who in c.scene.start) && !c.offStage.has(who)) {
+  } else if (!Object.hasOwn(c.scene.start, who) && !c.offStage.has(who)) {
     c.offStage.add(who)
     c.add('not_on_stage', path, `"${who}" has no start mark in scene "${c.scene.id}"`)
   }
@@ -63,10 +64,11 @@ function checkWho(c: Ctx, who: string, path: string) {
 
 function validateProps(c: Ctx) {
   c.scene.props.forEach((p, pi) => {
-    if (!(p.type in c.catalog.props)) {
+    if (!lookup(c.catalog.props, p.type)) {
       c.add('unknown_prop', `${c.path}.props.${pi}.type`, `unknown prop type "${p.type}"`, p.type)
     }
-    checkMark(c, p.mark, `${c.path}.props.${pi}.mark`)
+    // Props stand on bare marks only, so prop placement can never chain or loop.
+    if (!BARE_MARKS.has(p.mark)) c.add('unknown_target', `${c.path}.props.${pi}.mark`, `prop "${p.id}" must use left, center or right`)
   })
 }
 
@@ -87,7 +89,7 @@ function validateStart(c: Ctx) {
 
 function validateAction(c: Ctx, d: NonNullable<Beat['do']>[number], dp: string) {
   checkWho(c, d.who, `${dp}.who`)
-  const def = c.catalog.actions[d.action]
+  const def = lookup(c.catalog.actions, d.action)
   if (!def) {
     c.add('unknown_action', `${dp}.action`, `unknown action "${d.action}"`, d.action)
     return
@@ -107,7 +109,7 @@ function validateBeat(c: Ctx, beat: Beat, bp: string) {
 }
 
 function validateScene(c: Ctx) {
-  if (!(c.scene.backdrop in c.catalog.backdrops)) {
+  if (!lookup(c.catalog.backdrops, c.scene.backdrop)) {
     c.add('unknown_backdrop', `${c.path}.backdrop`, `unknown backdrop "${c.scene.backdrop}"`, c.scene.backdrop)
   }
   validateProps(c)
@@ -115,11 +117,32 @@ function validateScene(c: Ctx) {
   c.scene.beats.forEach((beat, bi) => validateBeat(c, beat, `${c.path}.beats.${bi}`))
 }
 
+/** Report each id that repeats one in `taken` (or a mark name), adding it otherwise. */
+function claimIds(ids: { id: string; path: string }[], taken: Set<string>, add: Ctx['add']) {
+  for (const { id, path } of ids) {
+    if (taken.has(id) || BARE_MARKS.has(id)) add('duplicate_id', path, `id "${id}" is already used or is a mark name`)
+    else taken.add(id)
+  }
+}
+
+function validateIds(sp: Screenplay, add: Ctx['add']) {
+  const castIds = new Set<string>()
+  claimIds(sp.cast.map((m, i) => ({ id: m.id, path: `cast.${i}.id` })), castIds, add)
+  const sceneIds = new Set<string>()
+  sp.scenes.forEach((s, si) => {
+    if (sceneIds.has(s.id)) add('duplicate_id', `scenes.${si}.id`, `scene id "${s.id}" is used twice`)
+    sceneIds.add(s.id)
+    // Prop ids share a namespace with cast ids: targets resolve either.
+    claimIds(s.props.map((p, pi) => ({ id: p.id, path: `scenes.${si}.props.${pi}.id` })), new Set(castIds), add)
+  })
+}
+
 export function validateScreenplay(sp: Screenplay, catalog: Catalog): Issue[] {
   const issues: Issue[] = []
   const add: Ctx['add'] = (code, path, message, key) =>
     issues.push(key === undefined ? { code, path, message } : { code, path, message, key })
   const cast = new Set(sp.cast.map((m) => m.id))
+  validateIds(sp, add)
 
   sp.scenes.forEach((scene, si) =>
     validateScene({

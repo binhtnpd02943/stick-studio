@@ -1,5 +1,5 @@
 import type { Mark, TimedScene } from '@stick/core'
-import { defaultCatalog, type Catalog } from '@stick/library'
+import { defaultCatalog, lookup, type Catalog } from '@stick/library'
 
 export const FRAME = { w: 1080, h: 1920 }
 export const STAGE = { worldWidth: 300, scale: 3.6, groundY: 1250 }
@@ -21,15 +21,18 @@ function sceneProp(id: string, scene: TimedScene): TimedScene['props'][number] {
   return prop
 }
 
-export function propX(id: string, scene: TimedScene, catalog: Catalog = defaultCatalog): number {
-  return markX(sceneProp(id, scene).mark, scene, undefined, catalog)
+/** Props stand on bare marks only (validated), so placement never recurses. */
+export function propX(id: string, scene: TimedScene): number {
+  const { mark } = sceneProp(id, scene)
+  if (!Object.hasOwn(MARK_X, mark)) throw new Error(`layout: prop "${id}" must use a bare mark, got "${mark}"`)
+  return MARK_X[mark as keyof typeof MARK_X]
 }
 
 /** Where a character stands near a prop: clear of its width plus NEAR_GAP. */
 export function nearPropX(id: string, scene: TimedScene, fromX: number | undefined, catalog: Catalog = defaultCatalog): number {
-  const def = catalog.props[sceneProp(id, scene).type]
+  const def = lookup(catalog.props, sceneProp(id, scene).type)
   if (!def) throw new Error(`layout: unknown prop type for "${id}"`)
-  return besideX(propX(id, scene, catalog), def.width / 2 + NEAR_GAP, fromX)
+  return besideX(propX(id, scene), def.width / 2 + NEAR_GAP, fromX)
 }
 
 export function markX(mark: Mark, scene: TimedScene, fromX?: number, catalog: Catalog = defaultCatalog): number {

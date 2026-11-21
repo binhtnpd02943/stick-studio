@@ -36,6 +36,18 @@ describe('parseScreenplay', () => {
     s.scenes[0]!.beats[0]!.say!.text = 'x'.repeat(161)
     expect(parseScreenplay(s).ok).toBe(false)
   })
+
+  test('rejects ids that are not filename-safe', () => {
+    for (const set of [
+      (s: ReturnType<typeof specExample>) => (s.scenes[0]!.id = '../x'),
+      (s: ReturnType<typeof specExample>) => (s.cast[0]!.id = 'a/b'),
+      (s: ReturnType<typeof specExample>) => (s.scenes[0]!.props[0]!.id = 'x'.repeat(33)),
+    ]) {
+      const s = specExample()
+      set(s)
+      expect(parseScreenplay(s).ok).toBe(false)
+    }
+  })
 })
 
 test('beatId joins scene id and index', () => {

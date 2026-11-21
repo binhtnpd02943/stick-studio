@@ -1,6 +1,6 @@
 import type { Mark, TimedAction, TimedBeat, TimedScene, Timeline } from '@stick/core'
 import type { Pose, Rig } from '@stick/engine'
-import type { ActionResult, Catalog, CharacterState } from '@stick/library'
+import { lookup, type ActionResult, type Catalog, type CharacterState } from '@stick/library'
 import { besideX, CAST_GAP, markX, nearPropX, propX } from './layout.js'
 
 export type CharFrame = CharacterState & { pose: Pose; gait?: ActionResult['gait'] }
@@ -8,6 +8,8 @@ export interface SceneState { scene: TimedScene; chars: CharFrame[]; zoom: numbe
 
 const MARK_RE = /^(left|center|right|near:.+)$/
 const ZOOM_EASE = 0.5
+/** Seconds; a shorter gap between the speaker's own actions holds rest instead of a talk sliver. */
+export const MIN_TALK_WINDOW = 0.5
 
 export const restPose = (rig: Rig, t: number): Pose => rig.breathe(rig.P({ hF: [12, -60], hB: [-4, -52] }), t)
 
@@ -22,7 +24,7 @@ export function resolveTarget(target: string, scene: TimedScene, xs: ReadonlyMap
   if (MARK_RE.test(target)) return markX(target as Mark, scene, fromX, catalog)
   const other = xs.get(target)
   if (other) return walk ? besideX(other.x, CAST_GAP, fromX) : other.x
-  return walk ? nearPropX(target, scene, fromX, catalog) : propX(target, scene, catalog)
+  return walk ? nearPropX(target, scene, fromX, catalog) : propX(target, scene)
 }
 
 function startStates(scene: TimedScene, catalog: Catalog): Map<string, CharacterState> {
@@ -38,7 +40,7 @@ interface Live { pose: Pose; gait?: ActionResult['gait'] }
 
 function runTrack(tr: TimedAction, t: number, scene: TimedScene, states: Map<string, CharacterState>, rig: Rig, catalog: Catalog): Live | undefined {
   const self = states.get(tr.who)
-  const def = catalog.actions[tr.action]
+  const def = lookup(catalog.actions, tr.action)
   if (!self || !def) throw new Error(`director: unknown ${self ? 'action' : 'character'} in ${tr.who}:${tr.action}`)
   const targetX = tr.target === undefined ? undefined : resolveTarget(tr.target, scene, states, self.x, tr.action === 'walk_to', catalog)
   const dur = Math.max(tr.end - tr.start, 1e-6)
@@ -57,6 +59,7 @@ function talkPose(scene: TimedScene, self: CharacterState, t: number, rig: Rig, 
   const from = Math.max(line.start, ...own.filter((a) => a.end <= t).map((a) => a.end))
   const to = Math.min(line.end, ...own.filter((a) => a.start > t).map((a) => a.start))
   const dur = to - from
+  if (dur < MIN_TALK_WINDOW) return undefined
   const T = t - from
   return talk.apply({ rig, self, k: T / dur, T, dur, t, base: restPose(rig, t) }).pose
 }

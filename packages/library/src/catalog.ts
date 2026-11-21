@@ -11,6 +11,10 @@ import { desk } from './props/desk'
 import { whiteboard } from './props/whiteboard'
 import type { ActionDef, BackdropDef, Catalog, PropDef } from './types'
 
+/** Own-key lookup: prototype keys like "constructor" are not entries. */
+export const lookup = <T>(rec: Readonly<Record<string, T>>, key: string): T | undefined =>
+  Object.hasOwn(rec, key) ? rec[key] : undefined
+
 const byId = <T extends { id: string }>(items: T[]): Record<string, T> => Object.fromEntries(items.map((i) => [i.id, i]))
 
 export const defaultCatalog: Catalog = {

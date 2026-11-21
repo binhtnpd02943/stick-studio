@@ -9,6 +9,18 @@ describe('prompts', () => {
     expect(a.length).toBeGreaterThanOrEqual(3000)
   })
 
+  test('screenplaySystem pins the schema shape', () => {
+    const s = screenplaySystem(defaultCatalog)
+    expect(s).toContain('"start": [')
+    expect(s).toContain('phải có "say" hoặc ít nhất một phần tử trong "do"')
+    expect(s).toContain('khoảng 1-2')
+    expect(s).toContain('"id": "lan"')
+  })
+
+  test('storySystem states the title limit', () => {
+    expect(storySystem()).toContain('title tối đa 80 ký tự')
+  })
+
   test('catalogText lists every action, prop and backdrop id', () => {
     const text = catalogText(defaultCatalog)
     for (const id of [...Object.keys(defaultCatalog.actions), ...Object.keys(defaultCatalog.props), ...Object.keys(defaultCatalog.backdrops)]) {

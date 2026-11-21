@@ -23,7 +23,7 @@ Cấu trúc bắt buộc, theo thứ tự: móc → diễn biến → cao trào/
 
 Độ dài: tổng thời lượng đọc to khoảng 20-60 giây (khoảng 50-150 từ thoại, tương đương 6-14 beat). Mỗi câu thoại ngắn, tối đa 160 ký tự, một người nói một câu mỗi beat.
 
-Ngôn ngữ: toàn bộ thoại (line), title, logline bằng tiếng Việt tự nhiên, dễ đọc thành tiếng. Giữ nguyên id và khóa JSON bằng tiếng Anh.
+Ngôn ngữ: toàn bộ thoại (line), title, logline bằng tiếng Việt tự nhiên, dễ đọc thành tiếng. title tối đa 80 ký tự. Giữ nguyên id và khóa JSON bằng tiếng Anh.
 
 Nhân vật (cast): 1-4 nhân vật. Mỗi nhân vật có:
 - id: chữ thường, số, "_" hoặc "-", tối đa 32 ký tự (ví dụ "minh", "ba_noi").

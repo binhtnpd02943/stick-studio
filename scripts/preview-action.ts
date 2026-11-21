@@ -3,8 +3,11 @@ import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { MARK_RE } from '@stick/core'
 import { defaultCatalog, lookup } from '@stick/library'
-import { renderContactSheet, soloTimeline } from '@stick/render'
+import { renderContactSheet, soloTimeline, STAGE } from '@stick/render'
 import { CliError } from './lib/cli-error.js'
+
+// Crop to the figure's band: the frame above 690 px over the ground is blank, and the rest is where poses live.
+const PREVIEW = { crop: { x: 0, y: STAGE.groundY - 690, w: 1080, h: 740 }, cols: 3, rows: 4, scale: 0.4 }
 
 const USAGE = 'usage: npm run preview -- <actionId> [--target left|center|right|near:<prop>] [--dur seconds] [--prop <type>]'
 
@@ -33,7 +36,7 @@ async function main(): Promise<void> {
 
   const out = join('out', 'preview', `${id}.png`)
   mkdirSync(join('out', 'preview'), { recursive: true })
-  await renderContactSheet(soloTimeline(id, seconds, target ?? (action.needsTarget ? 'right' : undefined), prop), out)
+  await renderContactSheet(soloTimeline(id, seconds, target ?? (action.needsTarget ? 'right' : undefined), prop), out, PREVIEW)
   console.log(`out path: ${out}`)
   console.log(`duration: ${seconds.toFixed(2)}s`)
 }

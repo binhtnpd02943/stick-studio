@@ -8,8 +8,9 @@ import { renderContactSheet, soloTimeline } from '../src/index.js'
 const dir = mkdtempSync(join(tmpdir(), 'stick-contact-'))
 const tl = soloTimeline('walk_to', 3, 'right')
 const SLOW = 60_000
+const STAMP_BAND = 30 // top rows holding the time stamp, which differs in every cell
 
-/** RGBA pixels of one grid cell of a rendered sheet (default 4x3 at 0.25 -> 270x640 cells). */
+/** RGBA pixels of one grid cell, stamp rows excluded of a rendered sheet (default 4x3 at 0.25 -> 270x640 cells). */
 async function cell(file: string, i: number): Promise<Buffer> {
   const img = await loadImage(file)
   const w = img.width / 4
@@ -17,7 +18,7 @@ async function cell(file: string, i: number): Promise<Buffer> {
   const c = createCanvas(w, h)
   const g = c.getContext('2d')
   g.drawImage(img, (i % 4) * w, Math.floor(i / 4) * h, w, h, 0, 0, w, h)
-  return Buffer.from(g.getImageData(0, 0, w, h).data.buffer)
+  return Buffer.from(g.getImageData(0, STAMP_BAND, w, h - STAMP_BAND).data.buffer)
 }
 
 describe('renderContactSheet', () => {
@@ -26,6 +27,13 @@ describe('renderContactSheet', () => {
     await renderContactSheet(tl, out)
     const img = await loadImage(out)
     expect([img.width, img.height]).toEqual([1080, 1440])
+  }, SLOW)
+
+  test('crop option sizes the sheet to cols*crop.w*scale by rows*crop.h*scale', async () => {
+    const out = join(dir, 'crop.png')
+    await renderContactSheet(tl, out, { cols: 3, rows: 4, scale: 0.4, crop: { x: 0, y: 560, w: 1080, h: 740 } })
+    const img = await loadImage(out)
+    expect([img.width, img.height]).toEqual([3 * 432, 4 * 296])
   }, SLOW)
 
   test('cells differ when the scene moves', async () => {

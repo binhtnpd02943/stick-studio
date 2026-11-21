@@ -71,8 +71,12 @@ async function main(): Promise<void> {
   }
   const contact = join(opts.out, 'contact.png')
   if (!run.snapshot().steps.contact || !existsSync(contact)) {
-    await renderContactSheet(tl, contact)
-    run.markStep('contact')
+    try {
+      await renderContactSheet(tl, contact)
+      run.markStep('contact')
+    } catch (e) {
+      console.error(`warning: contact sheet failed, film.mp4 is complete: ${(e as Error).message}`) // a review aid must not fail a finished film
+    }
   }
   const done = run.snapshot()
   console.log(`out path: ${film}`)

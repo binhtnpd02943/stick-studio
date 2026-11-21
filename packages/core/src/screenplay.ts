@@ -6,9 +6,9 @@ export const MARK_RE = /^(left|center|right|near:.+)$/
 const MarkSchema = z.string().regex(MARK_RE, 'must be left, center, right or near:<prop>') as unknown as z.ZodType<Mark>
 
 /** Lowercase and filename-safe: beat ids become `<beatId>.wav`, which collide on case-insensitive filesystems. */
-const IdSchema = z.string().regex(/^[a-z0-9_-]{1,32}$/, 'must be 1-32 lowercase letters, digits, _ or -')
+export const IdSchema = z.string().regex(/^[a-z0-9_-]{1,32}$/, 'must be 1-32 lowercase letters, digits, _ or -')
 
-const HexSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be a #rrggbb hex color')
+export const HexSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be a #rrggbb hex color')
 
 const CastSchema = z.object({
   id: IdSchema,

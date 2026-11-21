@@ -1,14 +1,12 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { parseScreenplay, type Screenplay, type Timeline } from '@stick/core'
 import { defaultCatalog } from '@stick/library'
 import { solveTimeline, validateScreenplay } from '@stick/pipeline'
-import { muxAudio, renderVideo } from '@stick/render'
-import { audioClips, audioDurations, spokenBeatIds } from './lib/audio-clips.js'
+import { audioDurations, spokenBeatIds } from './lib/audio-clips.js'
 import { CliError } from './lib/cli-error.js'
 import { gateMotion } from './lib/motion-gate.js'
+import { renderWithAudio } from './lib/render-steps.js'
 
 const USAGE = 'usage: npm run render -- <screenplay.json> [--durations d.json] [--audio dir] [--out out/film.mp4] [--skip-motion]'
 
@@ -59,25 +57,11 @@ function buildTimeline(opts: ReturnType<typeof parseCli>): Timeline {
   return solveTimeline(parsed.value, { ...fromFile, ...fromAudio }, defaultCatalog)
 }
 
-async function render(tl: Timeline, opts: ReturnType<typeof parseCli>): Promise<{ frames: number; seconds: number }> {
-  mkdirSync(dirname(opts.out), { recursive: true })
-  if (!opts.audio) return renderVideo(tl, opts.out)
-  const tmp = mkdtempSync(join(tmpdir(), 'stick-render-'))
-  try {
-    const silent = join(tmp, 'silent.mp4')
-    const stats = await renderVideo(tl, silent)
-    await muxAudio(silent, audioClips(tl, opts.audio), opts.out)
-    return stats
-  } finally {
-    rmSync(tmp, { recursive: true, force: true })
-  }
-}
-
 async function main(): Promise<void> {
   const opts = parseCli()
   const tl = buildTimeline(opts)
   gateMotion(tl, opts.skipMotion)
-  const { frames, seconds } = await render(tl, opts)
+  const { frames, seconds } = await renderWithAudio(tl, opts.audio, opts.out)
   console.log(`out path: ${opts.out}`)
   console.log(`duration: ${tl.duration.toFixed(2)}s`)
   console.log(`frames: ${frames}`)

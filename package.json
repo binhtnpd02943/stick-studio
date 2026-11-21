@@ -8,7 +8,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
-    "render": "tsx scripts/render-film.ts"
+    "render": "tsx scripts/render-film.ts",
+    "make": "tsx scripts/make-film.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

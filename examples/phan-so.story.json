@@ -1,0 +1,79 @@
+{
+  "title": "Phân số là gì?",
+  "logline": "Lan dùng một cái bánh chia làm bốn để giải thích cho Minh phân số là gì.",
+  "genre": "explainer",
+  "hook": "Lan ơi, phân số là gì vậy?",
+  "cast": [
+    {
+      "id": "minh",
+      "name": "Minh",
+      "voice": "male_young",
+      "look": {
+        "ink": "#141414",
+        "hair": "short"
+      }
+    },
+    {
+      "id": "lan",
+      "name": "Lan",
+      "voice": "female_young",
+      "look": {
+        "ink": "#d97757",
+        "hair": "ponytail"
+      }
+    }
+  ],
+  "scenes": [
+    {
+      "setting": "Lớp học, giờ ra chơi",
+      "beats": [
+        {
+          "who": "minh",
+          "line": "Lan ơi, phân số là gì vậy?",
+          "action_hint": "Minh gãi đầu suy nghĩ"
+        },
+        {
+          "who": "lan",
+          "line": "Để mình chỉ cho cậu xem nhé.",
+          "action_hint": "Lan gật đầu"
+        }
+      ]
+    },
+    {
+      "setting": "Lớp học, trước tấm bảng trắng",
+      "beats": [
+        {
+          "who": "lan",
+          "line": "Mình chia cái bánh thành bốn phần bằng nhau.",
+          "action_hint": "Lan đi tới bảng và chỉ vào hình cái bánh"
+        },
+        {
+          "who": "minh",
+          "line": "Mình ăn một phần thì còn lại ba phần, đúng không?",
+          "action_hint": "Minh gật đầu"
+        },
+        {
+          "who": "lan",
+          "line": "Đúng rồi! Phần cậu ăn là một phần tư, viết là một trên bốn.",
+          "action_hint": "Lan chỉ lên bảng"
+        }
+      ]
+    },
+    {
+      "setting": "Lớp học, cạnh bàn học",
+      "beats": [
+        {
+          "who": "minh",
+          "line": "À, mình hiểu rồi! Phân số là một phần của cả cái bánh.",
+          "action_hint": "Minh reo lên"
+        },
+        {
+          "who": "lan",
+          "line": "Chuẩn luôn! Cậu giỏi lắm.",
+          "action_hint": "Lan vẫy tay"
+        }
+      ]
+    }
+  ],
+  "content_warnings": []
+}

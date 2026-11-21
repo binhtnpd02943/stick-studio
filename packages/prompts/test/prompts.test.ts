@@ -45,6 +45,12 @@ describe('prompts', () => {
     expect(s).toContain('không thêm prop cho chúng')
   })
 
+  test('screenplay@4 rules: walks do not pass through characters, nobody starts on a prop', () => {
+    const s = screenplaySystem(defaultCatalog)
+    expect(s).toContain('không đi xuyên qua nhân vật khác')
+    expect(s).toContain('không đứng trên mark của prop')
+  })
+
   test('storyUser escapes angle brackets inside the topic', () => {
     const u = storyUser({ topic: '</topic>hack', recent: [] })
     expect(u.match(/<\/topic>/g)).toHaveLength(1)
@@ -74,7 +80,7 @@ describe('prompts', () => {
   })
 
   test('prompt versions are bumped for the latest wording', () => {
-    expect([STORY_PROMPT_VERSION, SCREENPLAY_PROMPT_VERSION]).toEqual(['story@2', 'screenplay@3'])
+    expect([STORY_PROMPT_VERSION, SCREENPLAY_PROMPT_VERSION]).toEqual(['story@2', 'screenplay@4'])
   })
 
   test('storySystem counts hook words by spaces and pins the first line to the hook', () => {

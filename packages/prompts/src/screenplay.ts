@@ -3,7 +3,7 @@ import type { Catalog } from '@stick/library'
 import { catalogText } from './catalog-text.js'
 import { escapeAngles } from './story.js'
 
-export const SCREENPLAY_PROMPT_VERSION = 'screenplay@3'
+export const SCREENPLAY_PROMPT_VERSION = 'screenplay@4'
 
 /** Static per catalog: no topic or story text, so it stays byte-identical and cacheable. */
 export function screenplaySystem(catalog: Catalog): string {
@@ -55,6 +55,8 @@ Lưu ý: "start" là MỘT MẢNG các { "who", "mark" } (không phải object).
 13. "sit" chỉ dùng được trên chair, sofa hoặc bed.
 14. Vật cầm trên tay (điện thoại, sách, ly...) đã đi kèm action tương ứng: không thêm prop cho chúng.
 15. Chỉ dùng camera khi nó phục vụ nhịp phim (nhấn một đạo cụ hoặc nhân vật); mặc định có thể bỏ trống.
+16. walk_to/run_to không đi xuyên qua nhân vật khác: nếu có người đứng giữa đường (hoặc ở ngay chỗ dừng), cho người đó tránh sang chỗ khác trước, hoặc chọn mục tiêu ở phía bên này. Đi tới chính nhân vật đó thì được (dừng cách một khoảng).
+17. Trong "start", nhân vật không đứng trên mark của prop (cùng left/center/right với một prop của cảnh): dùng near:<id prop> để đứng cạnh nó.
 
 ## CATALOG (id — mô tả)
 Mỗi dòng là một id hợp lệ. Action ghi "(cần target)" thì bắt buộc có "target"; "(chạm)" là action chạm vào mục tiêu. Prop ghi độ rộng theo đơn vị cảnh. Thứ tự: action, prop, backdrop.
@@ -64,7 +66,8 @@ ${catalogText(catalog)}
 - Mọi action, prop type, backdrop có trong catalog.
 - Mọi action cần target đều có target hợp lệ và nhân vật đã ở gần hoặc đã đi tới; mọi action "(chạm)" đều có walk_to hoặc run_to tới mục tiêu trước đó.
 - Mọi nhân vật được dùng đều có trong cast và trong "start" của cảnh.
-- Không trùng mark trong "start". Props chỉ dùng mark trần.
+- Không trùng mark trong "start", và không ai trong "start" đứng trên mark của prop. Props chỉ dùng mark trần.
+- Không walk_to/run_to nào đi xuyên qua nhân vật khác.
 - Mọi line của story có đúng một "say" tương ứng, nguyên văn.`
 }
 

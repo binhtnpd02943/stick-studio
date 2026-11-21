@@ -1,5 +1,5 @@
 import type { Issue, IssueCode, Screenplay } from '@stick/core'
-import { lookup, REACH, startXs, stepAction, type Catalog } from '@stick/library'
+import { CAST_GAP, lookup, REACH, startXs, stepAction, type ActionStep, type Catalog } from '@stick/library'
 
 export type { Issue, IssueCode } from '@stick/core'
 
@@ -66,6 +66,8 @@ function validateStart(c: Ctx) {
     if (!c.cast.has(who)) c.add('unknown_cast', path, `"${who}" is not in cast`)
     checkMark(c, mark, path)
     const owner = seenMarks.get(mark)
+    const prop = c.scene.props.find((p) => p.mark === mark)
+    if (prop) c.add('mark_collision', path, `"${who}" starts at "${mark}" on top of prop "${prop.id}": start at "near:${prop.id}" instead`)
     if (owner !== undefined) {
       c.add('mark_collision', path, `"${who}" and "${owner}" both start at "${mark}"`)
     } else {
@@ -113,7 +115,20 @@ function steppable(c: Ctx): Scene {
   return { ...c.scene, props, start }
 }
 
-/** Contact actions need the actor within REACH; earlier walks in the same beat count. Actions whose actor or target failed validation are skipped. */
+/** A walk must not cross another character or stop within CAST_GAP of one (the figures overlap); its own target cast member is where it stops, at the gap. */
+function checkPath(c: Ctx, d: { who: string; action: string; target?: string | undefined }, { from, to }: ActionStep, xs: ReadonlyMap<string, { x: number }>, path: string) {
+  const dir = Math.sign(to - from)
+  if (dir === 0) return
+  const other = [...xs].find(([who, { x }]) => who !== d.who && who !== d.target && (x - from) * dir > 0 && (x - to) * dir < CAST_GAP)?.[0]
+  if (other !== undefined) {
+    c.add('path_blocked', path, `"${d.who}"'s ${d.action} to "${d.target}" walks through "${other}": pick a target on this side of "${other}", or move "${other}" out of the way first`)
+  }
+}
+
+/**
+ * Contact actions need the actor within REACH, and walks must not pass through anyone; earlier walks in the scene count.
+ * Actions whose actor or target failed validation are skipped.
+ */
 function validateReach(c: Ctx) {
   const sp = steppable(c)
   const xs = startXs(sp, c.catalog)
@@ -122,9 +137,12 @@ function validateReach(c: Ctx) {
   sp.beats.forEach((beat, bi) =>
     beat.do?.forEach((d, di) => {
       if (!xs.has(d.who) || (d.target !== undefined && !known(d.target))) return
-      const { gap } = stepAction(d, sp, xs, c.catalog)
+      const path = `${c.path}.beats.${bi}.do.${di}`
+      const step = stepAction(d, sp, xs, c.catalog)
+      if (lookup(c.catalog.actions, d.action)?.speed !== undefined) checkPath(c, d, step, xs, path)
+      const { gap } = step
       if (gap !== undefined && gap > REACH) {
-        c.add('out_of_reach', `${c.path}.beats.${bi}.do.${di}`, `"${d.who}" is ${Math.round(gap)} from "${d.target}" (reach ${REACH}): add a walk_to before "${d.action}"`)
+        c.add('out_of_reach', path, `"${d.who}" is ${Math.round(gap)} from "${d.target}" (reach ${REACH}): add a walk_to before "${d.action}"`)
       }
     }),
   )

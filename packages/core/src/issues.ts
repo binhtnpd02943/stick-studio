@@ -10,6 +10,8 @@ export type IssueCode =
   | 'duplicate_id'
   /** A contact action whose actor stands farther than REACH from the target. */
   | 'out_of_reach'
+  /** A walk_to/run_to that crosses another character, or stops closer than CAST_GAP to one. */
+  | 'path_blocked'
   | 'schema'
   /** Spoken lines differ from the story: wrong speaker, order, text, or an added/dropped line. */
   | 'line_mismatch'

@@ -74,7 +74,7 @@ describe('validateScreenplay', () => {
 
   test('unknown_cast in start', () => {
     const sp = sample()
-    sp.scenes[0]!.start.zed = 'right'
+    sp.scenes[0]!.start.zed = 'near:board'
     expectOne(sp, 'unknown_cast', 'scenes.0.start.zed')
   })
 
@@ -99,7 +99,7 @@ describe('validateScreenplay', () => {
   test('accepts marks, prop ids and cast ids as targets', () => {
     const sp = sample()
     const d = sp.scenes[0]!.beats[1]!.do!
-    d[0]!.target = 'left'
+    d[0]!.target = 'right'
     d[1]!.target = 'minh'
     expect(validateScreenplay(sp, catalog)).toEqual([])
     d[0]!.target = 'near:board'
@@ -183,19 +183,19 @@ describe('validateScreenplay', () => {
 
   test('duplicate_id for a repeated prop id in a scene', () => {
     const sp = sample()
-    sp.scenes[0]!.props.push({ id: 'board', type: 'desk', mark: 'left' })
+    sp.scenes[0]!.props.push({ id: 'board', type: 'desk', mark: 'right' })
     expectOne(sp, 'duplicate_id', 'scenes.0.props.1.id')
   })
 
   test('duplicate_id for a prop id equal to a cast id', () => {
     const sp = sample()
-    sp.scenes[0]!.props.push({ id: 'minh', type: 'desk', mark: 'left' })
+    sp.scenes[0]!.props.push({ id: 'minh', type: 'desk', mark: 'right' })
     expectOne(sp, 'duplicate_id', 'scenes.0.props.1.id')
   })
 
   test('duplicate_id for ids equal to a mark name', () => {
     const sp = sample()
-    sp.scenes[0]!.props.push({ id: 'center', type: 'desk', mark: 'left' })
+    sp.scenes[0]!.props.push({ id: 'center', type: 'desk', mark: 'right' })
     expectOne(sp, 'duplicate_id', 'scenes.0.props.1.id')
     const sp2 = sample()
     sp2.cast.push({ ...sp2.cast[0]!, id: 'left' })
@@ -204,10 +204,12 @@ describe('validateScreenplay', () => {
 })
 
 describe('out_of_reach', () => {
-  // minh starts left (-95), lan center (0), the board stands right (95, width 90).
+  // minh starts left (-95), the board stands center (0, width 90), lan right (95): nobody walks through anybody.
   const beat = (...d: Array<[string, string, string?]>) => ({ do: d.map(([who, action, target]) => ({ who, action, ...(target && { target }) })) })
   const withBeats = (...beats: unknown[]) => {
     const sp = sample()
+    sp.scenes[0]!.props[0]!.mark = 'center'
+    sp.scenes[0]!.start.lan = 'right'
     sp.scenes[0]!.beats = beats as never
     return sp
   }
@@ -279,6 +281,7 @@ describe('needsSeat', () => {
   const sitOn = (type: string) => {
     const sp = sample()
     sp.scenes[0]!.props.push({ id: 'seat', type, mark: 'center' })
+    delete sp.scenes[0]!.start.lan // she would stand on the seat
     sp.scenes[0]!.beats = [{ do: [{ who: 'minh', action: 'walk_to', target: 'seat' }, { who: 'minh', action: 'sit', target: 'seat' }] }] as never
     return sp
   }
@@ -306,6 +309,7 @@ describe('real contact actions', () => {
   const run = (action: string, target: string, walk: boolean, type?: string) => {
     const sp = sample()
     sp.scenes[0]!.props.push({ id: 'thing', type: type ?? 'desk', mark: 'right' })
+    sp.scenes[0]!.start = { minh: 'center', lan: 'left' } // lan stays out of minh's way
     const walkTo = walk ? [{ who: 'minh', action: 'walk_to', target }] : []
     sp.scenes[0]!.beats = [{ do: [...walkTo, { who: 'minh', action, target }] }] as never
     return validateScreenplay(sp, catalog)
@@ -322,5 +326,58 @@ describe('real contact actions', () => {
     expect(far.map((i) => i.code)).toEqual(['out_of_reach'])
     expect(far[0]!.path).toBe('scenes.0.beats.0.do.0')
     expect(run(action, target, true, type)).toEqual([])
+  })
+})
+
+// minh starts left (-95), lan center (0), the board stands right (95): a walk from minh to the board crosses lan.
+describe('path_blocked', () => {
+  const walk = (...d: Array<[string, string, string]>) => {
+    const sp = sample()
+    sp.scenes[0]!.beats = [{ do: d.map(([who, action, target]) => ({ who, action, target })) }] as never
+    return sp
+  }
+
+  test.each(['walk_to', 'run_to'])('%s through another character', (action) => {
+    const issue = expectOne(walk(['minh', action, 'board']), 'path_blocked', 'scenes.0.beats.0.do.0')
+    expect(issue.message).toContain('"lan"')
+  })
+
+  test('stopping inside CAST_GAP of a character counts as passing into them', () => {
+    // lan already stands beside the box; minh walking to the same spot would stop on top of her.
+    const sp = walk(['minh', 'walk_to', 'near:box'])
+    sp.scenes[0]!.props = [{ id: 'box', type: 'box', mark: 'center' }]
+    sp.scenes[0]!.start.lan = 'near:box'
+    expectOne(sp, 'path_blocked', 'scenes.0.beats.0.do.0')
+  })
+
+  test("walking up to the character is fine: the walk stops at the gap", () => {
+    expect(validateScreenplay(walk(['minh', 'walk_to', 'lan']), catalog)).toEqual([])
+  })
+
+  test('walking away from a character is fine', () => {
+    expect(validateScreenplay(walk(['lan', 'walk_to', 'board']), catalog)).toEqual([])
+  })
+
+  test('a character who moved aside earlier no longer blocks', () => {
+    const sp = walk(['lan', 'walk_to', 'right'])
+    sp.scenes[0]!.props = []
+    sp.scenes[0]!.beats = [...sp.scenes[0]!.beats, { do: [{ who: 'minh', action: 'walk_to', target: 'center' }] }] as never
+    expect(validateScreenplay(sp, catalog)).toEqual([])
+  })
+})
+
+describe('start on a prop', () => {
+  test("a character starting on a prop's bare mark is mark_collision", () => {
+    const sp = sample()
+    sp.scenes[0]!.start.minh = 'right'
+    const issue = expectOne(sp, 'mark_collision', 'scenes.0.start.minh')
+    expect(issue.message).toContain('near:board')
+  })
+
+  test('near:<prop> is the fix', () => {
+    const sp = sample()
+    sp.scenes[0]!.start.minh = 'near:board'
+    sp.scenes[0]!.beats = [sp.scenes[0]!.beats[0]!] // lan's walk to the board would stop on him
+    expect(validateScreenplay(sp, catalog)).toEqual([])
   })
 })

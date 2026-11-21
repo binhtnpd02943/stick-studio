@@ -2,7 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { LlmRefusalError, LlmSchemaError, LlmTruncatedError, type LlmRequest } from '@stick/core'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod/v4'
-import { ClaudeLlm } from '../src/index.js'
+import { ClaudeLlm, costUsd } from '../src/index.js'
 
 const schema = z.object({ ok: z.boolean() })
 const req = (over: Partial<LlmRequest<{ ok: boolean }>> = {}): LlmRequest<{ ok: boolean }> => ({
@@ -43,11 +43,18 @@ describe('ClaudeLlm', () => {
     expect(JSON.stringify(p)).not.toContain('budget_tokens')
   })
 
+  it('reports the configured model as usage.model even when the API serves a dated snapshot', async () => {
+    const { llm } = stub(reply({ model: 'claude-sonnet-5-5-20261101' }))
+    const { usage: u } = await llm.generate(req())
+    expect(u).toMatchObject({ model: 'claude-sonnet-5-5', servedModel: 'claude-sonnet-5-5-20261101' })
+    expect(costUsd(u)).toBeGreaterThan(0)
+  })
+
   it('returns the parsed value and usage with cache tokens', async () => {
     const { llm } = stub(reply())
     expect(await llm.generate(req())).toEqual({
       value: { ok: true },
-      usage: { model: 'claude-sonnet-5-5', inputTokens: 10, outputTokens: 5, cacheReadTokens: 7, cacheWriteTokens: 3 },
+      usage: { model: 'claude-sonnet-5-5', servedModel: 'claude-sonnet-5-5', inputTokens: 10, outputTokens: 5, cacheReadTokens: 7, cacheWriteTokens: 3 },
     })
   })
 

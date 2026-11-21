@@ -1,9 +1,12 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import type Anthropic from '@anthropic-ai/sdk'
 import type { LlmUsage } from '@stick/core'
 import { ScreenplayRejectedError } from '@stick/pipeline'
+import { ClaudeLlm } from '@stick/providers'
+import { z } from 'zod/v4'
 import { describe, expect, test } from 'vitest'
 import { CliError } from './lib/cli-error.js'
 import { describeFailure } from './lib/make-errors.js'
@@ -41,6 +44,27 @@ describe('make-film CLI', () => {
     expect(r.status, r.stdout + r.stderr).toBe(0)
     expect(readRun(out).steps).toEqual(before.steps)
     expect(statSync(join(out, 'film.mp4')).mtimeMs).toBe(mtime)
+  }, SLOW)
+
+  test('a run dir holding another topic is refused, not silently resumed', () => {
+    const r = make(['Chủ đề khác hẳn', '--fake', '--out', out], { STICK_FAKE_EMPTY: '1' })
+    expect(r.status).toBe(1)
+    expect(r.stderr).toContain('Phân số là gì?')
+    expect(r.stderr).toContain('Chủ đề khác hẳn')
+    expect(r.stderr).toContain('--fresh')
+  }, SLOW)
+
+  test('a regenerated screenplay invalidates stale voice and render markers', () => {
+    const dir = join(tmp, 'stale')
+    expect(make(['Phân số là gì?', '--fake', '--out', dir]).status).toBe(0)
+    const before = readRun(dir).steps
+    rmSync(join(dir, 'screenplay.json'))
+    const r = make(['Phân số là gì?', '--fake', '--out', dir])
+    expect(r.status, r.stdout + r.stderr).toBe(0)
+    const after = readRun(dir).steps
+    for (const step of ['screenplay', 'voice', 'render']) expect(after[step], step).not.toBe(before[step])
+    expect(after.story).toBe(before.story)
+    expect(existsSync(join(dir, 'film.partial.mp4'))).toBe(false)
   }, SLOW)
 
   test('missing ANTHROPIC_API_KEY without --fake exits 1 naming the variable', () => {
@@ -98,6 +122,38 @@ describe('budget', () => {
     expect(JSON.parse(readFileSync(join(dir, 'run.json'), 'utf8')).usage).toHaveLength(1)
     await expect(paid.generate(req)).rejects.toMatchObject({ exitCode: 4 })
     expect(run.snapshot().usage).toHaveLength(1)
+  })
+
+  test('a dated served model id is still booked at the configured model price', async () => {
+    const dir = mkdtempSync(join(tmp, 'budget3-'))
+    const run = RunState.open(dir, 'topic', 'claude-sonnet-5-5', false)
+    const reply = { model: 'claude-sonnet-5-5-20261101', stop_reason: 'end_turn', content: [{ type: 'text', text: '{"ok":true}' }], usage: { input_tokens: 1_000_000, output_tokens: 0 } }
+    const client = { messages: { create: async () => reply } } as unknown as Anthropic
+    const paid = budgeted(new ClaudeLlm({ apiKey: 'k', model: 'claude-sonnet-5-5', client }), run, 10)
+    await paid.generate({ system: 's', cacheSystem: false, messages: [], schema: z.object({ ok: z.boolean() }), effort: 'low', maxTokens: 10 })
+    expect(run.snapshot().costUsd).toBeCloseTo(2)
+    expect(run.snapshot().usage[0]).toMatchObject({ model: 'claude-sonnet-5-5', servedModel: 'claude-sonnet-5-5-20261101' })
+  })
+
+  test('usage is saved even if pricing throws', () => {
+    const dir = mkdtempSync(join(tmp, 'budget4-'))
+    const run = RunState.open(dir, 'topic', 'x', false)
+    expect(() => run.book({ ...usage(5), model: 'unknown-model' })).toThrow()
+    expect(JSON.parse(readFileSync(join(dir, 'run.json'), 'utf8')).usage).toHaveLength(1)
+  })
+
+  test('clearFrom drops that step and every later one', () => {
+    const run = RunState.open(mkdtempSync(join(tmp, 'clear-')), 'topic', 'fake', false)
+    for (const s of ['story', 'screenplay', 'voice', 'render'] as const) run.markStep(s)
+    run.clearFrom('voice')
+    expect(Object.keys(run.snapshot().steps)).toEqual(['story', 'screenplay'])
+  })
+
+  test('reopening with another topic throws unless fresh', () => {
+    const dir = mkdtempSync(join(tmp, 'topic-'))
+    RunState.open(dir, 'one', 'fake', false)
+    expect(() => RunState.open(dir, 'two', 'fake', false)).toThrow(/"one".*"two".*--fresh/)
+    expect(() => RunState.open(dir, 'two', 'fake', true)).not.toThrow()
   })
 
   test('a call that ends over the cap is kept (the film still finishes)', async () => {

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { CliError } from './cli-error.js'
 
@@ -39,7 +39,10 @@ export function readArtifact<T>(dir: string, name: string, schema: ArtifactSchem
 
 export function writeArtifact(dir: string, name: string, value: unknown): void {
   mkdirSync(dir, { recursive: true })
-  writeFileSync(join(dir, name), JSON.stringify(value, null, 2) + '\n')
+  const file = join(dir, name)
+  const tmp = `${file}.tmp-${process.pid}`
+  writeFileSync(tmp, JSON.stringify(value, null, 2) + '\n')
+  renameSync(tmp, file) // atomic: run.json is the spend ledger and must never be left truncated
 }
 
 /** Titles and loglines of earlier films under `outRoot`, newest first, so a new story avoids repeating them. */

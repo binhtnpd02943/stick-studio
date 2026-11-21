@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, renameSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { defaultCatalog } from '@stick/library'
@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   const opts = parseCli()
   const outRoot = dirname(opts.out)
   loadDotEnv()
-  const { llm, tts, model, maxCostUsd } = makeProviders(opts.fake, join(outRoot, '.tts-cache'))
+  const { llm, tts, model, maxCostUsd } = makeProviders(opts.fake, join(outRoot, '.tts-cache'), !opts.fresh && existsSync(join(opts.out, 'story.json')))
   const promptVersions = { story: STORY_PROMPT_VERSION, screenplay: SCREENPLAY_PROMPT_VERSION }
   const run = RunState.open(opts.out, opts.topic, model, opts.fresh, promptVersions)
   const ctx = { dir: opts.out, run, fresh: opts.fresh }
@@ -51,14 +51,21 @@ async function main(): Promise<void> {
   for (const w of story.value.content_warnings) console.error(`warning: ${w}`) // the human review gate decides
   const screenplay = await screenplayStep({ ...ctx, fresh: opts.fresh || story.ran }, paid, story.value)
   assertValid(screenplay.value)
-  const voice = await voiceStep(ctx, screenplay.value, tts, screenplay.ran)
+  const voice = await voiceStep(ctx, screenplay.value, tts)
   const tl = solveTimeline(screenplay.value, voice.value, defaultCatalog)
   gateMotion(tl, opts.skipMotion)
   run.update({ durationSec: tl.duration })
 
   const film = join(opts.out, 'film.mp4')
-  if (voice.ran || !run.snapshot().steps.render || !existsSync(film)) {
-    await renderWithAudio(tl, join(opts.out, 'audio'), film)
+  if (!run.snapshot().steps.render || !existsSync(film)) {
+    run.clearFrom('render')
+    const partial = join(opts.out, 'film.partial.mp4') // renamed only when complete, so film.mp4 is never truncated
+    try {
+      await renderWithAudio(tl, join(opts.out, 'audio'), partial)
+      renameSync(partial, film)
+    } finally {
+      rmSync(partial, { force: true })
+    }
     run.markStep('render')
   }
   const done = run.snapshot()

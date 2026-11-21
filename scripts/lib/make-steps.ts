@@ -22,6 +22,7 @@ const screenplayArtifact: ArtifactSchema<Screenplay> = {
 export async function storyStep(ctx: Ctx, llm: LlmProvider, topic: string, genre: Story['genre'] | undefined, outRoot: string): Promise<StepResult<Story>> {
   const cached = ctx.fresh ? undefined : readArtifact(ctx.dir, 'story.json', StorySchema)
   if (cached) return { value: cached, ran: false }
+  ctx.run.clearFrom('story')
   const { story } = await writeStory(llm, { topic, genre, recent: recentStories(outRoot) })
   writeArtifact(ctx.dir, 'story.json', story)
   ctx.run.markStep('story')
@@ -31,6 +32,7 @@ export async function storyStep(ctx: Ctx, llm: LlmProvider, topic: string, genre
 export async function screenplayStep(ctx: Ctx, llm: LlmProvider, story: Story): Promise<StepResult<Screenplay>> {
   const cached = ctx.fresh ? undefined : readArtifact(ctx.dir, 'screenplay.json', screenplayArtifact)
   if (cached) return { value: cached, ran: false }
+  ctx.run.clearFrom('screenplay')
   try {
     const { screenplay, libraryRequests, rounds } = await draftScreenplay(llm, story, defaultCatalog)
     writeArtifact(ctx.dir, 'screenplay.json', screenplay)
@@ -49,10 +51,11 @@ export function assertValid(sp: Screenplay): void {
   if (issues.length) throw new CliError(2, issues.map((i) => `${i.code} ${i.path} ${i.message}`).join('\n'))
 }
 
-export async function voiceStep(ctx: Ctx, sp: Screenplay, tts: TtsProvider, stale: boolean): Promise<StepResult<Record<string, number>>> {
+export async function voiceStep(ctx: Ctx, sp: Screenplay, tts: TtsProvider): Promise<StepResult<Record<string, number>>> {
   const audio = join(ctx.dir, 'audio')
-  const done = !stale && ctx.run.snapshot().steps.voice && spokenBeatIds(sp).every((id) => existsSync(join(audio, `${id}.wav`)))
+  const done = ctx.run.snapshot().steps.voice && spokenBeatIds(sp).every((id) => existsSync(join(audio, `${id}.wav`)))
   if (done) return { value: audioDurations(sp, audio), ran: false }
+  ctx.run.clearFrom('voice')
   const value = await voiceScreenplay(sp, tts, audio)
   ctx.run.markStep('voice')
   return { value, ran: true }

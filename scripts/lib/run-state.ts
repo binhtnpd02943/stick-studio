@@ -5,6 +5,9 @@ import { costUsd } from '@stick/providers'
 import { CliError } from './cli-error.js'
 import { writeArtifact } from './run-dir.js'
 
+const STEP_ORDER = ['story', 'screenplay', 'voice', 'render'] as const
+type StepName = (typeof STEP_ORDER)[number]
+
 export interface RunJson {
   topic: string
   model: string
@@ -14,7 +17,7 @@ export interface RunJson {
   libraryRequests: string[]
   repairRounds?: number
   durationSec?: number
-  steps: Partial<Record<'story' | 'screenplay' | 'voice' | 'render', string>>
+  steps: Partial<Record<StepName, string>>
 }
 
 const sumCost = (usage: LlmUsage[]): number => usage.reduce((t, u) => t + costUsd(u), 0)
@@ -36,6 +39,9 @@ export class RunState {
       } catch (e) {
         throw new CliError(1, `${file} is not valid JSON (${(e as Error).message}); fix or delete it`)
       }
+    }
+    if (!fresh && prior.topic !== undefined && prior.topic !== topic) {
+      throw new CliError(1, `${dir} already holds a film for topic "${prior.topic}", not "${topic}"; rerun with --fresh to overwrite it or --out <dir> to use another directory`)
     }
     const usage = prior.usage ?? []
     const state: RunJson = {
@@ -63,13 +69,21 @@ export class RunState {
     this.save()
   }
 
-  markStep(step: keyof RunJson['steps']): void {
+  markStep(step: StepName): void {
     this.update({ steps: { ...this.state.steps, [step]: new Date().toISOString() } })
   }
 
+  /** Starting a step invalidates its own marker and every later one: their outputs derive from this step's. */
+  clearFrom(step: StepName): void {
+    const keep = STEP_ORDER.slice(0, STEP_ORDER.indexOf(step))
+    this.update({ steps: Object.fromEntries(Object.entries(this.state.steps).filter(([k]) => keep.includes(k as StepName))) })
+  }
+
+  /** The usage is saved before it is priced, so a pricing failure can never lose spend. */
   book(usage: LlmUsage): void {
     const all = [...this.state.usage, usage]
-    this.update({ usage: all, costUsd: sumCost(all) })
+    this.update({ usage: all })
+    this.update({ costUsd: sumCost(all) })
   }
 
   assertBudget(maxCostUsd: number): void {

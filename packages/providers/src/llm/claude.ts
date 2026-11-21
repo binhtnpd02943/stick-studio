@@ -34,7 +34,8 @@ export class ClaudeLlm implements LlmProvider {
     return {
       value: parsed.data,
       usage: {
-        model: res.model,
+        model: this.model, // priced by the configured id, which the CLI validated at startup
+        servedModel: res.model,
         inputTokens: u.input_tokens,
         outputTokens: u.output_tokens,
         cacheReadTokens: u.cache_read_input_tokens ?? 0,

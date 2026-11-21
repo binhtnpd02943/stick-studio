@@ -3,7 +3,8 @@ import type { z } from 'zod/v4'
 export const VOICE_IDS = ['narrator', 'female_young', 'male_young', 'female_old', 'male_old', 'child'] as const
 export type VoiceId = (typeof VOICE_IDS)[number]
 
-export interface LlmUsage { model: string; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number }
+/** `model` is the configured id (the one priced); `servedModel` is what the API reported, kept for audit. */
+export interface LlmUsage { model: string; servedModel?: string; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens: number }
 export interface LlmMessage { role: 'user' | 'assistant'; content: string }
 export interface LlmRequest<T> {
   system: string

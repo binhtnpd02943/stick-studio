@@ -30,11 +30,11 @@ describe('validateScreenplay', () => {
     expect(issue.key).toBe('ride_bike')
   })
 
-  test('unknown_action for scratch_head, which the starter library lacks', () => {
+  test('unknown_action for juggle, which the library lacks', () => {
     const sp = sample()
-    sp.scenes[0]!.beats[0]!.do![0]!.action = 'scratch_head'
+    sp.scenes[0]!.beats[0]!.do![0]!.action = 'juggle'
     const issue = expectOne(sp, 'unknown_action', 'scenes.0.beats.0.do.0.action')
-    expect(issue.key).toBe('scratch_head')
+    expect(issue.key).toBe('juggle')
   })
 
   test('unknown_prop', () => {

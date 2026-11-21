@@ -32,7 +32,7 @@ describe('actions', () => {
       'look_around', 'nod', 'phone_call', 'point_at', 'push', 'read_book', 'run_to', 'scratch_head', 'shake_head', 'shrug',
       'sit', 'sleep', 'stomp', 'talk', 'think', 'type_laptop', 'walk_to', 'wave',
     ])
-    expect(Object.keys(defaultCatalog.props).sort()).toEqual(['desk', 'whiteboard'])
+    expect(Object.keys(defaultCatalog.props).sort()).toEqual(['bed', 'bookshelf', 'box', 'chair', 'desk', 'door', 'lamp', 'plant', 'sofa', 'table', 'tree', 'whiteboard'])
     expect(Object.keys(defaultCatalog.backdrops).sort()).toEqual(['blank', 'classroom'])
   })
 

@@ -33,6 +33,16 @@ import { blank } from './backdrops/blank'
 import { classroom } from './backdrops/classroom'
 import { desk } from './props/desk'
 import { whiteboard } from './props/whiteboard'
+import { chair } from './props/chair'
+import { sofa } from './props/sofa'
+import { bed } from './props/bed'
+import { table } from './props/table'
+import { door } from './props/door'
+import { tree } from './props/tree'
+import { bookshelf } from './props/bookshelf'
+import { box } from './props/box'
+import { lamp } from './props/lamp'
+import { plant } from './props/plant'
 import type { ActionDef, BackdropDef, Catalog, PropDef } from './types'
 
 /** Own-key lookup: prototype keys like "constructor" are not entries. */
@@ -47,6 +57,6 @@ export const defaultCatalog: Catalog = {
     shrug, shakeHead, facepalm, clap, cry, laugh, stomp, lookAround, scratchHead, crossArms, bow, jump,
     sit, sleep, fallDown, typeLaptop, readBook, phoneCall, drink, push, knock, dance, hug,
   ]),
-  props: byId<PropDef>([whiteboard, desk]),
+  props: byId<PropDef>([whiteboard, desk, chair, sofa, bed, table, door, tree, bookshelf, box, lamp, plant]),
   backdrops: byId<BackdropDef>([blank, classroom]),
 }

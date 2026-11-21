@@ -6,7 +6,7 @@ import { bump } from './bump'
 const PHONE = { w: 6.5, h: 18 }
 /** The hand arcs a long way up to the face, so the ramp is as slow as bump allows. */
 const RAMP_EDGE = 0.5
-const TILT = -0.3 // the earpiece end leans back, the mouthpiece forward
+const TILT = 0.15 // the earpiece end leans away from the face so the phone never covers the head centre
 const WAVE_HZ = 1.4
 
 /** A phone held to the ear, mirrored with the figure: neutral ink outline on white so it shows against the dark head. */
@@ -38,7 +38,7 @@ export const phoneCall: ActionDef = {
     const w = bump(rig, T, dur, RAMP_EDGE)
     const chest: [number, number] = [-1, -90], head: [number, number] = [-2, -116]
     const nod = Math.sin(T * WAVE_HZ * 2 * Math.PI) * 1.5
-    const target = rig.P({ chest, head: [head[0] - 4, head[1] + nod], hF: atHead(chest, [head[0] - 4, head[1]], 7, 5), hB: [-3, -50], hang: 1 })
+    const target = rig.P({ chest, head: [head[0] - 4, head[1] + nod], hF: atHead(chest, [head[0] - 4, head[1]], 10, 5), hB: [-3, -50], hang: 1 })
     return { pose: rig.mix(base, rig.breathe(target, t), w), overlay: (g, r, at) => drawPhone(g, r, at, w) }
   },
 }

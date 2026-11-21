@@ -17,6 +17,14 @@ describe('library motion gate', () => {
   }, 30_000)
 })
 
+// head-covered compares pixels to the figure's ink, so a white overlay can pass on black and fail on a coloured cast member.
+const INKS = ['#d97757', '#2e86de']
+describe('library motion gate, coloured ink', () => {
+  test.each(cases.flatMap((c) => INKS.map((ink) => [c[0], c[1], c[2], ink, c[3]] as const)))('%s at %s (%ss) in %s moves cleanly', (id, _which, dur, ink, needsTarget) => {
+    expect(checkMotion(soloTimeline(id, dur, needsTarget ? 'right' : undefined, undefined, ink), defaultCatalog)).toEqual([])
+  }, 30_000)
+})
+
 const STEP_S = 0.1
 // Locomotion is sized by the solver to distance / speed, clamped to [min, max], so it lands on any duration in range.
 const sweep = Object.values(defaultCatalog.actions)

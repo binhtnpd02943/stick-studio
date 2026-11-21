@@ -8,3 +8,4 @@ export type {
   CharacterState,
   PropDef,
 } from './types'
+export * from './stage'

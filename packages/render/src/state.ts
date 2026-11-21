@@ -1,12 +1,10 @@
-import type { Mark, TimedAction, TimedBeat, TimedScene, Timeline } from '@stick/core'
+import type { TimedAction, TimedBeat, TimedScene, Timeline } from '@stick/core'
 import type { Pose, Rig } from '@stick/engine'
-import { lookup, type ActionResult, type Catalog, type CharacterState } from '@stick/library'
-import { besideX, CAST_GAP, markX, nearPropX, propX } from './layout.js'
+import { lookup, markX, resolveTarget, type ActionResult, type Catalog, type CharacterState } from '@stick/library'
 
 export type CharFrame = CharacterState & { pose: Pose; gait?: ActionResult['gait'] }
 export interface SceneState { scene: TimedScene; chars: CharFrame[]; zoom: number; focusX: number }
 
-const MARK_RE = /^(left|center|right|near:.+)$/
 const ZOOM_EASE = 0.5
 /** Seconds; a shorter gap between the speaker's own actions holds rest instead of a talk sliver. */
 export const MIN_TALK_WINDOW = 0.5
@@ -17,14 +15,6 @@ export function sceneAt(tl: Timeline, t: number): TimedScene {
   const scene = tl.scenes.filter((s) => s.start <= t).at(-1) ?? tl.scenes[0]
   if (!scene) throw new Error('director: timeline has no scenes')
   return scene
-}
-
-/** World x for an action/camera target: a Mark, a prop id or a cast id. `walk` stands beside props and people. */
-export function resolveTarget(target: string, scene: TimedScene, xs: ReadonlyMap<string, CharacterState>, fromX: number | undefined, walk: boolean, catalog: Catalog): number {
-  if (MARK_RE.test(target)) return markX(target as Mark, scene, fromX, catalog)
-  const other = xs.get(target)
-  if (other) return walk ? besideX(other.x, CAST_GAP, fromX) : other.x
-  return walk ? nearPropX(target, scene, fromX, catalog) : propX(target, scene)
 }
 
 function startStates(scene: TimedScene, catalog: Catalog): Map<string, CharacterState> {

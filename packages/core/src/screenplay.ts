@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export type Mark = 'left' | 'center' | 'right' | `near:${string}`
 
-const MARK_RE = /^(left|center|right|near:.+)$/
+export const MARK_RE = /^(left|center|right|near:.+)$/
 const MarkSchema = z.string().regex(MARK_RE, 'must be left, center, right or near:<prop>') as unknown as z.ZodType<Mark>
 
 /** Filename-safe: beat ids become audio file names in plan 2. */

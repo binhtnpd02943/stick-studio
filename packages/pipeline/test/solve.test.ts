@@ -26,7 +26,7 @@ describe('solveTimeline', () => {
     expect(b1!.end - b1!.start).toBeCloseTo(2.45, 2)
     expect(walk).toMatchObject({ who: 'lan', action: 'walk_to', target: 'board', params: {} })
     expect(walk!.start).toBeCloseTo(b1!.start, 5)
-    expect(walk!.end - b1!.start).toBeCloseTo(1.47, 2)
+    expect(walk!.end - b1!.start).toBeCloseTo(1.42, 2)
     expect(point!.start).toBeCloseTo(walk!.end, 5)
     expect(point!.end - b1!.start).toBeCloseTo(2.45, 2)
     expect(b1!.camera).toEqual({ zoom: 1.3, focus: 'board' })
@@ -71,5 +71,21 @@ describe('solveTimeline', () => {
     const line = tl.scenes[0]!.beats[0]!.line!
     expect(line.end - line.start).toBeCloseTo(estimateLineDuration(text), 5)
     expect(Number.isFinite(tl.duration)).toBe(true)
+  })
+})
+
+describe('walk_to duration', () => {
+  test('is sized by distance, floored at the action minimum', () => {
+    const sp = twoScene([
+      { do: [{ who: 'minh', action: 'walk_to', target: 'right' }] },
+      { do: [{ who: 'minh', action: 'walk_to', target: 'near:board' }] },
+    ])
+    const [b0, b1] = solveTimeline(sp, {}, catalog).scenes[0]!.beats
+    const [far] = b0!.tracks
+    const [near] = b1!.tracks
+    expect(far!.end - far!.start).toBeCloseTo(190 / 110, 3)
+    expect(b0!.end).toBeGreaterThanOrEqual(far!.end)
+    expect(near!.end - near!.start).toBeCloseTo(1.1, 3)
+    expect(b1!.end).toBeGreaterThanOrEqual(near!.end)
   })
 })

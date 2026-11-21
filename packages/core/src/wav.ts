@@ -12,7 +12,8 @@ export function wavSeconds(buf: Buffer): number {
       byteRate = buf.readUInt32LE(p + 16)
     } else if (id === 'data') {
       if (byteRate <= 0) throw bad()
-      return Math.min(size, buf.length - p - 8) / byteRate
+      if (size > buf.length - p - 8) throw bad() // truncated mid-data
+      return size / byteRate
     }
     p += 8 + size + (size & 1)
   }

@@ -6,6 +6,7 @@ import { promisify } from 'node:util'
 import type { TtsProvider, VoiceId } from '@stick/core'
 
 const run = promisify(execFile)
+const SAY_TIMEOUT_MS = 60_000
 
 /** Words per minute. Linh is the only vi_VN voice, so roles differ by rate only. */
 export const VOICE_RATES: Record<VoiceId, number> = {
@@ -25,8 +26,9 @@ export class SayTts implements TtsProvider {
     try {
       const txt = join(dir, 'line.txt')
       const wav = join(dir, 'line.wav')
-      await writeFile(txt, text, 'utf8')
-      await run('say', ['-v', 'Linh', '-r', String(VOICE_RATES[voice]), '-f', txt, '-o', wav, '--data-format=LEI16@22050'])
+      // `say` runs embedded [[slnc]]/[[rate]]/[[volm]] commands, so break the opener to keep the text literal
+      await writeFile(txt, text.replaceAll('[[', '[ ['), 'utf8')
+      await run('say', ['-v', 'Linh', '-r', String(VOICE_RATES[voice]), '-f', txt, '-o', wav, '--data-format=LEI16@22050'], { timeout: SAY_TIMEOUT_MS })
       return await readFile(wav)
     } finally {
       await rm(dir, { recursive: true, force: true })

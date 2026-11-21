@@ -25,4 +25,16 @@ describe('wav', () => {
   it('wavSeconds throws on a file with no data chunk', () => {
     expect(() => wavSeconds(silentWav(1).subarray(0, 36))).toThrow('not a PCM WAV')
   })
+
+  it('wavSeconds throws when the data chunk is cut short', () => {
+    const w = silentWav(1)
+    expect(() => wavSeconds(w.subarray(0, 44 + 100))).toThrow('not a PCM WAV')
+  })
+
+  it('wavSeconds honours the pad byte after an odd-size chunk', () => {
+    const w = silentWav(1)
+    const odd = Buffer.from([0x4a, 0x55, 0x4e, 0x4b, 3, 0, 0, 0, 1, 2, 3, 0]) // JUNK, size 3, pad
+    const buf = Buffer.concat([w.subarray(0, 36), odd, w.subarray(36)])
+    expect(wavSeconds(buf)).toBeCloseTo(1, 3)
+  })
 })

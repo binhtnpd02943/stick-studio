@@ -1,4 +1,5 @@
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -50,6 +51,27 @@ describe('cachedTts', () => {
     expect(readFileSync(join(dir, file!)).length).toBe(good.length)
   })
 
+  it('regenerates a cache file cut in the middle of its data', async () => {
+    const inner = counting()
+    const tts = cachedTts(inner, dir)
+    const good = await tts.synthesize('một hai ba bốn năm sáu bảy tám', 'narrator')
+    const [file] = readdirSync(dir)
+    writeFileSync(join(dir, file!), good.subarray(0, 44 + 1000))
+    await tts.synthesize('một hai ba bốn năm sáu bảy tám', 'narrator')
+    expect(inner.calls).toBe(2)
+    expect(readFileSync(join(dir, file!)).length).toBe(good.length)
+  })
+
+  it('removes its temp file and rethrows when the write fails', async () => {
+    mkdirSync(join(dir, 'x'))
+    // a directory where the final file should go makes rename fail
+    const probe = cachedTts({ id: 'p', synthesize: async () => silentWav(1) }, join(dir, 'x'))
+    const hash = createHash('sha256').update('p\0narrator\0t').digest('hex')
+    mkdirSync(join(dir, 'x', `${hash}.wav`))
+    await expect(probe.synthesize('t', 'narrator')).rejects.toThrow()
+    expect(readdirSync(join(dir, 'x')).filter((f) => f.includes('.tmp-'))).toEqual([])
+  })
+
   it('keeps the provider id', () => {
     expect(cachedTts(new FakeTts(), dir).id).toBe('fake')
   })
@@ -76,6 +98,12 @@ describe.skipIf(process.platform !== 'darwin')('SayTts (macOS)', () => {
       process.chdir(prev)
       rmSync(cwd, { recursive: true, force: true })
     }
+  }, 30_000)
+
+  // the command is spoken as words (about 1.4 s) instead of obeyed (about +2.9 s of silence)
+  it('does not execute embedded [[slnc]] speech commands', async () => {
+    const [plain, cmd] = await Promise.all([new SayTts().synthesize('slnc 3000 xin chào', 'narrator'), new SayTts().synthesize('[[slnc 3000]] xin chào', 'narrator')])
+    expect(Math.abs(wavSeconds(cmd) - wavSeconds(plain))).toBeLessThan(1)
   }, 30_000)
 
   it('a faster voice rate gives a shorter clip', async () => {

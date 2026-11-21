@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { wavSeconds, type TtsProvider, type VoiceId } from '@stick/core'
 
@@ -23,8 +23,13 @@ export function cachedTts(inner: TtsProvider, dir: string): TtsProvider {
       const wav = await inner.synthesize(text, voice)
       await mkdir(dir, { recursive: true })
       const tmp = `${file}.tmp-${process.pid}-${randomBytes(4).toString('hex')}`
-      await writeFile(tmp, wav)
-      await rename(tmp, file)
+      try {
+        await writeFile(tmp, wav)
+        await rename(tmp, file)
+      } catch (e) {
+        await rm(tmp, { force: true })
+        throw e
+      }
       return wav
     },
   }

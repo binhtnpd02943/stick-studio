@@ -7,7 +7,6 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { v7 } from 'uuid'
 import { authHook, requireAuth } from './auth.js'
-import { sendError } from './envelope.js'
 import { ApiError, errorHandler } from './errors.js'
 import { assetRoutes } from './routes/assets.js'
 import { authRoutes } from './routes/auth.js'
@@ -21,6 +20,7 @@ import { meRoutes } from './routes/me.js'
 import { reviewQueueRoutes } from './routes/review-queue.js'
 import { usageRoutes } from './routes/usage.js'
 import { workspaceRoutes } from './routes/workspace.js'
+import { webFallback } from './web.js'
 import type { ApiDeps } from './types.js'
 
 export type { ApiDeps } from './types.js'
@@ -103,7 +103,7 @@ export async function buildApp(deps: ApiDeps, opts: BuildAppOptions = {}): Promi
     filmRoutes, filmActionRoutes,
   ]) routes(app, deps)
   filmEventRoutes(app, deps, { pingMs: opts.ssePingMs })
-  app.setNotFoundHandler((_req, reply) => sendError(reply, 404, 'not_found', 'not found'))
+  webFallback(app, deps.cfg.webDir)
 
   // 8. errors.
   app.setErrorHandler(errorHandler)

@@ -9,6 +9,8 @@ export interface ServerConfig {
   redisUrl: string
   storageDir: string
   cacheDir: string
+  /** Built SPA to serve (STICK_WEB_DIR); unset means API only. */
+  webDir?: string
   host: string
   port: number
   urlSigningKey: string
@@ -41,6 +43,7 @@ const EnvSchema = z.object({
   REDIS_URL: str(),
   STICK_STORAGE_DIR: str(),
   STICK_CACHE_DIR: str(),
+  STICK_WEB_DIR: str(),
   HOST: str(),
   PORT: z.preprocess(
     (v) => (unset(v) === undefined ? 3000 : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN),
@@ -79,6 +82,7 @@ export function loadServerConfig(env: Record<string, string | undefined>, role: 
     // Absolute: @fastify/static rejects a relative root, and paths should not depend on a later chdir.
     storageDir: resolve(e.STICK_STORAGE_DIR ?? 'out/storage'),
     cacheDir: resolve(e.STICK_CACHE_DIR ?? 'out/.cache'),
+    webDir: e.STICK_WEB_DIR ? resolve(e.STICK_WEB_DIR) : undefined,
     host: e.HOST ?? '127.0.0.1',
     port: e.PORT,
     urlSigningKey: e.STICK_URL_SIGNING_KEY ?? '',

@@ -24,6 +24,8 @@ export interface TestApiOptions {
   /** Film event source for SSE; a no-op by default. */
   subscribe?: ApiDeps['subscribe']
   ssePingMs?: number
+  /** Serves this built SPA directory (STICK_WEB_DIR). */
+  webDir?: string
   /** Replaces the recording enqueue, e.g. with a real BullMQ queue; `jobs` then stays empty. */
   enqueue?: ApiDeps['enqueue']
   /** Replaces the recording publish, e.g. with one that rejects; `events` then stays empty. */
@@ -48,6 +50,7 @@ export async function testApi(opts: TestApiOptions = {}): Promise<TestApi> {
   const cfg = loadServerConfig({
     STICK_FAKE: '1', STICK_URL_SIGNING_KEY: TEST_SIGNING_KEY,
     STICK_STORAGE_DIR: join(root, 'storage'), STICK_CACHE_DIR: join(root, 'cache'),
+    STICK_WEB_DIR: opts.webDir,
   }, 'dev')
   const { db, close: closeDb } = await createTestDb()
   const seeded = await seedWorkspace(db)

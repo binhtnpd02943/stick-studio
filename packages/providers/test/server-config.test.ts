@@ -40,6 +40,13 @@ describe('loadServerConfig', () => {
     expect(cfg).toMatchObject({ storageDir: resolve('a/s'), cacheDir: resolve('a/c'), pgliteDir: resolve('a/p') })
   })
 
+  it('STICK_WEB_DIR resolves to an absolute path; unset leaves webDir undefined', () => {
+    const base = { STICK_URL_SIGNING_KEY: KEY32, STICK_FAKE: '1' }
+    expect(loadServerConfig({ ...base, STICK_WEB_DIR: 'apps/web/dist' }, 'dev').webDir).toBe(resolve('apps/web/dist'))
+    expect(loadServerConfig(base, 'dev').webDir).toBeUndefined()
+    expect(loadServerConfig({ ...base, STICK_WEB_DIR: ' ' }, 'dev').webDir).toBeUndefined()
+  })
+
   it.each(['api', 'dev'] as const)('%s role without STICK_URL_SIGNING_KEY names the variable', (role) => {
     expect(() => loadServerConfig({ STICK_FAKE: '1' }, role)).toThrow(new ConfigError('STICK_URL_SIGNING_KEY is required'))
   })

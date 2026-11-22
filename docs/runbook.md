@@ -16,7 +16,7 @@ npm run infra:down
 Dev credentials are `stick`/`stick`. Databases are `stick` and `stick_test`. The init script runs only on a fresh volume.
 
 ## Environment
-Copy `.env.example` to `.env` and fill it in; never commit `.env`. The variables are documented in that file: `DATABASE_URL`, `REDIS_URL`, `STICK_STORAGE_DIR`, `STICK_CACHE_DIR`, `HOST`, `PORT`, `STICK_URL_SIGNING_KEY` (at least 32 characters, required for api and dev), `STICK_FAKE`, `ANTHROPIC_API_KEY` and `STICK_LLM_MODEL` (worker and dev unless fake), the budget defaults and `STICK_SEED_PASSWORD`.
+Copy `.env.example` to `.env` and fill it in; never commit `.env`. The variables are documented in that file: `DATABASE_URL`, `REDIS_URL`, `STICK_STORAGE_DIR`, `STICK_CACHE_DIR`, `STICK_WEB_DIR` (optional; `apps/web/dist` makes the API serve the built web app, with unknown non-`/v1` paths falling back to `index.html`, and unset means API only), `HOST`, `PORT`, `STICK_URL_SIGNING_KEY` (at least 32 characters, required for api and dev), `STICK_FAKE`, `ANTHROPIC_API_KEY` and `STICK_LLM_MODEL` (worker and dev unless fake), the budget defaults and `STICK_SEED_PASSWORD`.
 
 `npm run api`, `npm run worker` and `npm run dev` read the process environment only; they do not load `.env`. Export it first, for example `set -a; . ./.env; set +a`. The seed and token scripts do load `.env`.
 

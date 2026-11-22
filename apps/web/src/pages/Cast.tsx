@@ -57,7 +57,7 @@ export function Cast() {
     <div className="page">
       <div className="page-head">
         <h1>{vi.cast.title}</h1>
-        {canWrite && <button type="button" onClick={() => setDialog({ kind: 'form' })}>{vi.cast.add}</button>}
+        {canWrite && <button type="button" className="primary" onClick={() => setDialog({ kind: 'form' })}>{vi.cast.add}</button>}
       </div>
       <div>
         {characters.error && <ErrorNotice error={characters.error} />}

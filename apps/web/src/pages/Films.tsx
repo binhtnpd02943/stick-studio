@@ -8,6 +8,9 @@ import { NewFilmButton } from '../components/NewFilmForm'
 import { vi } from '../i18n/vi'
 import { StickState } from '../stick/StickState'
 
+// awaiting_review and approved both read "Xong", and nothing publishes yet: one filter per word the user sees.
+const FILTERS = FILM_STATUSES.filter((s) => s !== 'approved' && s !== 'publishing')
+
 export function Films() {
   const [params, setParams] = useSearchParams()
   const status = FilmStatus.safeParse(params.get('status')).data // an unknown ?status= shows everything
@@ -24,7 +27,7 @@ export function Films() {
       <div>
         <ul className="filter-pills" aria-label={vi.films.filters}>
           <li><button type="button" aria-pressed={!status} onClick={() => filter(undefined)}>{vi.films.all}</button></li>
-          {FILM_STATUSES.map((s) => (
+          {FILTERS.map((s) => (
             <li key={s}><button type="button" aria-pressed={status === s} onClick={() => filter(s)}>{vi.status[s]}</button></li>
           ))}
         </ul>

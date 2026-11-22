@@ -97,13 +97,13 @@ export function Settings() {
       <div className="page-head">
         <h1>{vi.nav.settings}</h1>
       </div>
-      <section aria-labelledby="settings-workspace">
+      <section aria-labelledby="settings-workspace" className="settings-section">
         <div className="section-head"><h2 id="settings-workspace">{vi.settings.workspace}</h2></div>
         {workspace.error && <ErrorNotice error={workspace.error} />}
         {workspace.isPending && !workspace.error && <p>{vi.loading}</p>}
         {workspace.data && <WorkspaceForm workspace={workspace.data} access={access} />}
       </section>
-      <section aria-labelledby="settings-channels">
+      <section aria-labelledby="settings-channels" className="settings-section">
         <div className="section-head">
           <h2 id="settings-channels">{vi.settings.channels}</h2>
           {access === 'write' && <button type="button" onClick={() => setAdding(true)}>{vi.settings.addChannel}</button>}

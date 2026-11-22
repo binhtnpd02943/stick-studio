@@ -65,7 +65,7 @@ export function Login() {
           <input name="password" type="password" autoComplete="current-password" required />
         </label>
         {login.isError && <LoginError error={login.error} />}
-        <button type="submit" className="login-submit" disabled={login.isPending}>{vi.login.submit}</button>
+        <button type="submit" className="login-submit primary" disabled={login.isPending}>{vi.login.submit}</button>
       </form>
       <p className="login-foot">{vi.login.footer}</p>
     </main>

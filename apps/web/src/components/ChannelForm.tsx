@@ -94,7 +94,8 @@ export function ChannelForm({ channel, access = 'write', onDone }: { channel?: C
         {save.error && <ErrorNotice error={save.error} />}
         {access === 'write' && (
           <div className="settings-actions">
-            <button type="submit" className="primary" disabled={save.isPending}>{save.isPending ? vi.settings.saving : vi.settings.saveChannel}</button>
+            {/* Saving an existing channel inline is secondary: the page's one accent is the workspace save. */}
+            <button type="submit" className={channel ? 'secondary' : 'primary'} disabled={save.isPending}>{save.isPending ? vi.settings.saving : vi.settings.saveChannel}</button>
             {save.isSuccess && !dirty && channel && <span role="status">{vi.settings.saved}</span>}
           </div>
         )}

@@ -1,6 +1,7 @@
 import { createDb } from '@stick/db'
 import { FsStorage, loadServerConfig } from '@stick/providers'
 import pino from 'pino'
+import { urlTarget } from './safe-url.js'
 import { startWorker } from './start.js'
 
 const log = pino({ name: 'worker' })
@@ -18,7 +19,7 @@ async function main(): Promise<void> {
     { db, storage: new FsStorage({ root: cfg.storageDir }), cfg, log },
     { redisUrl: cfg.redisUrl },
   )
-  log.info({ redis: cfg.redisUrl.replace(/\/\/[^@/]*@/, '//'), fake: cfg.fake }, 'worker started')
+  log.info({ redis: urlTarget(cfg.redisUrl), postgres: urlTarget(cfg.databaseUrl), fake: cfg.fake }, 'worker started')
 
   let stopping = false
   const stop = (signal: string) => {

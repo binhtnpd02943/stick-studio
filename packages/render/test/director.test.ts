@@ -1,11 +1,13 @@
 import { createCanvas } from '@napi-rs/canvas'
 import { parseScreenplay, type Timeline } from '@stick/core'
-import { loadRig } from '@stick/engine'
+import { loadRig, registerFonts } from '@stick/engine'
 import { defaultCatalog as catalog } from '@stick/library'
 import { solveTimeline } from '@stick/pipeline'
-import { describe, expect, test } from 'vitest'
+import { beforeAll, describe, expect, test } from 'vitest'
 import { specExample } from '../../core/test/fixtures.js'
 import { cameraShift, drawFrame, FRAME, markX, sceneStateAt } from '../src/index.js'
+
+beforeAll(() => registerFonts())
 
 function solved(input: unknown = specExample()): Timeline {
   const r = parseScreenplay(input)

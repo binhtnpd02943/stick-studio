@@ -1,6 +1,6 @@
 import { createCanvas, type SKRSContext2D } from '@napi-rs/canvas'
 import type { Timeline } from '@stick/core'
-import { loadRig } from '@stick/engine'
+import { loadRig, registerFonts } from '@stick/engine'
 import type { Catalog } from '@stick/library'
 import { drawFrame } from './director.js'
 import { FRAME } from './layout.js'
@@ -54,6 +54,7 @@ function covered(g: SKRSContext2D, f: Rec, w: number, h: number): boolean {
 }
 
 function recordFrames(tl: Timeline, catalog: Catalog, fps: number): Frame[] {
+  registerFonts() // node entry point that draws (gate step), like renderVideo and renderContactSheet
   const rig = loadRig({ instrument: true })
   const w = FRAME.w * RENDER_SCALE, h = FRAME.h * RENDER_SCALE
   const g = createCanvas(w, h).getContext('2d')

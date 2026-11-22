@@ -1,9 +1,11 @@
 import { createCanvas } from '@napi-rs/canvas'
 import type { Timeline } from '@stick/core'
-import { loadRig } from '@stick/engine'
+import { loadRig, registerFonts } from '@stick/engine'
 import { defaultCatalog } from '@stick/library'
-import { describe, expect, test } from 'vitest'
+import { beforeAll, describe, expect, test } from 'vitest'
 import { drawFrame, FRAME, jointWorld, sceneStateAt, soloTimeline, STAGE } from '../src/index.js'
+
+beforeAll(() => registerFonts())
 
 // Seated and contact actions on furniture, approached from either side with walk_to first (the way the solver sequences them).
 const WALK_S = 2.5

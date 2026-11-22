@@ -1,9 +1,8 @@
-import type { SKRSContext2D } from '@napi-rs/canvas'
 import type { Timeline } from '@stick/core'
-import { registerFonts, type Rig } from '@stick/engine'
+import type { Rig } from '@stick/engine'
 import { lookup, type Catalog } from '@stick/library'
 import { drawCaption } from './captions.js'
-import { FRAME, STAGE, TITLE, propX } from './layout.js'
+import { FRAME, STAGE, TITLE, propX, type Ctx2D } from './layout.js'
 import { drawHair } from './look.js'
 import { sceneStateAt, type SceneState } from './state.js'
 
@@ -23,7 +22,7 @@ export function tint(hex: string, k: number): string {
   return `#${[16, 8, 0].map((s) => ch(s).toString(16).padStart(2, '0')).join('')}`
 }
 
-function drawGround(g: SKRSContext2D, rig: Rig): void {
+function drawGround(g: Ctx2D, rig: Rig): void {
   g.fillStyle = rig.C.paper
   g.fillRect(0, 0, FRAME.w, FRAME.h)
   g.fillStyle = rig.C.floor
@@ -42,13 +41,13 @@ export function cameraShift(zoom: number, focusX: number, xs: number[]): number 
   return lo > hi ? (lo + hi) / 2 : Math.min(Math.max(want, lo), hi) // midpoint keeps it continuous at lo == hi
 }
 
-function applyCamera(g: SKRSContext2D, st: SceneState): void {
+function applyCamera(g: Ctx2D, st: SceneState): void {
   g.translate(FRAME.w / 2, STAGE.groundY)
   g.scale(STAGE.scale * st.zoom, STAGE.scale * st.zoom)
   g.translate(-cameraShift(st.zoom, st.focusX, st.chars.map((c) => c.x)), 0)
 }
 
-function drawStage(g: SKRSContext2D, tl: Timeline, t: number, rig: Rig, catalog: Catalog, st: SceneState): void {
+function drawStage(g: Ctx2D, tl: Timeline, t: number, rig: Rig, catalog: Catalog, st: SceneState): void {
   const { scene } = st
   const dom = g as unknown as CanvasRenderingContext2D // library defs are typed against the DOM context
   need(lookup(catalog.backdrops, scene.backdrop), `backdrop ${scene.backdrop}`).draw(dom, rig, t)
@@ -67,8 +66,7 @@ function drawStage(g: SKRSContext2D, tl: Timeline, t: number, rig: Rig, catalog:
   }
 }
 
-export function drawFrame(g: SKRSContext2D, tl: Timeline, t: number, rig: Rig, catalog: Catalog): void {
-  registerFonts()
+export function drawFrame(g: Ctx2D, tl: Timeline, t: number, rig: Rig, catalog: Catalog): void {
   const st = sceneStateAt(tl, t, rig, catalog)
   g.save()
   drawGround(g, rig)

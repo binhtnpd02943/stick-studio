@@ -1,6 +1,4 @@
-import type { SKRSContext2D } from '@napi-rs/canvas'
-import { registerFonts } from '@stick/engine'
-import { CAPTION } from './layout.js'
+import { CAPTION, type Ctx2D } from './layout.js'
 
 const INK = '#141414'
 const BOX_FILL = '#ffffff'
@@ -15,7 +13,7 @@ const ELLIPSIS = '…'
 const fontOf = (size: number) => `400 ${size}px 'Balsamiq Sans'`
 
 /** Greedy wrap. shortcut: a single word wider than maxWidth overflows its line, fine for Vietnamese syllables. */
-function wrap(g: SKRSContext2D, words: string[]): string[] {
+function wrap(g: Ctx2D, words: string[]): string[] {
   const lines: string[] = []
   let cur = ''
   for (const w of words) {
@@ -29,7 +27,7 @@ function wrap(g: SKRSContext2D, words: string[]): string[] {
 }
 
 /** Keep the first maxLines lines; end the last with an ellipsis that still fits. */
-function ellipsize(g: SKRSContext2D, lines: string[]): string[] {
+function ellipsize(g: Ctx2D, lines: string[]): string[] {
   const kept = lines.slice(0, CAPTION.maxLines)
   const words = (kept.at(-1) ?? '').split(' ')
   while (words.length > 1 && g.measureText(`${words.join(' ')}${ELLIPSIS}`).width > CAPTION.maxWidth) words.pop()
@@ -38,8 +36,7 @@ function ellipsize(g: SKRSContext2D, lines: string[]): string[] {
 
 export interface CaptionPage { lines: string[]; size: number; text: string }
 
-function layoutWords(g: SKRSContext2D, words: string[]): { lines: string[]; size: number; truncated: boolean } {
-  registerFonts()
+function layoutWords(g: Ctx2D, words: string[]): { lines: string[]; size: number; truncated: boolean } {
   g.save()
   try {
     for (let size = CAPTION.size; size >= CAPTION.minSize; size -= SIZE_STEP) {
@@ -57,7 +54,7 @@ function layoutWords(g: SKRSContext2D, words: string[]): { lines: string[]; size
 
 const splitWords = (text: string): string[] => text.split(/\s+/).filter(Boolean)
 
-export function layoutCaption(g: SKRSContext2D, text: string): { lines: string[]; size: number } {
+export function layoutCaption(g: Ctx2D, text: string): { lines: string[]; size: number } {
   const { lines, size } = layoutWords(g, splitWords(text))
   return { lines, size }
 }
@@ -65,7 +62,7 @@ export function layoutCaption(g: SKRSContext2D, text: string): { lines: string[]
 const countWords = (lines: string[]): number => lines.reduce((n, l) => n + l.split(' ').length, 0)
 
 /** One page when the text fits layoutCaption's 2 lines; otherwise pages that each fill 2 lines at pageSize. */
-export function pageCaption(g: SKRSContext2D, text: string): CaptionPage[] {
+export function pageCaption(g: Ctx2D, text: string): CaptionPage[] {
   const all = splitWords(text)
   const whole = layoutWords(g, all)
   if (!whole.truncated) return [{ lines: whole.lines, size: whole.size, text: all.join(' ') }]
@@ -95,7 +92,7 @@ function pageAt(pages: CaptionPage[], t: number, start: number, end: number): Ca
   return pages.at(-1)!
 }
 
-function drawPage(g: SKRSContext2D, { lines, size }: CaptionPage, alpha: number): void {
+function drawPage(g: Ctx2D, { lines, size }: CaptionPage, alpha: number): void {
   const lineH = size * LINE_HEIGHT
   g.save()
   g.globalAlpha = alpha
@@ -119,7 +116,7 @@ function drawPage(g: SKRSContext2D, { lines, size }: CaptionPage, alpha: number)
 }
 
 /** Fades only at the line's own start and end; pages hard-cut. */
-export function drawCaption(g: SKRSContext2D, text: string, t: number, lineStart: number, lineEnd: number): void {
+export function drawCaption(g: Ctx2D, text: string, t: number, lineStart: number, lineEnd: number): void {
   if (t < lineStart || t >= lineEnd) return
   const alpha = Math.max(0, Math.min(1, (t - lineStart) / FADE, (lineEnd - t) / FADE))
   drawPage(g, pageAt(pageCaption(g, text), t, lineStart, lineEnd), alpha)

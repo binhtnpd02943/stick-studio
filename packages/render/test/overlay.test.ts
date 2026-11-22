@@ -1,9 +1,11 @@
 import { createCanvas } from '@napi-rs/canvas'
 import type { Timeline } from '@stick/core'
-import { loadRig } from '@stick/engine'
+import { loadRig, registerFonts } from '@stick/engine'
 import { defaultCatalog, type ActionDef, type Catalog } from '@stick/library'
-import { describe, expect, test } from 'vitest'
+import { beforeAll, describe, expect, test } from 'vitest'
 import { drawFrame, FRAME, soloTimeline, STAGE } from '../src/index.js'
+
+beforeAll(() => registerFonts())
 
 const RED = '#ff0000'
 const DOT_R = 2

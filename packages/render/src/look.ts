@@ -1,5 +1,5 @@
-import type { SKRSContext2D } from '@napi-rs/canvas'
 import type { Pose, Rig } from '@stick/engine'
+import type { Ctx2D } from './layout.js'
 
 export type Hair = 'short' | 'long' | 'ponytail' | 'none'
 export type Joint = 'head' | 'hF' | 'hB' | 'chest' | 'hip'
@@ -28,7 +28,7 @@ export function jointWorld(pose: Pose, joint: Joint, x: number, facing: 1 | -1, 
   return [x + q[0] * fs * facing, q[1] * fs]
 }
 
-function stroke(g: SKRSContext2D, ink: string, fn: () => void, width = HAIR_W): void {
+function stroke(g: Ctx2D, ink: string, fn: () => void, width = HAIR_W): void {
   g.strokeStyle = ink
   g.lineWidth = width
   g.lineCap = 'round'
@@ -39,7 +39,7 @@ function stroke(g: SKRSContext2D, ink: string, fn: () => void, width = HAIR_W): 
 }
 
 /** Hair in the head's frame: origin at the head centre, up is -y, the face looks toward +x. */
-function drawLocal(g: SKRSContext2D, hair: Exclude<Hair, 'none'>, ink: string, t: number): void {
+function drawLocal(g: Ctx2D, hair: Exclude<Hair, 'none'>, ink: string, t: number): void {
   const R = HEAD_R
   stroke(g, ink, () => g.arc(0, 0, R + CAP_W / 2 - 0.5, Math.PI * 1.04, Math.PI * 1.96), CAP_W)
   if (hair === 'long') {
@@ -60,7 +60,7 @@ function drawLocal(g: SKRSContext2D, hair: Exclude<Hair, 'none'>, ink: string, t
 }
 
 /** Draw `hair` on the head `rig.fig` just drew at (x, 0), in the character's ink. `t` swings the ponytail. */
-export function drawHair(g: SKRSContext2D, rig: Rig, pose: Pose, x: number, facing: 1 | -1, hair: Hair, ink: string, t: number): void {
+export function drawHair(g: Ctx2D, rig: Rig, pose: Pose, x: number, facing: 1 | -1, hair: Hair, ink: string, t: number): void {
   if (hair === 'none') return
   const { hc, angle } = headCentre(pose)
   g.save()

@@ -4,3 +4,9 @@ export const STAGE = { worldWidth: 300, scale: 3.6, groundY: 1250 }
 export const TITLE = { y: 300, size: 64 }
 export const CAPTION = { cx: 500, y: 1450, maxWidth: 780, size: 60, minSize: 44, pageSize: 52, maxLines: 2 }
 export { besideX, CAST_GAP, markX, MARK_X, nearPropX, NEAR_GAP, propX } from '@stick/library'
+
+/** The 2D context members drawFrame uses: a DOM CanvasRenderingContext2D and @napi-rs/canvas's SKRSContext2D both fit. */
+export type Ctx2D = Pick<CanvasRenderingContext2D,
+  | 'arc' | 'beginPath' | 'bezierCurveTo' | 'fill' | 'fillRect' | 'fillStyle' | 'fillText' | 'font' | 'globalAlpha'
+  | 'lineCap' | 'lineJoin' | 'lineWidth' | 'measureText' | 'moveTo' | 'quadraticCurveTo' | 'restore' | 'rotate'
+  | 'roundRect' | 'save' | 'scale' | 'stroke' | 'strokeStyle' | 'textAlign' | 'textBaseline' | 'translate'>

@@ -3,9 +3,10 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { okList } from '../envelope.js'
 import { ListQuery } from '../schemas.js'
+import { signedAssetUrl } from '../signing.js'
 import type { ApiDeps } from '../types.js'
 
-export function reviewQueueRoutes(app: FastifyInstance, { db }: ApiDeps): void {
+export function reviewQueueRoutes(app: FastifyInstance, { db, cfg }: ApiDeps): void {
   const r = app.withTypeProvider<ZodTypeProvider>()
 
   r.get('/v1/review-queue', { schema: { querystring: ListQuery, tags: ['review'] } }, async (req, reply) => {
@@ -17,9 +18,11 @@ export function reviewQueueRoutes(app: FastifyInstance, { db }: ApiDeps): void {
       if (!d) return [] // gone since the list query
       const { film, steps, assets } = d
       const gate = steps.find((s) => s.step === 'gate')
+      const finalId = assets.find((a) => a.kind === 'final')?.id ?? null
       return [{
         film: { id: film.id, title: film.title, status: film.status, cost_usd: film.costUsd, current_version: film.currentVersion },
-        final_asset_id: assets.find((a) => a.kind === 'final')?.id ?? null,
+        final_asset_id: finalId,
+        final_url: finalId && signedAssetUrl(finalId, cfg.urlSigningKey).url,
         contact_asset_id: assets.find((a) => a.kind === 'contact_sheet')?.id ?? null,
         findings: film.status === 'qa_failed' && gate?.status === 'failed' ? gate.error : null,
       }]

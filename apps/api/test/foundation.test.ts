@@ -80,7 +80,7 @@ describe('openapi', () => {
       'GET /v1/channels', 'POST /v1/channels', 'GET /v1/channels/{id}', 'PATCH /v1/channels/{id}',
       'GET /v1/characters', 'POST /v1/characters', 'PATCH /v1/characters/{id}', 'DELETE /v1/characters/{id}',
       'GET /v1/assets/{id}/url', 'GET /v1/review-queue', 'GET /v1/usage',
-      'POST /v1/films', 'GET /v1/films', 'GET /v1/films/{id}', 'GET /v1/films/{id}/events', 'POST /v1/films/{id}/redo',
+      'POST /v1/films', 'GET /v1/films', 'GET /v1/films/{id}', 'GET /v1/films/{id}/events', 'GET /v1/films/{id}/versions', 'POST /v1/films/{id}/redo',
       'POST /v1/films/{id}/cancel', 'POST /v1/films/{id}/review', 'PATCH /v1/films/{id}/screenplay',
     ].sort())
     expect(spec.paths['/v1/workspace'].patch.requestBody).toBeDefined()
@@ -88,14 +88,23 @@ describe('openapi', () => {
 })
 
 describe('workspace', () => {
+  test('workspace effective caps fall back to the env defaults when the columns are null', async () => {
+    const res = await t.app.inject({ method: 'GET', url: '/v1/workspace', headers: bearer(t.seeded.token) })
+    expect(res.json().data).toMatchObject({
+      max_cost_per_film_usd: null, max_cost_per_day_usd: null, effective_max_cost_per_film_usd: 1, effective_max_cost_per_day_usd: 10,
+    })
+  })
+
   test('PATCH /v1/workspace sets and clears caps and writes audit_log', async () => {
     const headers = bearer(t.seeded.token)
     const set = await t.app.inject({ method: 'PATCH', url: '/v1/workspace', headers, payload: { max_cost_per_film_usd: 0.5, max_cost_per_day_usd: 3 } })
     expect(set.statusCode).toBe(200)
-    expect(set.json().data).toEqual({ id: t.seeded.workspace.id, name: t.seeded.workspace.name, plan: expect.any(String), max_cost_per_film_usd: 0.5, max_cost_per_day_usd: 3 })
+    expect(set.json().data).toEqual({ id: t.seeded.workspace.id, name: t.seeded.workspace.name, plan: expect.any(String), max_cost_per_film_usd: 0.5, max_cost_per_day_usd: 3,
+      effective_max_cost_per_film_usd: 0.5, effective_max_cost_per_day_usd: 3 })
 
     const cleared = await t.app.inject({ method: 'PATCH', url: '/v1/workspace', headers, payload: { max_cost_per_film_usd: null } })
     expect(cleared.json().data).toMatchObject({ max_cost_per_film_usd: null, max_cost_per_day_usd: 3 })
+    expect(cleared.json().data.effective_max_cost_per_film_usd).toBe(t.cfg.maxCostPerFilmUsd)
     expect(await getWorkspace(t.db, t.seeded.workspace.id)).toMatchObject({ maxCostPerFilmUsd: null, maxCostPerDayUsd: 3 })
 
     const got = await t.app.inject({ method: 'GET', url: '/v1/workspace', headers })

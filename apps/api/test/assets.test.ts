@@ -127,6 +127,15 @@ describe('assets', () => {
     expect((await t.app.inject({ method: 'GET', url: `/v1/assets/${asset.id}/content` })).statusCode).toBe(400)
   })
 
+  test('asset content is limited at 600/min per ip, not the shared 120', async () => {
+    const asset = await makeAsset(t.seeded)
+    const url = await signedUrl(asset.id)
+    for (let i = 0; i < 130; i++) {
+      const res = await t.app.inject({ method: 'GET', url, headers: { range: 'bytes=0-9' } })
+      expect([200, 206], `request ${i + 1}`).toContain(res.statusCode)
+    }
+  })
+
   test('url route needs auth; content route does not', async () => {
     const asset = await makeAsset(t.seeded)
     const anon = await t.app.inject({ method: 'GET', url: `/v1/assets/${asset.id}/url` })

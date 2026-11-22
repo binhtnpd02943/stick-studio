@@ -14,6 +14,12 @@ export function signAsset(assetId: string, exp: number, key: string): string {
   return createHmac('sha256', key).update(`${assetId}.${exp}`).digest('hex')
 }
 
+/** The relative content URL for an asset, signed to expire `ASSET_URL_TTL_S` after `nowS` (unix seconds). */
+export function signedAssetUrl(assetId: string, key: string, nowS = Math.floor(Date.now() / 1000)): { url: string; expires_at: string } {
+  const exp = nowS + ASSET_URL_TTL_S
+  return { url: `/v1/assets/${assetId}/content?exp=${exp}&sig=${signAsset(assetId, exp, key)}`, expires_at: new Date(exp * 1000).toISOString() }
+}
+
 /** False for an expired `exp` (unix seconds) or a malformed or wrong `sig`; the comparison is timing-safe. */
 export function verifyAsset(assetId: string, exp: number, sig: string, key: string, now = Date.now()): boolean {
   assertKey(key)

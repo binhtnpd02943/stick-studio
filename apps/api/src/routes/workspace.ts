@@ -15,11 +15,12 @@ const WorkspacePatchBody = z.strictObject({
   max_cost_per_day_usd: cap.optional(),
 }).refine((b) => Object.keys(b).length > 0, { message: 'at least one field is required' })
 
-const toWire = (w: Workspace) => ({
-  id: w.id, name: w.name, plan: w.plan, max_cost_per_film_usd: w.maxCostPerFilmUsd, max_cost_per_day_usd: w.maxCostPerDayUsd,
-})
-
-export function workspaceRoutes(app: FastifyInstance, { db }: ApiDeps): void {
+export function workspaceRoutes(app: FastifyInstance, { db, cfg }: ApiDeps): void {
+  const toWire = (w: Workspace) => ({
+    id: w.id, name: w.name, plan: w.plan, max_cost_per_film_usd: w.maxCostPerFilmUsd, max_cost_per_day_usd: w.maxCostPerDayUsd,
+    effective_max_cost_per_film_usd: w.maxCostPerFilmUsd ?? cfg.maxCostPerFilmUsd,
+    effective_max_cost_per_day_usd: w.maxCostPerDayUsd ?? cfg.maxCostPerDayUsd,
+  })
   const r = app.withTypeProvider<ZodTypeProvider>()
 
   r.get('/v1/workspace', { schema: { tags: ['workspace'] } }, async (req, reply) => {

@@ -92,6 +92,12 @@ export async function listReviewQueue(
   return { items: items.map(toFilm), nextCursor }
 }
 
+/** Every version of a film, newest first; undefined when the film is not in the workspace. */
+export async function listVersions(db: Db, workspaceId: string, filmId: string): Promise<FilmVersion[] | undefined> {
+  if (!(await getFilm(db, workspaceId, filmId))) return undefined
+  return db.select().from(filmVersions).where(eq(filmVersions.filmId, filmId)).orderBy(desc(filmVersions.version))
+}
+
 export async function filmDetail(
   db: Db, workspaceId: string, id: string,
 ): Promise<{ film: Film; version: FilmVersion; steps: StepRun[]; assets: Asset[] } | undefined> {

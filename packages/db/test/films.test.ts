@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import {
-  type Db, ConflictError, assetsOf, createFilm, createVersion, filmDetail, finishRun, getFilm, listFilms, recentStories,
-  replaceAsset, setFilmStatus, startRun,
+  type Db, ConflictError, assetsOf, createFilm, createVersion, filmDetail, finishRun, getFilm, listFilms, listVersions,
+  recentStories, replaceAsset, setFilmStatus, startRun,
 } from '../src/index.js'
 import { createTestDb, seedWorkspace } from '../src/testing.js'
 
@@ -203,5 +203,17 @@ describe('films', () => {
       await createVersion(db, ws, film.id, { reason: 'again', restartFrom: 'screenplay' })
     }
     expect(await recentStories(db, ws, s.channel.id)).toEqual([{ title: 'redo', logline: 'l' }])
+  })
+})
+
+describe('version history', () => {
+  test('listVersions is newest first and undefined for another workspace', async () => {
+    const { ws, film } = await newFilm()
+    await setFilmStatus(db, ws, film.id, 'cancelled')
+    await createVersion(db, ws, film.id, { reason: 'redo', restartFrom: 'voice' })
+    const versions = await listVersions(db, ws, film.id)
+    expect(versions?.map((v) => [v.version, v.reason, v.restartFromStep])).toEqual([[2, 'redo', 'voice'], [1, 'initial', null]])
+    const other = await seedWorkspace(db)
+    expect(await listVersions(db, other.workspace.id, film.id)).toBeUndefined()
   })
 })

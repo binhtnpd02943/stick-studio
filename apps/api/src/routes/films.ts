@@ -1,5 +1,5 @@
 import { FILM_STATUSES, type FilmStep } from '@stick/core'
-import { type Db, type Film, audit, createFilm, filmDetail, getChannel, listFilms, runsOf, setFilmStatus } from '@stick/db'
+import { type Db, type Film, audit, createFilm, currentAssetIds, filmDetail, getChannel, listFilms, listVersions, runsOf, setFilmStatus } from '@stick/db'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
@@ -7,6 +7,7 @@ import { announce } from '../announce.js'
 import { ok, okList } from '../envelope.js'
 import { notFound } from '../errors.js'
 import { IdParams, ListQuery } from '../schemas.js'
+import { signedAssetUrl } from '../signing.js'
 import type { ApiDeps } from '../types.js'
 
 type Detail = NonNullable<Awaited<ReturnType<typeof filmDetail>>>
@@ -18,7 +19,7 @@ export const toFilmWire = (f: Film) => ({
 
 export const toDetailWire = ({ film, version, steps, assets }: Detail) => ({
   film: toFilmWire(film),
-  version: { version: version.version, reason: version.reason, restart_from_step: version.restartFromStep },
+  version: { id: version.id, version: version.version, created_at: version.createdAt, reason: version.reason, restart_from_step: version.restartFromStep },
   steps: steps.map((s) => ({ step: s.step, status: s.status, attempt: s.attempt, error: s.error, started_at: s.startedAt, finished_at: s.finishedAt })),
   assets: assets.map((a) => ({ id: a.id, kind: a.kind, path: a.meta?.path ?? null, mime: a.mime, bytes: a.bytes })),
 })
@@ -38,7 +39,7 @@ const FilmBody = z.strictObject({
 const CreateHeaders = z.object({ 'idempotency-key': z.string().min(1).max(200).optional() })
 const FilmListQuery = ListQuery.extend({ status: z.enum(FILM_STATUSES).optional(), channel_id: z.uuid().optional() })
 
-export function filmRoutes(app: FastifyInstance, { db, enqueue, publish }: ApiDeps): void {
+export function filmRoutes(app: FastifyInstance, { db, enqueue, publish, cfg }: ApiDeps): void {
   const r = app.withTypeProvider<ZodTypeProvider>()
   const tags = ['films']
 
@@ -73,9 +74,20 @@ export function filmRoutes(app: FastifyInstance, { db, enqueue, publish }: ApiDe
   r.get('/v1/films', { schema: { querystring: FilmListQuery, tags } }, async (req, reply) => {
     const { status, channel_id, limit, cursor } = req.query
     const list = await listFilms(db, req.principal.workspaceId, { status, channelId: channel_id, limit, cursor })
-    return okList(reply, { items: list.items.map(toFilmWire), nextCursor: list.nextCursor })
+    const timelines = await currentAssetIds(db, req.principal.workspaceId, list.items.map((f) => f.id), 'timeline')
+    const items = list.items.map((f) => {
+      const assetId = timelines.get(f.id)
+      return { ...toFilmWire(f), timeline_url: assetId ? signedAssetUrl(assetId, cfg.urlSigningKey).url : null }
+    })
+    return okList(reply, { items, nextCursor: list.nextCursor })
   })
 
   r.get('/v1/films/:id', { schema: { params: IdParams, tags } }, async (req, reply) =>
     ok(reply, toDetailWire(await detailOr404(db, req.principal.workspaceId, req.params.id))))
+
+  r.get('/v1/films/:id/versions', { schema: { params: IdParams, tags } }, async (req, reply) => {
+    const versions = await listVersions(db, req.principal.workspaceId, req.params.id)
+    if (!versions) throw notFound()
+    return ok(reply, versions.map((v) => ({ id: v.id, version: v.version, reason: v.reason, restart_from_step: v.restartFromStep, created_at: v.createdAt })))
+  })
 }

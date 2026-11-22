@@ -1,5 +1,5 @@
 import type { FilmStep } from '@stick/core'
-import { and, asc, eq, lt, ne, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, ne, sql } from 'drizzle-orm'
 import type { Db } from '../client.js'
 import { ConflictError } from '../errors.js'
 import { assets, filmVersions, films, stepRuns } from '../schema.js'
@@ -106,6 +106,17 @@ export async function assetsOf(db: Db, workspaceId: string, versionId: string): 
     .where(and(eq(assets.workspaceId, workspaceId), eq(assets.filmVersionId, versionId)))
     .orderBy(asc(assets.id))
   return rows.map(toAsset)
+}
+
+/** filmId → the asset of `kind` in each film's current version, in one query; films without one are absent. */
+export async function currentAssetIds(db: Db, workspaceId: string, filmIds: string[], kind: AssetKind): Promise<Map<string, string>> {
+  if (filmIds.length === 0) return new Map()
+  const rows = await db.select({ filmId: films.id, assetId: assets.id }).from(assets)
+    .innerJoin(filmVersions, eq(filmVersions.id, assets.filmVersionId))
+    .innerJoin(films, and(eq(films.id, filmVersions.filmId), eq(filmVersions.version, films.currentVersion)))
+    .where(and(eq(films.workspaceId, workspaceId), eq(assets.workspaceId, workspaceId), inArray(films.id, filmIds), eq(assets.kind, kind)))
+    .orderBy(asc(assets.id))
+  return new Map(rows.map((r) => [r.filmId, r.assetId]))
 }
 
 export async function getAsset(db: Db, workspaceId: string, id: string): Promise<Asset | undefined> {

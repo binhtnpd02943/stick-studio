@@ -1,5 +1,6 @@
-import { readFileSync } from 'node:fs'
-import { assetsOf, auditLog, createFilm, filmDetail, getFilm, reviews, setFilmStatus } from '@stick/db'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
+import { assetsOf, auditLog, createFilm, filmDetail, getFilm, replaceAsset, reviews, setFilmStatus } from '@stick/db'
 import { seedWorkspace } from '@stick/db/testing'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
@@ -123,6 +124,7 @@ describe('film routes', () => {
     for (const [method, url, payload] of [
       ['GET', base, undefined],
       ['GET', `${base}/events`, undefined],
+      ['GET', `${base}/versions`, undefined],
       ['POST', `${base}/redo`, { from_step: 'story', reason: 'r' }],
       ['POST', `${base}/cancel`, undefined],
       ['POST', `${base}/review`, { decision: 'approved' }],
@@ -138,7 +140,7 @@ describe('film routes', () => {
 
   test('film routes need auth, including events', async () => {
     const id = await newFilm()
-    for (const url of [`/v1/films/${id}`, `/v1/films/${id}/events`, '/v1/films']) {
+    for (const url of [`/v1/films/${id}`, `/v1/films/${id}/events`, `/v1/films/${id}/versions`, '/v1/films']) {
       const res = await t.app.inject({ method: 'GET', url })
       expect(res.statusCode, url).toBe(401)
     }
@@ -151,6 +153,52 @@ describe('film routes', () => {
     expect(res.json().data).toMatchObject({
       film: { id, status: 'queued' }, version: { version: 1, reason: 'initial', restart_from_step: null }, steps: [], assets: [],
     })
+  })
+
+  test('detail version has id and created_at', async () => {
+    const id = await newFilm()
+    const { version } = (await filmDetail(t.db, ws(), id))!
+    const res = await t.app.inject({ method: 'GET', url: `/v1/films/${id}`, headers: auth() })
+    expect(res.json().data.version).toEqual({
+      id: version.id, version: 1, reason: 'initial', restart_from_step: null, created_at: version.createdAt.toISOString(),
+    })
+  })
+
+  test('versions lists every version newest first; another workspace\'s film is 404', async () => {
+    const id = await newFilm()
+    await moveTo(id, 'cancelled')
+    const redo = await t.app.inject({ method: 'POST', url: `/v1/films/${id}/redo`, headers: auth(), payload: { from_step: 'voice', reason: 'louder' } })
+    expect(redo.statusCode).toBe(202)
+    const res = await t.app.inject({ method: 'GET', url: `/v1/films/${id}/versions`, headers: auth() })
+    expect(res.statusCode).toBe(200)
+    const versions = res.json().data
+    expect(versions.map((v: { version: number; reason: string; restart_from_step: string | null }) => [v.version, v.reason, v.restart_from_step]))
+      .toEqual([[2, 'louder', 'voice'], [1, 'initial', null]])
+    expect(Object.keys(versions[0]).sort()).toEqual(['created_at', 'id', 'reason', 'restart_from_step', 'version'])
+    expect(versions[0].id).toBe((await filmDetail(t.db, ws(), id))!.version.id)
+
+    const other = await seedWorkspace(t.db)
+    const missing = await t.app.inject({ method: 'GET', url: `/v1/films/${id}/versions`, headers: { authorization: `Bearer ${other.token}` } })
+    expect(missing.statusCode).toBe(404)
+  })
+
+  test('film list items carry a timeline_url that downloads the timeline once it exists, else null', async () => {
+    const id = await newFilm()
+    const list = () => t.app.inject({ method: 'GET', url: '/v1/films', headers: auth() }).then((r) => r.json().data[0])
+    expect((await list()).timeline_url).toBeNull()
+
+    const { version } = (await filmDetail(t.db, ws(), id))!
+    const body = Buffer.from('{"beats":[]}')
+    const storageKey = `ws/${ws()}/films/${id}/v1/timeline.json`
+    mkdirSync(dirname(t.storage.localPath(storageKey)), { recursive: true })
+    writeFileSync(t.storage.localPath(storageKey), body)
+    await replaceAsset(t.db, ws(), { filmVersionId: version.id, kind: 'timeline', path: 'timeline.json', storageKey, mime: 'application/json', bytes: body.length, sha256: 'x' })
+
+    const { timeline_url } = await list()
+    expect(timeline_url).toMatch(/^\/v1\/assets\/[^/]+\/content\?exp=\d+&sig=[0-9a-f]{64}$/)
+    const got = await t.app.inject({ method: 'GET', url: timeline_url })
+    expect(got.statusCode).toBe(200)
+    expect(got.rawPayload.equals(body)).toBe(true)
   })
 
   test('cancel a queued film → cancelled; cancel again → 409', async () => {

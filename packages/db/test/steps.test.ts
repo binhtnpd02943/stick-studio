@@ -2,7 +2,7 @@ import { STEP_FILES } from '@stick/core'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import {
   type Db, ConflictError, assetKindOf, assetsOf, createFilm, findSucceededRun, finishRun, getAsset, insertReview,
-  createVersion, getFilm, replaceAsset, runsOf, setFilmStatus, startRun, stepRuns, sweepStaleRuns,
+  createVersion, currentAssetIds, getFilm, replaceAsset, runsOf, setFilmStatus, startRun, stepRuns, sweepStaleRuns,
 } from '../src/index.js'
 import { eq } from 'drizzle-orm'
 import { createTestDb, seedWorkspace } from '../src/testing.js'
@@ -153,5 +153,30 @@ describe('reviews', () => {
     const { user, version } = await newVersion()
     const r = await insertReview(db, { filmVersionId: version.id, reviewerId: user.id, decision: 'redo', reason: 'too slow', redoFromStep: 'voice' })
     expect(r).toMatchObject({ filmVersionId: version.id, decision: 'redo', reason: 'too slow', redoFromStep: 'voice' })
+  })
+})
+
+describe('currentAssetIds', () => {
+  const timeline = (ws: string, versionId: string) => replaceAsset(db, ws, {
+    filmVersionId: versionId, kind: 'timeline', path: 'timeline.json', storageKey: `k/${versionId}`, mime: 'application/json', bytes: 1, sha256: 'x',
+  })
+
+  test('currentAssetIds returns the current version\'s asset per film and skips films without one and films of another workspace', async () => {
+    const a = await newVersion()
+    const b = await newVersion() // no timeline
+    const c = await newVersion() // redo: only the new version's timeline counts
+    const other = await newVersion()
+    const ta = await timeline(a.ws, a.version.id)
+    await timeline(other.ws, other.version.id)
+    await timeline(c.ws, c.version.id)
+    await setFilmStatus(db, c.ws, c.film.id, 'cancelled')
+    const v2 = await createVersion(db, c.ws, c.film.id, { reason: 'redo', restartFrom: 'story' })
+    const tc2 = await timeline(c.ws, v2.id)
+
+    expect(await currentAssetIds(db, a.ws, [a.film.id], 'timeline')).toEqual(new Map([[a.film.id, ta.id]]))
+    expect(await currentAssetIds(db, a.ws, [a.film.id, b.film.id, other.film.id], 'timeline')).toEqual(new Map([[a.film.id, ta.id]]))
+    expect(await currentAssetIds(db, c.ws, [c.film.id], 'timeline')).toEqual(new Map([[c.film.id, tc2.id]]))
+    expect(await currentAssetIds(db, a.ws, [a.film.id], 'final')).toEqual(new Map())
+    expect(await currentAssetIds(db, a.ws, [], 'timeline')).toEqual(new Map())
   })
 })

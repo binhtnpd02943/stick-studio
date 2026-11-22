@@ -79,6 +79,15 @@ export async function getAsset(db: Db, workspaceId: string, id: string): Promise
   return row && toAsset(row)
 }
 
+/**
+ * Unscoped: only for the signed content route, where a valid HMAC over the id is the authorization and there is no
+ * principal to scope by. Everything else uses `getAsset`.
+ */
+export async function getAssetForSignedUrl(db: Db, id: string): Promise<Asset | undefined> {
+  const [row] = await db.select().from(assets).where(eq(assets.id, id))
+  return row && toAsset(row)
+}
+
 export interface AssetInput {
   filmVersionId: string
   kind: string

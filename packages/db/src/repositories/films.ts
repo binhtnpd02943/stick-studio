@@ -1,5 +1,5 @@
 import { FILM_STATUSES, FILM_STEPS, type FilmStatus, type FilmStep, REDOABLE_STATUSES, STEP_FILES, canTransition } from '@stick/core'
-import { and, desc, eq, inArray, lt } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, lt } from 'drizzle-orm'
 import type { Db } from '../client.js'
 import { ConflictError, NotFoundError } from '../errors.js'
 import { page } from '../pagination.js'
@@ -75,6 +75,19 @@ export async function listFilms(
     opts.channelId ? eq(films.channelId, opts.channelId) : undefined,
     opts.cursor ? lt(films.id, opts.cursor) : undefined,
   )).orderBy(desc(films.id)).limit(opts.limit + 1)
+  const { items, nextCursor } = page(rows, opts.limit)
+  return { items: items.map(toFilm), nextCursor }
+}
+
+/** Films waiting on a human (`awaiting_review`, `qa_failed`), oldest first. */
+export async function listReviewQueue(
+  db: Db, workspaceId: string, opts: { limit: number; cursor?: string },
+): Promise<{ items: Film[]; nextCursor: string | null }> {
+  const rows = await db.select().from(films).where(and(
+    eq(films.workspaceId, workspaceId),
+    inArray(films.status, ['awaiting_review', 'qa_failed']),
+    opts.cursor ? gt(films.id, opts.cursor) : undefined,
+  )).orderBy(asc(films.id)).limit(opts.limit + 1)
   const { items, nextCursor } = page(rows, opts.limit)
   return { items: items.map(toFilm), nextCursor }
 }

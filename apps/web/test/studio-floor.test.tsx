@@ -131,7 +131,7 @@ describe('studio floor', () => {
     }
     expect(cheers).toBe(1)
     expect(q('.studio-final-card')).not.toBeNull()
-    expect(screen.getByRole('status')).toHaveTextContent('Phim xong rồi, chờ bạn duyệt')
+    expect(screen.getByRole('status')).toHaveTextContent('Phim xong rồi, mời bạn xem')
   })
 
   test.each([

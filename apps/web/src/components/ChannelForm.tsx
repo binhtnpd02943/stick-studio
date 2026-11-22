@@ -4,6 +4,9 @@ import type { Channel } from '../api/schemas'
 import { vi } from '../i18n/vi'
 import { ErrorNotice } from './ErrorNotice'
 
+// A review before publishing means nothing until TikTok publishing exists; the API keeps the policy and a save leaves it as stored.
+const REVIEW_POLICY_SHOWN = false
+
 const NAME_MAX = 80
 const LOCALE_MIN = 2
 const LOCALE_MAX = 35
@@ -79,12 +82,12 @@ export function ChannelForm({ channel, access = 'write', onDone }: { channel?: C
           <input id={`${id}-locale`} value={locale} onChange={(e) => setLocale(e.target.value)} aria-invalid={!!show(errors.locale)} aria-describedby={`${id}-locale-error`} aria-required="true" />
           <span id={`${id}-locale-error`} className="field-meta">{show(errors.locale)}</span>
         </div>
-        <fieldset className="radio-group">
+        {REVIEW_POLICY_SHOWN && <fieldset className="radio-group">
           <legend>{vi.settings.policy}</legend>
           <label><input type="radio" name={`${id}-policy`} checked={!auto} onChange={() => setPolicy('manual')} /> {vi.settings.policyManual}</label>
           <label><input type="radio" name={`${id}-policy`} checked={auto} onChange={() => setPolicy('auto_if_score')} /> {vi.settings.policyAuto}</label>
-        </fieldset>
-        {auto && (
+        </fieldset>}
+        {REVIEW_POLICY_SHOWN && auto && (
           <div className="field">
             <label htmlFor={`${id}-threshold`}>{vi.settings.threshold}</label>
             <input id={`${id}-threshold`} type="number" min={THRESHOLD_MIN} max={THRESHOLD_MAX} step="any" value={threshold} onChange={(e) => { setThreshold(e.target.value); setThresholdBad(e.currentTarget.validity.badInput) }} aria-invalid={!!show(errors.threshold)} aria-describedby={`${id}-threshold-error`} aria-required="true" />

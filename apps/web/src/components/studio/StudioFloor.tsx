@@ -155,7 +155,7 @@ export function StudioFloor({ detail, collapsible = false }: Props) {
                   working={working === m.key} cheer={!!frame?.cheer} away={walker?.who === m.key}
                 />
               ))}
-              <div className={final ? 'studio-you is-final' : 'studio-you'}><span><b>{vi.studio.you}</b> <span>· {vi.studio.youRole}</span></span></div>
+              <div className={final ? 'studio-you is-final' : 'studio-you'}><span><b>{vi.studio.you}</b></span></div>
               {working && <WorkBubble who={working} title={detail.film.title} />}
               {floor.failed && <WorkBubble who={floor.failed} title={detail.film.title} label={failedLabel} />}
               {walker && <Walker pose={walker} ms={frame!.ms} />}

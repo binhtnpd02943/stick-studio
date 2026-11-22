@@ -64,23 +64,18 @@ describe('settings', () => {
     expect(patchWorkspace).not.toHaveBeenCalled()
   })
 
-  test('switching to auto_if_score reveals a required threshold and patches review_policy and auto_score_threshold', async () => {
+  test('the review policy is hidden until publishing exists, and a save leaves an auto channel as stored', async () => {
     const user = userEvent.setup()
-    const { saveChannel } = await open()
+    const { saveChannel } = await open('owner', [channel({ review_policy: 'auto_if_score', auto_score_threshold: 80 })])
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    expect(screen.queryByText(/duyệt/i)).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Ngưỡng điểm')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('radio', { name: 'Tự duyệt khi điểm chất lượng ≥' }))
-    const threshold = screen.getByLabelText('Ngưỡng điểm')
-    await user.click(screen.getByRole('button', { name: 'Lưu kênh' }))
-    expect(threshold).toHaveAttribute('aria-invalid', 'true')
-    expect(saveChannel).not.toHaveBeenCalled()
-    await user.type(threshold, '101')
-    await user.click(screen.getByRole('button', { name: 'Lưu kênh' }))
-    expect(saveChannel).not.toHaveBeenCalled()
-    await user.clear(threshold)
-    await user.type(threshold, '80')
+    const name = screen.getByLabelText('Tên hiển thị')
+    await user.clear(name)
+    await user.type(name, 'Toán hay')
     await user.click(screen.getByRole('button', { name: 'Lưu kênh' }))
     await waitFor(() => expect(saveChannel).toHaveBeenCalledTimes(1))
-    expect(body(saveChannel.mock.calls[0]!)).toEqual({ review_policy: 'auto_if_score', auto_score_threshold: 80 }) // only what changed
+    expect(body(saveChannel.mock.calls[0]!)).toEqual({ display_name: 'Toán hay' })
   })
 
   test('a channel PATCH sends only the changed field', async () => {
@@ -107,7 +102,7 @@ describe('settings', () => {
 
   test('garbage in a number field (badInput reads as empty) blocks the save instead of sending null', async () => {
     const user = userEvent.setup()
-    const { patchWorkspace, saveChannel } = await open('owner', [channel({ review_policy: 'auto_if_score', auto_score_threshold: 80 })])
+    const { patchWorkspace } = await open('owner', [channel({ review_policy: 'auto_if_score', auto_score_threshold: 80 })])
     const garbage = (input: HTMLElement) => {
       Object.defineProperty(input, 'validity', { value: { badInput: true } })
       fireEvent.change(input, { target: { value: '' } })
@@ -117,11 +112,6 @@ describe('settings', () => {
     await user.click(screen.getByRole('button', { name: 'Lưu' }))
     expect(film).toHaveAttribute('aria-invalid', 'true')
     expect(patchWorkspace).not.toHaveBeenCalled()
-    const threshold = screen.getByLabelText('Ngưỡng điểm')
-    garbage(threshold)
-    await user.click(screen.getByRole('button', { name: 'Lưu kênh' }))
-    expect(threshold).toHaveAttribute('aria-invalid', 'true')
-    expect(saveChannel).not.toHaveBeenCalled()
   })
 
   test('add channel posts display_name and locale vi-VN', async () => {

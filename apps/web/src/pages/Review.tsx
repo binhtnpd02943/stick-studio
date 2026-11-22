@@ -44,7 +44,9 @@ function ReviewSession({ queued, refetch }: { queued: ReviewItem[]; refetch: () 
   const current = items[index]
   if (!current) return <StickState kind="done" label={vi.review.empty} />
 
+  const busy = review.isPending
   const go = (direction: 'next' | 'prev') => {
+    if (busy) return // reset() would drop the in-flight decision's callbacks (toast, queue removal, 409 refetch)
     setPicked(Math.max(0, Math.min(items.length - 1, index + (direction === 'next' ? 1 : -1))))
     setToast(null)
     review.reset()
@@ -68,21 +70,21 @@ function ReviewSession({ queued, refetch }: { queued: ReviewItem[]; refetch: () 
 
   return (
     <>
+      <nav className="review-nav" aria-label={vi.nav.review}>
+        <button type="button" disabled={busy || index === 0} onClick={() => go('prev')}>{vi.review.prev}</button>
+        <span className="review-counter">{vi.review.counter(index + 1, items.length)}</span>
+        <button type="button" disabled={busy || index === items.length - 1} onClick={() => go('next')}>{vi.review.next}</button>
+      </nav>
       <ReviewCard
         key={current.film.id}
         item={current}
-        busy={review.isPending}
+        busy={busy}
         notice={notice}
         onSwipe={go}
         onExpired={refetch}
         onApprove={() => decide({ id: current.film.id, decision: 'approved' }, vi.review.approved)}
         onRedo={(r) => decide({ id: current.film.id, decision: 'redo', ...r }, vi.review.redoSent(r.reason))}
       />
-      <nav className="review-nav" aria-label={vi.nav.review}>
-        <button type="button" disabled={index === 0} onClick={() => go('prev')}>{vi.review.prev}</button>
-        <span className="review-counter">{vi.review.counter(index + 1, items.length)}</span>
-        <button type="button" disabled={index === items.length - 1} onClick={() => go('next')}>{vi.review.next}</button>
-      </nav>
     </>
   )
 }

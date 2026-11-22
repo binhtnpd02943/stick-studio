@@ -236,15 +236,40 @@ describe('review page', () => {
     video.tabIndex = 0 // jsdom has no built-in controls; a real <video controls> is a tab stop
     const order: Element[] = []
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       await userEvent.tab()
       order.push(document.activeElement!)
     }
 
-    // the unmute button belongs to the player, so it is part of the video controls
+    // DOM order is visual order: nav on top (Trước is disabled on the first film), then the player (its unmute button is a video control), then the bar
     expect(order).toEqual([
-      video, screen.getByRole('button', { name: 'Bật tiếng' }), screen.getByRole('button', { name: 'Duyệt' }), screen.getByRole('button', { name: 'Làm lại' }),
+      screen.getByRole('button', { name: 'Tiếp ›' }), video, screen.getByRole('button', { name: 'Bật tiếng' }),
+      screen.getByRole('button', { name: 'Duyệt' }), screen.getByRole('button', { name: 'Làm lại' }),
     ])
+    await userEvent.tab()
+    expect(document.body).toHaveFocus() // nothing after the bar
+  })
+
+  test('while a decision is in flight, Trước/Tiếp are disabled and a swipe does nothing', async () => {
+    let finish: (r: Response) => void = () => {}
+    mockApi({
+      '/v1/review-queue': () => ok([item('f1', 'Phim một'), item('f2', 'Phim hai')]),
+      '/v1/films/f1/review': () => new Promise<Response>((resolve) => { finish = resolve }),
+    })
+    const { container } = renderRoutes(routes, '/review')
+    await screen.findByText('Phim một')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Duyệt' }))
+
+    expect(screen.getByRole('button', { name: 'Tiếp ›' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Duyệt' })).toBeDisabled()
+    const stage = container.querySelector('.review-stage')!
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({ bottom: 800 } as DOMRect)
+    fireEvent.pointerDown(stage, { clientX: 300, clientY: 300, pointerId: 1 })
+    fireEvent.pointerUp(stage, { clientX: 100, clientY: 300, pointerId: 1 })
+    expect(screen.getByText('Phim một')).toBeInTheDocument()
+    await act(async () => { finish(ok(detail(film({ id: 'f1' })))) })
+    expect(await screen.findByRole('status')).toHaveTextContent('Đã duyệt') // the callbacks still ran
   })
 
   test('the Duyệt and Làm lại buttons have accessible names and are at least 48px tall', async () => {

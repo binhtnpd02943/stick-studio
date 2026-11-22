@@ -12,6 +12,11 @@ Branch plan-5-web-ui, commits 5eacaf6..HEAD. The web UI (apps/web) runs the whol
 - Dark theme. Light only on purpose in P1; the tokens are on `:root` in `apps/web/src/styles/tokens.css`, so a dark set is a token override.
 - Studio floor, still open: a real-run (non-fake) visual check of the work bubble, since in fake mode the steps outpace the walk animations; chatter's 6 s timer counts from when the floor first sees a step running, not from `started_at`. (The heading gap and overlapping name tags seen in the Task 16 screenshot are fixed in c2817bb; the double cheer in adf8164.)
 
+## Deviation: the review page is retired (UI v2)
+The spec puts a human review gate (`/review`: approve or redo on a phone) between a finished film and auto-publish. UI v2 ([2026-11-22-ui-v2.md](2026-11-22-ui-v2.md)) removes that page: the owner found "Chờ duyệt" meaningless while nothing publishes. A finished film now simply reads "Xong" (awaiting_review and approved both), and its page offers download and a redo with a note.
+- The web no longer calls `/v1/review-queue` or the review action; both stay in the API untouched, and the contract e2e still parses the queue. `/review` redirects to `/`.
+- The gate returns as an opt-in step ("duyệt trước khi đăng") when TikTok publishing is built, since that is when a review means something.
+
 ## Rulings
 Controller rulings from the plan-5 ledger, with the cost if each was wrong.
 - | Scope | Ruling |

@@ -73,6 +73,16 @@ describe('POST /v1/films', () => {
     expect(t.jobs).toHaveLength(1)
   })
 
+  test('a keyless create whose enqueue fails is a 500 and leaves the film failed, not queued without a job', async () => {
+    await t.close()
+    t = await testApi({ enqueueFailures: 1 })
+    const failed = await create()
+    expect(failed.statusCode).toBe(500)
+    const list = await t.app.inject({ method: 'GET', url: '/v1/films', headers: auth() })
+    expect(list.json().data).toMatchObject([{ status: 'failed' }])
+    expect(t.jobs).toHaveLength(0)
+  })
+
   test('a replay of a film that has started does not enqueue again', async () => {
     const key = { 'idempotency-key': 'k-started' }
     const id = (await create({}, key)).json().data.id

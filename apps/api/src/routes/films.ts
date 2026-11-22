@@ -1,5 +1,5 @@
 import { FILM_STATUSES, type FilmStep } from '@stick/core'
-import { type Db, type Film, audit, createFilm, filmDetail, getChannel, listFilms, runsOf } from '@stick/db'
+import { type Db, type Film, audit, createFilm, filmDetail, getChannel, listFilms, runsOf, setFilmStatus } from '@stick/db'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
@@ -50,8 +50,17 @@ export function filmRoutes(app: FastifyInstance, { db, enqueue }: ApiDeps): void
     const first = (step: FilmStep) => enqueue({ workspaceId, filmId: film.id, filmVersionId: version.id, step })
     if (created) {
       await audit(db, workspaceId, { actorId: userId, action: 'film.create', target: `film:${film.id}`, data: req.body })
-      // A failed enqueue is a 500 here; the client's retry with the same key heals it below.
-      await first('story')
+      try {
+        await first('story')
+      } catch (err) {
+        // A keyed create stays queued: the client's retry with the same key heals it below. Without a key nothing can
+        // heal it, so fail it (guarded by the version) rather than leave a queued film with no job.
+        if (!req.headers['idempotency-key']) {
+          await setFilmStatus(db, workspaceId, film.id, 'failed', version.version)
+            .catch((e: unknown) => req.log.error({ err: e, filmId: film.id }, 'could not fail a film whose enqueue failed'))
+        }
+        throw err
+      }
     } else if (film.status === 'queued' && (await runsOf(db, version.id)).length === 0) {
       // Nothing has run yet, so the first enqueue may have failed. The jobId dedupes it if it did not.
       await first((version.restartFromStep as FilmStep | null) ?? 'story')

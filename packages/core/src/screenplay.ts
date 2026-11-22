@@ -8,15 +8,21 @@ const MarkSchema = z.string().regex(MARK_RE, 'must be left, center, right or nea
 /** Lowercase and filename-safe: beat ids become `<beatId>.wav`, which collide on case-insensitive filesystems. */
 export const IdSchema = z.string().regex(/^[a-z0-9_-]{1,32}$/, 'must be 1-32 lowercase letters, digits, _ or -')
 
-export const HexSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'must be a #rrggbb hex color')
+export const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/
+export const HEX_COLOR_MESSAGE = 'must be a #rrggbb hex color'
+export const HexSchema = z.string().regex(HEX_COLOR_RE, HEX_COLOR_MESSAGE)
+
+export const HAIR_STYLES = ['short', 'long', 'ponytail', 'none'] as const
+
+export const LookSchema = z.object({
+  ink: HexSchema,
+  hair: z.enum(HAIR_STYLES).optional(),
+})
 
 const CastSchema = z.object({
   id: IdSchema,
   name: z.string().min(1),
-  look: z.object({
-    ink: HexSchema,
-    hair: z.enum(['short', 'long', 'ponytail', 'none']).optional(),
-  }),
+  look: LookSchema,
   voice: z.string().min(1),
 })
 

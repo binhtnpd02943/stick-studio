@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import {
   type Db, apiTokens, createApiToken, createSession, createUser, createWorkspaceWithOwner, deleteSession,
-  findApiToken, findSession, sessions, users, verifyPassword,
+  findApiToken, findSession, findUserByEmail, getUser, primaryMembership, sessions, users, verifyPassword,
 } from '../src/index.js'
 import { createTestDb } from '../src/testing.js'
 
@@ -89,5 +89,18 @@ describe('sessions and tokens', () => {
     await db.update(apiTokens).set({ revokedAt: new Date() }).where(eq(apiTokens.id, id))
     expect(await findApiToken(db, token)).toBeUndefined()
     expect(await findApiToken(db, 'stk_unknown')).toBeUndefined()
+  })
+})
+
+describe('lookups', () => {
+  test('getUser and findUserByEmail hide the hash; primaryMembership is the oldest membership', async () => {
+    const u = await createUser(db, { email: 'Lookup@example.com', name: 'Look', password: PASSWORD })
+    expect(await getUser(db, u.id)).toEqual(u)
+    expect(await findUserByEmail(db, ' LOOKUP@example.com')).toEqual(u)
+    expect(await findUserByEmail(db, 'none@example.com')).toBeUndefined()
+    expect(await primaryMembership(db, u.id)).toBeUndefined()
+    const first = await createWorkspaceWithOwner(db, { name: 'First', userId: u.id })
+    await createWorkspaceWithOwner(db, { name: 'Second', userId: u.id })
+    expect(await primaryMembership(db, u.id)).toEqual({ workspaceId: first.id, role: 'owner' })
   })
 })

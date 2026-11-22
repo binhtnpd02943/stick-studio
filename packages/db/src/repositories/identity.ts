@@ -1,5 +1,5 @@
 import { hash, verify } from '@node-rs/argon2'
-import { and, eq, getTableColumns, gt, isNull } from 'drizzle-orm'
+import { and, asc, eq, getTableColumns, gt, isNull } from 'drizzle-orm'
 import { createHash, randomBytes } from 'node:crypto'
 import type { Db } from '../client.js'
 import { ConflictError } from '../errors.js'
@@ -54,6 +54,25 @@ export async function verifyPassword(db: Db, email: string, password: string): P
   if (!ok) return undefined
   const { passwordHash: _, ...user } = row
   return user
+}
+
+export async function getUser(db: Db, id: string): Promise<User | undefined> {
+  const [row] = await db.select(userColumns).from(users).where(eq(users.id, id))
+  return row
+}
+
+export async function findUserByEmail(db: Db, email: string): Promise<User | undefined> {
+  const [row] = await db.select(userColumns).from(users).where(eq(users.email, normalizeEmail(email)))
+  return row
+}
+
+/** The workspace a login lands in: the user's oldest membership (uuid v7 ids are time-ordered). */
+export async function primaryMembership(db: Db, userId: string): Promise<{ workspaceId: string; role: Role } | undefined> {
+  const [m] = await db.select({ workspaceId: workspaceMembers.workspaceId, role: workspaceMembers.role }).from(workspaceMembers)
+    .where(eq(workspaceMembers.userId, userId))
+    .orderBy(asc(workspaceMembers.createdAt), asc(workspaceMembers.workspaceId))
+    .limit(1)
+  return m && { workspaceId: m.workspaceId, role: m.role as Role }
 }
 
 export async function createWorkspaceWithOwner(

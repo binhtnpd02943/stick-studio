@@ -600,7 +600,7 @@ button:hover {
   align-items: flex-start;
 }
 
-.film-detail-grid > section[aria-label='Video'] {
+.film-detail-video {
   flex: 0 1 340px;
   min-width: 260px;
 }

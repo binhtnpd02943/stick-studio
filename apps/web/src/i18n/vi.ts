@@ -105,6 +105,7 @@ export const vi = {
   },
   detail: {
     back: '← Phim',
+    video: 'Video',
     review: 'Duyệt phim này',
     tabs: 'Nội dung phim',
     tabScreenplay: 'Kịch bản',

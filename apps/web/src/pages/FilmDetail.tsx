@@ -20,15 +20,21 @@ const TABS = [
 ] as const
 type TabId = (typeof TABS)[number]['id']
 
+/** A panel mounts on first visit and then stays (hidden), so an open edit survives a trip to another tab. */
 function Tabs({ panel }: { panel: (tab: TabId) => React.ReactNode }) {
   const [active, setActive] = useState<TabId>('screenplay')
+  const [visited, setVisited] = useState<ReadonlySet<TabId>>(() => new Set(['screenplay']))
+  const show = (id: TabId) => {
+    setActive(id)
+    setVisited((v) => new Set(v).add(id))
+  }
   const refs = useRef<Record<string, HTMLButtonElement | null>>({})
   const move = (e: KeyboardEvent, from: number) => {
     const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
     if (step === 0) return
     e.preventDefault()
     const next = TABS[(from + step + TABS.length) % TABS.length]!
-    setActive(next.id)
+    show(next.id)
     refs.current[next.id]?.focus()
   }
   return (
@@ -37,14 +43,16 @@ function Tabs({ panel }: { panel: (tab: TabId) => React.ReactNode }) {
         {TABS.map((t, i) => (
           <button
             key={t.id} ref={(el) => { refs.current[t.id] = el }} type="button" role="tab" id={`tab-${t.id}`}
-            aria-selected={active === t.id} aria-controls="film-panel" tabIndex={active === t.id ? 0 : -1}
-            onClick={() => setActive(t.id)} onKeyDown={(e) => move(e, i)}
+            aria-selected={active === t.id} aria-controls={`panel-${t.id}`} tabIndex={active === t.id ? 0 : -1}
+            onClick={() => show(t.id)} onKeyDown={(e) => move(e, i)}
           >
             {t.label}
           </button>
         ))}
       </div>
-      <div role="tabpanel" id="film-panel" aria-labelledby={`tab-${active}`}>{panel(active)}</div>
+      {TABS.filter((t) => visited.has(t.id)).map((t) => (
+        <div key={t.id} role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} hidden={active !== t.id}>{panel(t.id)}</div>
+      ))}
     </section>
   )
 }
@@ -54,17 +62,18 @@ export function FilmDetail() {
   useFilmEvents(id)
   const query = useFilm(id)
 
-  if (query.error) return <ErrorNotice error={query.error} />
-  if (!query.data) return <p>{vi.loading}</p>
+  // A failed refetch keeps the data: show the page with a banner, so an open edit is not unmounted.
+  if (!query.data) return query.error ? <ErrorNotice error={query.error} /> : <p>{vi.loading}</p>
   const { film, version, steps, assets } = query.data
   const final = assets.find((a) => a.kind === 'final')
   const reviewable = film.status === 'awaiting_review' || film.status === 'qa_failed'
 
   return (
     <div className="page film-detail">
+      {query.error && <ErrorNotice error={query.error} />}
       <Link to="/films" className="back-link">{vi.detail.back}</Link>
       <div className="film-detail-grid">
-        <section aria-label="Video"><FilmPlayer assetId={final?.id ?? null} /></section>
+        <section className="film-detail-video" aria-label={vi.detail.video}><FilmPlayer assetId={final?.id ?? null} /></section>
         <section className="film-detail-info">
           <div className="film-detail-head">
             <h1>{film.title}</h1>

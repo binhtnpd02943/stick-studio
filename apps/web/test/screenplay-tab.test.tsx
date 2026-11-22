@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { IssueList } from '../src/components/IssueList'
@@ -30,7 +30,11 @@ const serve = (status: Parameters<typeof detailWith>[0], extra: Record<string, (
     ...extra,
   })
 const sent = () => JSON.parse(String(patch.mock.calls[0]![1]!.body)) as { screenplay: typeof screenplay }
-const startEdit = async () => userEvent.click(await screen.findByRole('button', { name: 'Sửa' }))
+const startEdit = async () => {
+  const button = await screen.findByRole('button', { name: 'Sửa' })
+  await waitFor(() => expect(button).toBeEnabled()) // enabled once the screenplay asset has loaded
+  await userEvent.click(button)
+}
 
 describe('screenplay tab', () => {
   test('reads the story: title, logline, genre, hook, lines per scene and content warnings', async () => {
@@ -102,6 +106,45 @@ describe('screenplay tab', () => {
     open()
     expect(await screen.findByRole('button', { name: 'Sửa' })).toBeDisabled()
     expect(screen.getByText('Chỉ sửa được khi phim đã dừng')).toBeInTheDocument()
+  })
+
+  test('a failing refetch keeps the open editor and its draft and shows an error banner', async () => {
+    let down = false
+    serve('awaiting_review', { '/v1/films/f1': () => (down ? json(500, { data: null, error: { code: 'internal', message: 'x', details: null }, meta: {} }) : ok(withAssets('awaiting_review'))) })
+    open()
+    await startEdit()
+    await userEvent.type(await screen.findByLabelText('Cảnh 1 · Minh'), ' nữa')
+    down = true
+    act(() => {
+      FakeEventSource.instances[0]!.emit('film', { type: 'film', filmId: 'f1', status: 'awaiting_review', at: '2026-11-22T10:00:00.000Z' })
+    })
+
+    expect(await screen.findByText('Máy chủ gặp lỗi')).toBeInTheDocument()
+    expect(screen.getByLabelText('Cảnh 1 · Minh')).toHaveValue('Một nửa cái bánh nữa')
+  })
+
+  test('the JSON toggle never replaces a screenplay the schema rejects with null', async () => {
+    const broken = { version: 1 }
+    serve('awaiting_review', assetRoutes({ sp1: broken }))
+    open()
+    await startEdit()
+    const box = await screen.findByLabelText('Kịch bản (JSON)')
+    expect(JSON.parse((box as HTMLTextAreaElement).value)).toEqual(broken)
+    expect(screen.queryByRole('button', { name: 'Sửa JSON' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Sửa từng câu' })).not.toBeInTheDocument()
+  })
+
+  test('switching to QA and back keeps the draft', async () => {
+    serve('awaiting_review')
+    open()
+    await startEdit()
+    await userEvent.type(await screen.findByLabelText('Cảnh 1 · Minh'), ' nữa')
+
+    await userEvent.click(screen.getByRole('tab', { name: 'QA' }))
+    expect(screen.getByLabelText('Cảnh 1 · Minh')).not.toBeVisible()
+    await userEvent.click(screen.getByRole('tab', { name: 'Kịch bản' }))
+
+    expect(screen.getByLabelText('Cảnh 1 · Minh')).toHaveValue('Một nửa cái bánh nữa')
   })
 
   test('a failed story asset shows the error instead of an empty view', async () => {

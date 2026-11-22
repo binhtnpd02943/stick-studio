@@ -94,7 +94,8 @@ function ScreenplayEditor({ initial, saving, error, onSave, onDiscard }: {
       {error != null && <SaveError error={error} />}
       <div className="editor-actions">
         <button type="button" className="primary" disabled={saving} onClick={save}>{saving ? vi.screenplay.saving : vi.screenplay.save}</button>
-        <button type="button" onClick={json && draft ? toLines : toJson}>{json && draft ? vi.screenplay.editLines : vi.screenplay.editJson}</button>
+        {/* No draft means the schema rejected it: JSON is the only way to fix it, and there is nothing to convert from. */}
+        {draft && <button type="button" onClick={json ? toLines : toJson}>{json ? vi.screenplay.editLines : vi.screenplay.editJson}</button>}
         <button type="button" onClick={onDiscard}>{vi.screenplay.discard}</button>
       </div>
     </div>
@@ -102,7 +103,8 @@ function ScreenplayEditor({ initial, saving, error, onSave, onDiscard }: {
 }
 
 export function ScreenplayTab({ film, assets }: { film: Film; assets: FilmDetail['assets'] }) {
-  const [editing, setEditing] = useState(false)
+  /** The screenplay as it was when editing began: later refetches never replace an open editor. */
+  const [editing, setEditing] = useState<{ initial: unknown } | null>(null)
   const edit = useEditScreenplay()
   const storyId = assetOf(assets, 'story')
   const screenplayId = assetOf(assets, 'screenplay')
@@ -112,29 +114,26 @@ export function ScreenplayTab({ film, assets }: { film: Film; assets: FilmDetail
 
   const startEdit = () => {
     edit.reset()
-    setEditing(true)
+    setEditing({ initial: screenplay.data })
   }
-  const save = (body: unknown) => edit.mutate({ id: film.id, screenplay: body }, { onSuccess: () => setEditing(false) })
+  const save = (body: unknown) => edit.mutate({ id: film.id, screenplay: body }, { onSuccess: () => setEditing(null) })
 
-  const toolbar = !editing && (
+  const toolbar = (
     <div className="tab-toolbar">
-      <button type="button" disabled={!redoable || screenplayId === null} aria-describedby={redoable ? undefined : 'sp-hint'} onClick={startEdit}>{vi.screenplay.edit}</button>
+      <button type="button" disabled={!redoable || screenplay.data === undefined} aria-describedby={redoable ? undefined : 'sp-hint'} onClick={startEdit}>{vi.screenplay.edit}</button>
       {!redoable && <span id="sp-hint" className="field-meta">{vi.screenplay.disabledHint}</span>}
     </div>
   )
-  const saved = edit.isSuccess && !editing && <p role="status">{vi.screenplay.saved}</p>
+  const saved = edit.isSuccess && <p role="status">{vi.screenplay.saved}</p>
 
   if (editing) {
-    if (screenplay.error) return <ErrorNotice error={screenplay.error} />
-    if (screenplay.data === undefined) return <p>{vi.loading}</p>
-    return (
-      <ScreenplayEditor initial={screenplay.data} saving={edit.isPending} error={edit.error} onSave={save} onDiscard={() => setEditing(false)} />
-    )
+    return <ScreenplayEditor initial={editing.initial} saving={edit.isPending} error={edit.error} onSave={save} onDiscard={() => setEditing(null)} />
   }
   return (
     <div className="screenplay-tab">
       {toolbar}
       {saved}
+      {screenplay.error && <ErrorNotice error={screenplay.error} />}
       {storyId === null ? <p>{vi.screenplay.storyMissing}</p>
         : story.error ? <ErrorNotice error={story.error} />
         : story.data ? <StoryView story={story.data} />

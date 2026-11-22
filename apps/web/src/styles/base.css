@@ -854,3 +854,58 @@ button:hover {
     padding: 0 16px;
   }
 }
+
+/* cast */
+.cast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cast-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.cast-card-name {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.cast-card-voice {
+  color: var(--muted);
+  font: 400 12px/1.5 var(--mono);
+}
+
+.cast-card-description {
+  margin: 0;
+  font-size: 14px;
+}
+
+.cast-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.cast-draft {
+  max-width: 160px;
+  margin: 0 auto 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.field input.cast-ink {
+  width: 64px;
+  height: 44px;
+  padding: 4px;
+}

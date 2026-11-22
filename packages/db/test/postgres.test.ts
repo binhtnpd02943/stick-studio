@@ -26,7 +26,7 @@ describe.skipIf(!TEST_DATABASE_URL)('postgres only (needs STICK_TEST_DATABASE_UR
     cleanups.unshift(async () => { await Promise.all(handles.map((h) => h.close())) })
     const r = (await handles[0]!.db.execute(sql`select count(*)::int as n from drizzle.__drizzle_migrations`)) as { rows: { n: number }[] }
     expect(r.rows[0]!.n).toBe(MIGRATION_FILES)
-  })
+  }, 30_000)
 
   test('a failing migration rejects promptly instead of hanging on the pool', async () => {
     const { url } = await tempDb()

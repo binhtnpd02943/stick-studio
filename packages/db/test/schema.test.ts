@@ -84,7 +84,7 @@ describe('createDb', () => {
     const r = (await second.db.execute(sql`select email from users`)) as { rows: { email: string }[] }
     expect(r.rows.map((x) => x.email)).toEqual(['p@x.test'])
     await second.close()
-  })
+  }, 30_000) // two real-file PGlite boots; took 9 s under full-suite load vs the 5 s default
 })
 
 describe('errors and paging', () => {

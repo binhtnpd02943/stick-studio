@@ -220,6 +220,25 @@ describe('film routes', () => {
     expect(got.rawPayload.equals(body)).toBe(true)
   })
 
+  test("a film list never carries another workspace's final video in final_url", async () => {
+    const other = await seedWorkspace(t.db)
+    const { film: theirs, version } = await createFilm(t.db, other.workspace.id, { channelId: other.channel.id, title: 'theirs', createdBy: other.user.id })
+    const storageKey = `ws/${other.workspace.id}/films/${theirs.id}/v1/final.mp4`
+    mkdirSync(dirname(t.storage.localPath(storageKey)), { recursive: true })
+    writeFileSync(t.storage.localPath(storageKey), Buffer.from('their mp4'))
+    const asset = await replaceAsset(t.db, other.workspace.id, { filmVersionId: version.id, kind: 'final', path: 'final.mp4', storageKey, mime: 'video/mp4', bytes: 9, sha256: 'x' })
+    const mine = await newFilm()
+
+    const items = (await t.app.inject({ method: 'GET', url: '/v1/films', headers: auth() })).json().data as { id: string; final_url: string | null }[]
+    expect(items.map((i) => i.id)).toEqual([mine])
+    expect(items[0]!.final_url).toBeNull()
+    expect(JSON.stringify(items)).not.toContain(asset.id)
+
+    const theirList = (await t.app.inject({ method: 'GET', url: '/v1/films', headers: { authorization: `Bearer ${other.token}` } })).json().data as { id: string; final_url: string | null }[]
+    expect(theirList.map((i) => i.id)).toEqual([theirs.id])
+    expect(theirList[0]!.final_url).toContain(`/v1/assets/${asset.id}/content`)
+  })
+
   test('cancel a queued film → cancelled; cancel again → 409', async () => {
     const id = await newFilm()
     const res = await t.app.inject({ method: 'POST', url: `/v1/films/${id}/cancel`, headers: auth() })

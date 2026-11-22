@@ -38,6 +38,13 @@ describe('workspace packages', () => {
     for (const n of graph.keys()) visit(n, [])
   })
 
+  test('packages never depend on apps; the only app-to-app edge is @stick/api -> @stick/worker', () => {
+    const apps = new Set(pkgs.filter(({ dir }) => dir.includes(`${join(ROOT, 'apps')}`)).map(({ pkg }) => pkg.name))
+    const appEdges = pkgs.flatMap(({ pkg }) => Object.keys({ ...pkg.dependencies, ...pkg.devDependencies })
+      .filter((d) => apps.has(d)).map((d) => `${pkg.name} -> ${d}`))
+    expect(appEdges.filter((e) => e !== '@stick/api -> @stick/worker')).toEqual([])
+  })
+
   test('every package importing zod pins ~3.25.76', () => {
     const importers = pkgs.filter(({ dir }) => sourceFiles(dir).some((f) => /from ['"](zod|zod\/v4)['"]/.test(readFileSync(f, 'utf8'))))
     expect(importers.length).toBeGreaterThan(0)

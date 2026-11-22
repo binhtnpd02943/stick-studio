@@ -17,7 +17,11 @@
     "coverage:db": "vitest run --project unit packages/db --coverage.enabled --coverage.include='packages/db/src/**' --coverage.thresholds.lines=80 --coverage.thresholds.functions=80",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
-    "test:db:pg": "STICK_TEST_DATABASE_URL=postgres://stick:stick@127.0.0.1:5432/stick_test vitest run packages/db"
+    "test:db:pg": "STICK_TEST_DATABASE_URL=postgres://stick:stick@127.0.0.1:5432/stick_test vitest run packages/db",
+    "api": "tsx apps/api/src/main.ts",
+    "dev": "tsx apps/api/src/dev.ts",
+    "seed": "tsx scripts/seed.ts",
+    "token": "tsx scripts/create-token.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

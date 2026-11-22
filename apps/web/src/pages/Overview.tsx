@@ -4,6 +4,7 @@ import { useFilmEvents } from '../api/events'
 import { REVIEW_PREVIEW, useFilm, useFilms, useReviewPreview, useUsageToday, useWorkspace } from '../api/queries'
 import type { FilmListItem } from '../api/schemas'
 import { CostBadge, formatUsd } from '../components/CostBadge'
+import { ErrorNotice } from '../components/ErrorNotice'
 import { FilmCard } from '../components/FilmCard'
 import { NewFilmButton } from '../components/NewFilmForm'
 import { StatusPill } from '../components/StatusPill'
@@ -45,14 +46,17 @@ function Section({ id, title, aside, children }: { id: string; title: string; as
 }
 
 export function Overview() {
-  const running = useFilms({ status: 'running' }).data ?? []
-  const queued = useFilms({ status: 'queued' }).data ?? []
-  const review = useReviewPreview().data
+  const runningQ = useFilms({ status: 'running' })
+  const queuedQ = useFilms({ status: 'queued' })
+  const reviewQ = useReviewPreview()
   const recent = useFilms({ limit: RECENT_FETCH }).data
   const usage = useUsageToday().data
   const workspace = useWorkspace().data
 
-  const live = [...running, ...queued]
+  const liveError = runningQ.error ?? queuedQ.error
+  const liveLoaded = runningQ.isSuccess && queuedQ.isSuccess
+  const live = [...(runningQ.data ?? []), ...(queuedQ.data ?? [])]
+  const review = reviewQ.data
   const waiting = (review?.items ?? []).map(({ film }) => ({ ...film, timeline_url: null })) // the queue carries no timeline url
   const waitingCount = review?.more ? `${REVIEW_PREVIEW}+` : String(waiting.length)
   const finished = (recent ?? []).filter((f) => !MOVING.includes(f.status)).slice(0, RECENT_ROWS)
@@ -74,13 +78,21 @@ export function Overview() {
       )}
       <Section
         id="running"
-        title={`${vi.overview.running} · ${live.length}`}
-        aside={live.length > 0 && <Link to="/films?status=running">{vi.overview.seeAll}</Link>}
+        title={liveLoaded ? `${vi.overview.running} · ${live.length}` : vi.overview.running}
+        aside={liveLoaded && live.length > 0 && <Link to="/films?status=running">{vi.overview.seeAll}</Link>}
       >
-        {live.length === 0 && <StickState kind="empty" label={vi.overview.runningEmpty} />}
+        {liveError && <ErrorNotice error={liveError} />}
+        {!liveError && !liveLoaded && <p>{vi.loading}</p>}
+        {liveLoaded && live.length === 0 && <StickState kind="empty" label={vi.overview.runningEmpty} />}
         {live.slice(0, MAX_LIVE_ON_OVERVIEW).map((film) => <LiveFilm key={film.id} film={film} />)}
       </Section>
-      <Section id="waiting" title={`${vi.overview.waiting} · ${waitingCount}`} aside={<Link to="/review">{vi.overview.reviewLink}</Link>}>
+      <Section
+        id="waiting"
+        title={review ? `${vi.overview.waiting} · ${waitingCount}` : vi.overview.waiting}
+        aside={<Link to="/review">{vi.overview.reviewLink}</Link>}
+      >
+        {reviewQ.error && <ErrorNotice error={reviewQ.error} />}
+        {reviewQ.isPending && <p>{vi.loading}</p>}
         {review && waiting.length === 0 && <StickState kind="empty" label={vi.overview.waitingEmpty} />}
         <div className="film-grid film-grid-3">
           {waiting.slice(0, REVIEW_CARDS).map((film) => <FilmCard key={film.id} film={film} />)}

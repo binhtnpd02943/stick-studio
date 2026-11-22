@@ -22,6 +22,7 @@ function useOpeningScene(film: FilmCardFilm): Timeline | undefined {
     queryKey: ['timeline', film.id, film.current_version],
     enabled: url !== null,
     staleTime: Infinity,
+    gcTime: Infinity,
     queryFn: async () => {
       const res = await fetch(url!, { credentials: 'same-origin' }).catch(() => { throw new ApiError(0, 'network', 'network error') })
       if (!res.ok) throw new ApiError(res.status, 'internal', 'timeline not available')

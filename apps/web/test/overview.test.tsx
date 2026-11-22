@@ -1,12 +1,15 @@
 import { screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { Overview } from '../src/pages/Overview'
-import { FakeEventSource, detail, film, mockApi, ok, renderRoutes, stubCanvas } from './helpers'
+import '../src/styles/base.css'
+import { FakeEventSource, detail, film, json, mockApi, ok, renderRoutes, stubCanvas } from './helpers'
 
 const routes = [{ path: '/', element: <Overview /> }, { path: '*', element: <p>đích</p> }]
 
-interface Setup { running?: ReturnType<typeof film>[]; reviewMeta?: Record<string, unknown> }
-function api({ running = [], reviewMeta = {} }: Setup = {}) {
+type Handler = Parameters<typeof mockApi>[0][string]
+interface Setup { running?: ReturnType<typeof film>[]; reviewMeta?: Record<string, unknown>; override?: Record<string, Handler> }
+const failure = () => json(500, { data: null, error: { code: 'internal', message: 'x', details: {} }, meta: {} })
+function api({ running = [], reviewMeta = {}, override = {} }: Setup = {}) {
   return mockApi({
     '/v1/films': (url) => ok(url.searchParams.get('status') === 'running' ? running : []),
     '/v1/review-queue': () => ok(
@@ -27,6 +30,7 @@ function api({ running = [], reviewMeta = {} }: Setup = {}) {
         { step: 'screenplay', status: 'running', attempt: 1, error: null, started_at: null, finished_at: null },
       ])),
     ])),
+    ...override,
   })
 }
 
@@ -55,6 +59,45 @@ describe('overview', () => {
     expect(meter).toHaveAttribute('aria-valuenow', '2.5')
     expect(meter).toHaveAttribute('aria-valuemax', '10')
     expect(screen.getByRole('link', { name: 'Xem tất cả' })).toHaveAttribute('href', '/films?status=running')
+  })
+
+  test('the compact timeline keeps each step status readable by screen readers', async () => {
+    api({ running: [film({ id: 'f1', title: 'Phân số là gì?' })] })
+    renderRoutes(routes, '/')
+
+    const live = (await screen.findByRole('link', { name: 'Phân số là gì?' })).closest('article')!
+    const status = await within(live).findByText('Xong')
+    expect(getComputedStyle(status).display).not.toBe('none')
+  })
+
+  test('while loading there is no empty state and no zero count', async () => {
+    const never = () => new Promise<Response>(() => {})
+    api({ override: { '/v1/films': never, '/v1/review-queue': never } })
+    renderRoutes(routes, '/')
+
+    expect(await screen.findByRole('heading', { name: 'Đang chạy' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Chờ duyệt' })).toBeInTheDocument()
+    expect(screen.getAllByText('Đang tải…')).toHaveLength(2)
+    expect(screen.queryByText('Chưa có phim nào đang chạy')).not.toBeInTheDocument()
+    expect(screen.queryByText('Chưa có phim nào chờ duyệt')).not.toBeInTheDocument()
+  })
+
+  test('a failing films list shows an error, not the empty state or a zero', async () => {
+    api({ override: { '/v1/films': failure } })
+    renderRoutes(routes, '/')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Máy chủ gặp lỗi')
+    expect(screen.queryByText('Chưa có phim nào đang chạy')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Đang chạy' })).toBeInTheDocument()
+  })
+
+  test('a failing review queue shows an error, not the empty state or a zero', async () => {
+    api({ override: { '/v1/review-queue': failure } })
+    renderRoutes(routes, '/')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Máy chủ gặp lỗi')
+    expect(screen.queryByText('Chưa có phim nào chờ duyệt')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Chờ duyệt' })).toBeInTheDocument()
   })
 
   test('overview opens at most 3 event streams', async () => {

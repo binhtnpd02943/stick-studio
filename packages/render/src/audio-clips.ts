@@ -2,13 +2,12 @@ import { execFileSync } from 'node:child_process'
 import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { beatId, type Screenplay, type Timeline } from '@stick/core'
-import type { AudioClip } from '@stick/render'
-import { CliError } from './cli-error.js'
+import type { AudioClip } from './audio.js'
 
 const probeSeconds = (file: string): number => {
   const out = execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { encoding: 'utf8' })
   const s = Number(out.trim())
-  if (!Number.isFinite(s) || s <= 0) throw new CliError(1, `cannot read duration of ${file}`)
+  if (!Number.isFinite(s) || s <= 0) throw new Error(`cannot read duration of ${file}`)
   return s
 }
 
@@ -19,11 +18,11 @@ function listWavs(dir: string): string[] {
   try {
     return readdirSync(dir).filter((f) => f.endsWith('.wav'))
   } catch (e) {
-    throw new CliError(1, `cannot read audio dir ${dir}: ${(e as Error).message}`)
+    throw new Error(`cannot read audio dir ${dir}: ${(e as Error).message}`)
   }
 }
 
-/** `<beatId>.wav` durations found in `dir`; they win over the durations file. Exits 1 if none match a spoken beat. */
+/** `<beatId>.wav` durations found in `dir`; they win over the durations file. Throws if none match a spoken beat. */
 export function audioDurations(sp: Screenplay, dir: string): Record<string, number> {
   const wavs = listWavs(dir)
   const spoken = new Set(spokenBeatIds(sp))
@@ -33,7 +32,7 @@ export function audioDurations(sp: Screenplay, dir: string): Record<string, numb
   const found = Object.fromEntries(
     [...spoken].filter((id) => wavs.includes(`${id}.wav`)).map((id) => [id, probeSeconds(join(dir, `${id}.wav`))]),
   )
-  if (Object.keys(found).length === 0) throw new CliError(1, `no <beatId>.wav files for this screenplay in ${dir}`)
+  if (Object.keys(found).length === 0) throw new Error(`no <beatId>.wav files for this screenplay in ${dir}`)
   return found
 }
 

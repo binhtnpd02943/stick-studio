@@ -3,7 +3,7 @@ import { parseArgs } from 'node:util'
 import { parseScreenplay, type Screenplay, type Timeline } from '@stick/core'
 import { defaultCatalog } from '@stick/library'
 import { solveTimeline, validateScreenplay } from '@stick/pipeline'
-import { audioDurations, spokenBeatIds } from './lib/audio-clips.js'
+import { audioDurations, spokenBeatIds } from '@stick/render'
 import { CliError } from './lib/cli-error.js'
 import { gateMotion } from './lib/motion-gate.js'
 import { renderWithAudio } from './lib/render-steps.js'
@@ -47,13 +47,22 @@ function readDurations(file: string, sp: Screenplay): Record<string, number> {
   return raw as Record<string, number>
 }
 
+/** The audio helpers throw plain errors; the CLI keeps printing them unprefixed, as exit 1. */
+function audioDurationsOrExit(sp: Screenplay, dir: string): Record<string, number> {
+  try {
+    return audioDurations(sp, dir)
+  } catch (e) {
+    throw new CliError(1, (e as Error).message)
+  }
+}
+
 function buildTimeline(opts: ReturnType<typeof parseCli>): Timeline {
   const parsed = parseScreenplay(readJson(opts.file))
   if (!parsed.ok) throw new CliError(2, parsed.issues.map((i) => `schema ${i}`).join('\n'))
   const issues = validateScreenplay(parsed.value, defaultCatalog)
   if (issues.length) throw new CliError(2, issues.map((i) => `${i.code} ${i.path} ${i.message}`).join('\n'))
   const fromFile = opts.durations ? readDurations(opts.durations, parsed.value) : {}
-  const fromAudio = opts.audio ? audioDurations(parsed.value, opts.audio) : {}
+  const fromAudio = opts.audio ? audioDurationsOrExit(parsed.value, opts.audio) : {}
   return solveTimeline(parsed.value, { ...fromFile, ...fromAudio }, defaultCatalog)
 }
 

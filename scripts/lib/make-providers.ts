@@ -1,20 +1,11 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { existsSync } from 'node:fs'
 import type { LlmProvider, TtsProvider } from '@stick/core'
-import { cachedTts, ConfigError, costUsd, ClaudeLlm, FakeLlm, FakeTts, loadConfig, SayTts } from '@stick/providers'
+import { cachedTts, ConfigError, costUsd, ClaudeLlm, FakeLlm, FakeTts, fakeFilmResponses, loadConfig, SayTts } from '@stick/providers'
 import { CliError } from './cli-error.js'
 
-const EXAMPLES = resolve(import.meta.dirname, '../../examples')
-const readExample = (name: string): Record<string, any> => JSON.parse(readFileSync(join(EXAMPLES, name), 'utf8'))
-
-/** The phan-so screenplay in LLM shape: `start` is an array of {who, mark}, as the structured output schema wants. */
-function fakeResponses(): unknown[] {
-  const sp = readExample('phan-so.screenplay.json')
-  const scenes = sp.scenes.map((s: { start: Record<string, string> }) => ({
-    ...s,
-    start: Object.entries(s.start).map(([who, mark]) => ({ who, mark })),
-  }))
-  return [readExample('phan-so.story.json'), { ...sp, scenes }]
+const fakeQueue = (): unknown[] => {
+  const { story, screenplay } = fakeFilmResponses()
+  return [story, screenplay]
 }
 
 /** `.env` is read from the working directory only, and never overrides variables already set. */
@@ -35,7 +26,7 @@ export function makeProviders(fake: boolean, ttsCacheDir: string, reuseStory = f
   }
     return {
     // STICK_FAKE_EMPTY only means anything with --fake: an empty queue proves finished steps never call the LLM.
-    llm: fake ? new FakeLlm(process.env.STICK_FAKE_EMPTY === '1' ? [] : fakeResponses().slice(reuseStory ? 1 : 0)) : new ClaudeLlm({ apiKey: cfg.anthropicApiKey, model }),
+    llm: fake ? new FakeLlm(process.env.STICK_FAKE_EMPTY === '1' ? [] : fakeQueue().slice(reuseStory ? 1 : 0)) : new ClaudeLlm({ apiKey: cfg.anthropicApiKey, model }),
     tts: cachedTts(fake ? new FakeTts() : new SayTts(), ttsCacheDir),
     model,
     maxCostUsd: cfg.maxCostUsd,

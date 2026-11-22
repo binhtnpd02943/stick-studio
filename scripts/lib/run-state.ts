@@ -1,13 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { LlmProvider, LlmUsage } from '@stick/core'
-import { costUsd } from '@stick/providers'
+import { costUsd, meteredLlm } from '@stick/providers'
 import { CliError } from './cli-error.js'
 import type { MusicLicense } from './music.js'
 import { writeArtifact } from './run-dir.js'
 
 const STEP_ORDER = ['story', 'screenplay', 'voice', 'render', 'contact'] as const
-type StepName = (typeof STEP_ORDER)[number]
+export type StepName = (typeof STEP_ORDER)[number]
 
 export interface RunJson {
   topic: string
@@ -101,24 +101,7 @@ export class RunState {
   }
 }
 
-/**
- * Books every call into run.json as it returns or fails after returning (the repair loop's rejected drafts included) and refuses the
- * next call once the cap is passed. A call that ends over the cap is kept, so the film still finishes.
- */
+/** Books every LLM call into run.json and refuses the next one once the cap is passed (see meteredLlm). */
 export function budgeted(inner: LlmProvider, run: RunState, maxCostUsd: number): LlmProvider {
-  return {
-    async generate(req) {
-      run.assertBudget(maxCostUsd)
-      try {
-        const res = await inner.generate(req)
-        run.book(res.usage)
-        return res
-      } catch (e) {
-        // A call that returned but failed validation was still paid for.
-        const usage = (e as { usage?: LlmUsage }).usage
-        if (usage) run.book(usage)
-        throw e
-      }
-    },
-  }
+  return meteredLlm(inner, { check: () => run.assertBudget(maxCostUsd), bookLlm: (u) => run.book(u), bookTts: () => {} })
 }

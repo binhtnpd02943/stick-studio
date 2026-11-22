@@ -2,7 +2,7 @@ import { STEP_FILES } from '@stick/core'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import {
   type Db, ConflictError, assetKindOf, assetsOf, createFilm, findSucceededRun, finishRun, getAsset, insertReview,
-  replaceAsset, startRun, stepRuns,
+  createVersion, getFilm, replaceAsset, runsOf, setFilmStatus, startRun, stepRuns, sweepStaleRuns,
 } from '../src/index.js'
 import { eq } from 'drizzle-orm'
 import { createTestDb, seedWorkspace } from '../src/testing.js'
@@ -59,6 +59,59 @@ describe('step runs', () => {
     const r = await startRun(db, { versionId: version.id, step: 'story', attempt: 1, inputHash: 'h' })
     await finishRun(db, r.id, { status: 'succeeded' })
     await expect(startRun(db, { versionId: version.id, step: 'story', attempt: 1, inputHash: 'h' })).rejects.toBeInstanceOf(ConflictError)
+  })
+})
+
+const MIN = 60_000
+const ago = (ms: number) => new Date(Date.now() - ms)
+const backdate = (runId: string, ms: number) => db.update(stepRuns).set({ startedAt: ago(ms) }).where(eq(stepRuns.id, runId))
+
+describe('sweepStaleRuns', () => {
+  test('fails running runs started before the cutoff and the film at that version', async () => {
+    const f = await newVersion()
+    await setFilmStatus(db, f.ws, f.film.id, 'running')
+    const run = await startRun(db, { versionId: f.version.id, step: 'voice', attempt: 2, inputHash: 'h' })
+    await backdate(run.id, 31 * MIN)
+    const swept = await sweepStaleRuns(db, ago(30 * MIN))
+    expect(swept).toEqual([{ runId: run.id, workspaceId: f.ws, filmId: f.film.id, versionId: f.version.id, step: 'voice', attempt: 2, filmFailed: true }])
+    const [row] = await db.select().from(stepRuns).where(eq(stepRuns.id, run.id))
+    expect(row).toMatchObject({ status: 'failed', error: { code: 'stale', message: 'the worker stopped during this step' } })
+    expect(row?.finishedAt).toBeInstanceOf(Date)
+    expect((await getFilm(db, f.ws, f.film.id))?.status).toBe('failed')
+  })
+
+  test('a fresh running run, a succeeded run and a run of an older version are not failed', async () => {
+    const fresh = await newVersion()
+    await setFilmStatus(db, fresh.ws, fresh.film.id, 'running')
+    await startRun(db, { versionId: fresh.version.id, step: 'story', attempt: 1, inputHash: 'h' })
+    const done = await newVersion()
+    const doneRun = await startRun(db, { versionId: done.version.id, step: 'story', attempt: 1, inputHash: 'h' })
+    await finishRun(db, doneRun.id, { status: 'succeeded' })
+    await backdate(doneRun.id, 31 * MIN)
+    const old = await newVersion()
+    const oldRun = await startRun(db, { versionId: old.version.id, step: 'story', attempt: 1, inputHash: 'h' })
+    await backdate(oldRun.id, 31 * MIN)
+    await setFilmStatus(db, old.ws, old.film.id, 'cancelled')
+    await createVersion(db, old.ws, old.film.id, { reason: 'redo', restartFrom: 'story' })
+
+    const swept = await sweepStaleRuns(db, ago(30 * MIN))
+
+    expect(swept.filter((r) => [fresh, done].some((f) => f.film.id === r.filmId))).toEqual([])
+    expect(swept.filter((r) => r.filmId === old.film.id)).toEqual([expect.objectContaining({ runId: oldRun.id, filmFailed: false })])
+    expect((await getFilm(db, old.ws, old.film.id))?.status).toBe('queued')
+    expect((await getFilm(db, fresh.ws, fresh.film.id))?.status).toBe('running')
+    expect((await runsOf(db, fresh.version.id))[0]?.status).toBe('running')
+    expect((await runsOf(db, done.version.id))[0]?.status).toBe('succeeded')
+  })
+
+  test('finishRun on a swept run returns undefined and leaves it failed', async () => {
+    const f = await newVersion()
+    const run = await startRun(db, { versionId: f.version.id, step: 'story', attempt: 1, inputHash: 'h' })
+    await backdate(run.id, 31 * MIN)
+    await sweepStaleRuns(db, ago(30 * MIN))
+    expect(await finishRun(db, run.id, { status: 'succeeded' })).toBeUndefined()
+    const [row] = await db.select().from(stepRuns).where(eq(stepRuns.id, run.id))
+    expect(row).toMatchObject({ status: 'failed', error: { code: 'stale' } })
   })
 })
 

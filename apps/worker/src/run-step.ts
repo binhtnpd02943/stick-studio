@@ -195,7 +195,11 @@ async function runLive(
   }
 
   state.healable = true
-  await finishRun(db, run.id, { status: 'succeeded' })
+  // undefined: the sweep failed this run while the step was still working, so announce nothing and leave the chain stopped.
+  if (!(await finishRun(db, run.id, { status: 'succeeded' }))) {
+    log.warn({ job, attempt: attempt.n }, 'run was swept as stale before it finished; not advancing')
+    return 'stopped'
+  }
   await publishStep(deps, job, 'succeeded', attempt.n)
   await advance(deps, job)
   return 'succeeded'

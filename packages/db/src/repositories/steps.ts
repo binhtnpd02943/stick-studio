@@ -1,8 +1,9 @@
 import type { FilmStep } from '@stick/core'
-import { and, asc, eq, ne, sql } from 'drizzle-orm'
+import { and, asc, eq, lt, ne, sql } from 'drizzle-orm'
 import type { Db } from '../client.js'
 import { ConflictError } from '../errors.js'
-import { assets, stepRuns } from '../schema.js'
+import { assets, filmVersions, films, stepRuns } from '../schema.js'
+import { setFilmStatus } from './films.js'
 
 export type StepRun = typeof stepRuns.$inferSelect
 export type AssetMeta = { path?: string } & Record<string, unknown>
@@ -52,14 +53,47 @@ export async function startRun(db: Db, input: { versionId: string; step: FilmSte
   return row
 }
 
+/** Only a run still `running` is finished, so a run the sweep failed stays failed and a late worker learns it from `undefined`. */
 export async function finishRun(
   db: Db, runId: string, result: { status: 'succeeded' | 'failed' | 'skipped'; error?: unknown },
 ): Promise<StepRun | undefined> {
   const [row] = await db.update(stepRuns)
     .set({ status: result.status, error: result.error ?? sql`null`, finishedAt: new Date() })
-    .where(eq(stepRuns.id, runId))
+    .where(and(eq(stepRuns.id, runId), eq(stepRuns.status, 'running')))
     .returning()
   return row
+}
+
+export interface SweptRun {
+  runId: string
+  workspaceId: string
+  filmId: string
+  versionId: string
+  step: FilmStep
+  attempt: number
+  /** False when the film had moved on (a redo, a cancel), so there is nothing to announce for it. */
+  filmFailed: boolean
+}
+
+/** Fails runs left `running` since before `staleBefore` (their worker died) and fails each film still at that run's version. */
+export async function sweepStaleRuns(db: Db, staleBefore: Date): Promise<SweptRun[]> {
+  return db.transaction(async (tx) => {
+    const failed = await tx.update(stepRuns)
+      .set({ status: 'failed', error: { code: 'stale', message: 'the worker stopped during this step' }, finishedAt: new Date() })
+      .where(and(eq(stepRuns.status, 'running'), lt(stepRuns.startedAt, staleBefore)))
+      .returning()
+    const swept: SweptRun[] = []
+    for (const run of failed) {
+      const [owner] = await tx.select({ workspaceId: films.workspaceId, filmId: films.id, version: filmVersions.version })
+        .from(filmVersions).innerJoin(films, eq(films.id, filmVersions.filmId)).where(eq(filmVersions.id, run.filmVersionId))
+      const filmFailed = await setFilmStatus(tx, owner!.workspaceId, owner!.filmId, 'failed', owner!.version)
+      swept.push({
+        runId: run.id, workspaceId: owner!.workspaceId, filmId: owner!.filmId, versionId: run.filmVersionId,
+        step: run.step as FilmStep, attempt: run.attempt, filmFailed,
+      })
+    }
+    return swept
+  })
 }
 
 /** Runs of a version ordered by step then attempt. */

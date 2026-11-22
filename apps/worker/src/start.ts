@@ -1,4 +1,5 @@
 import { QUEUES, type StepJob } from '@stick/core'
+import { type SweptRun, sweepStaleRuns } from '@stick/db'
 import { type Job, Worker } from 'bullmq'
 import type { Redis } from 'ioredis'
 import { redisPublisher } from './events.js'
@@ -12,11 +13,17 @@ export interface StartWorkerOptions {
   renderConcurrency?: number
   /** Test seam: overrides the retry backoff delay of the jobs this worker enqueues. */
   backoffMs?: number
+  /** How often to fail runs left `running` by a dead worker. */
+  sweepEveryMs?: number
+  /** A run `running` for longer than this counts as left behind. */
+  staleAfterMs?: number
 }
 
 const DEFAULT_FILM_CONCURRENCY = 2
 // Rendering is CPU- and memory-heavy, so one at a time.
 const DEFAULT_RENDER_CONCURRENCY = 1
+export const SWEEP_EVERY_MS = 60_000
+export const STALE_RUN_MS = 30 * 60_000
 
 export async function startWorker(
   deps: Omit<WorkerDeps, 'enqueue' | 'publish'>, opts: StartWorkerOptions,
@@ -29,6 +36,25 @@ export async function startWorker(
     enqueue: (job) => enqueueStep(queues, job, { backoffMs: opts.backoffMs }),
     publish: publisher.publish,
   }
+
+  const announce = async (run: SweptRun) => {
+    const at = new Date().toISOString()
+    await full.publish({ type: 'step', filmId: run.filmId, versionId: run.versionId, step: run.step, status: 'failed', attempt: run.attempt, at })
+    if (run.filmFailed) await full.publish({ type: 'film', filmId: run.filmId, status: 'failed', at })
+  }
+  // A step that really runs longer than staleAfterMs is failed too; the reload-before-enqueue (F4) then stops its chain, so nothing double-runs.
+  const sweep = async () => {
+    try {
+      for (const run of await sweepStaleRuns(deps.db, new Date(Date.now() - (opts.staleAfterMs ?? STALE_RUN_MS)))) {
+        deps.log.warn({ run }, 'failed a stale running step')
+        await announce(run).catch((err: unknown) => deps.log.error({ err, run }, 'could not announce a swept run'))
+      }
+    } catch (err) {
+      deps.log.error({ err }, 'stale-run sweep failed')
+    }
+  }
+  let sweeping = sweep()
+  const timer = setInterval(() => { sweeping = sweep() }, opts.sweepEveryMs ?? SWEEP_EVERY_MS).unref()
 
   const processor = (job: Job<StepJob>) => {
     const { filmId, filmVersionId, step } = job.data
@@ -50,6 +76,8 @@ export async function startWorker(
   return {
     workers,
     async close() {
+      clearInterval(timer)
+      await sweeping
       // Waits for in-flight jobs, then the enqueue and publish connections they used.
       await Promise.all(workers.map((w) => w.close()))
       await Promise.all(connections.map((c) => c.quit()))

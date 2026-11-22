@@ -35,8 +35,9 @@ export function webFallback(app: FastifyInstance, webDir: string | undefined): v
     if (!spa) return sendError(reply, 404, 'not_found', 'not found')
 
     const hit = resolveWebFile(webDir, path)
-    if (hit) return reply.header('cache-control', hit.immutable ? IMMUTABLE : 'no-cache').sendFile(hit.file, webDir, { cacheControl: false })
-    if (extname(path) || path.startsWith('/assets/')) return sendError(reply, 404, 'not_found', 'not found')
+    // Any request for the shell itself (including /index.html, any case) takes the shell branch below, with its headers.
+    if (hit && hit.file.toLowerCase() !== 'index.html') return reply.header('cache-control', hit.immutable ? IMMUTABLE : 'no-cache').sendFile(hit.file, webDir, { cacheControl: false })
+    if (!hit && (extname(path) || path.startsWith('/assets/'))) return sendError(reply, 404, 'not_found', 'not found')
     // The shell is framed nowhere (the approve button), and keeps signed asset URLs out of referrers.
     return reply
       .header('cache-control', 'no-cache')

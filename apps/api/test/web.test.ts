@@ -92,6 +92,16 @@ describe('SPA fallback', () => {
     expect(res.headers['referrer-policy']).toBe('same-origin')
   })
 
+  test('a direct GET /index.html carries the same headers, so the shell cannot be framed', async () => {
+    await withWeb()
+    const res = await t.app.inject({ method: 'GET', url: '/index.html' })
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toBe(INDEX)
+    expect(res.headers['cache-control']).toBe('no-cache')
+    expect(res.headers['x-frame-options']).toBe('DENY')
+    expect(res.headers['referrer-policy']).toBe('same-origin')
+  })
+
   test('without webDir every unknown path is the JSON 404 envelope', async () => {
     t = await testApi()
     for (const url of ['/', '/films/123', '/assets/app-abc123.js']) {

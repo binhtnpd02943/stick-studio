@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseScreenplay, StorySchema, type Screenplay, type Story } from '@stick/core'
 import { spokenBeatIds } from '@stick/render'
@@ -21,9 +21,16 @@ export const readStory = (dir: string): Story | undefined => readArtifact(dir, '
 export const storyReusable = (dir: string, fresh: boolean): boolean => !fresh && readStory(dir) !== undefined
 export const screenplayReusable = (dir: string, fresh: boolean): boolean => !fresh && readArtifact(dir, 'screenplay.json', screenplayArtifact) !== undefined
 
-/** Voice is reused when its marker is set and every spoken beat has its WAV. */
+/** Voice is reused when its marker is set and every spoken beat has its WAV; reusing warns about WAVs no spoken beat claims. */
 export function voiceReusable(dir: string, run: RunState): boolean {
   if (!run.snapshot().steps.voice) return false
   const sp = readArtifact(dir, 'screenplay.json', screenplayArtifact)
-  return sp !== undefined && spokenBeatIds(sp).every((id) => existsSync(join(dir, 'audio', `${id}.wav`)))
+  if (sp === undefined) return false
+  const audio = join(dir, 'audio')
+  const spoken = new Set(spokenBeatIds(sp))
+  if (![...spoken].every((id) => existsSync(join(audio, `${id}.wav`)))) return false
+  for (const f of readdirSync(audio).filter((f) => f.endsWith('.wav'))) {
+    if (!spoken.has(f.slice(0, -'.wav'.length))) console.error(`warning: ${f} in ${audio} matches no spoken beat id`)
+  }
+  return true
 }

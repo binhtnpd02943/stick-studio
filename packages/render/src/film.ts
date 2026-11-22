@@ -18,7 +18,7 @@ export async function renderFilm(tl: Timeline, { audioDir, sfxCacheDir, music, c
   const tmp = mkdtempSync(join(tmpdir(), 'stick-render-'))
   try {
     const silent = join(tmp, 'silent.mp4')
-    const stats = await renderVideo(tl, silent)
+    const stats = await renderVideo(tl, silent, { catalog })
     await mixFilm(silent, { voice: audioClips(tl, audioDir), sfx: cues.map((c) => ({ path: paths.get(c.id)!, start: c.start })), music }, out)
     return stats
   } finally {

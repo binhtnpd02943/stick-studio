@@ -3,11 +3,11 @@ import { useAssetJson } from '../../api/queries'
 import type { Film, FilmDetail } from '../../api/schemas'
 import { AssetImage } from '../../components/AssetImage'
 import { ErrorNotice } from '../../components/ErrorNotice'
+import { findingText } from '../../components/IssueList'
 import { vi } from '../../i18n/vi'
 
 const QaReport = z.object({ findings: z.array(z.unknown()).optional() })
 const assetOf = (assets: FilmDetail['assets'], kind: string) => assets.find((a) => a.kind === kind)?.id ?? null
-const text = (finding: unknown) => (typeof finding === 'string' ? finding : JSON.stringify(finding))
 
 /** The gate step's error carries the findings when it failed the film. */
 function gateFindings(steps: FilmDetail['steps']): unknown[] | undefined {
@@ -21,7 +21,7 @@ export function QaTab({ film, steps, assets }: { film: Film; steps: FilmDetail['
   const reportId = failed ? null : assetOf(assets, 'qa_report')
   const report = useAssetJson(reportId, QaReport)
   const contactId = assetOf(assets, 'contact_sheet')
-  const findings = (failed ?? report.data?.findings ?? []).map(text)
+  const findings = (failed ?? report.data?.findings ?? []).map(findingText)
 
   return (
     <div className="qa-tab">

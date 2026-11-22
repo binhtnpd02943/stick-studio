@@ -137,7 +137,7 @@ describe('tenancy', () => {
 })
 
 describe('review queue', () => {
-  test('review-queue lists awaiting_review and qa_failed only, oldest first, with a signed final_url and findings for qa_failed', async () => {
+  test('review-queue lists awaiting_review and qa_failed only, oldest first, with signed final_url and timeline_url (nullable) and findings for qa_failed', async () => {
     const ws = t.seeded.workspace.id
     const film = async (title: string, to?: 'awaiting_review' | 'qa_failed' | 'failed') => {
       const { film: f, version } = await createFilm(t.db, ws, { channelId: t.seeded.channel.id, title, createdBy: t.seeded.user.id })
@@ -161,6 +161,7 @@ describe('review queue', () => {
     })
     const final = await asset(b.version.id, 'final', 'film.mp4')
     const contact = await asset(b.version.id, 'contact_sheet', 'contact.png')
+    const timeline = await asset(b.version.id, 'timeline', 'timeline.json')
 
     const headers = bearer(t.seeded.token)
     const res = await t.app.inject({ method: 'GET', url: '/v1/review-queue?limit=2', headers })
@@ -169,12 +170,13 @@ describe('review queue', () => {
     expect(items.map((i: { film: { title: string } }) => i.film.title)).toEqual(['A', 'B'])
     expect(items[0]).toEqual({
       film: { id: a.f.id, title: 'A', status: 'qa_failed', cost_usd: 0, current_version: 1 },
-      final_asset_id: null, contact_asset_id: null, final_url: null, findings,
+      final_asset_id: null, contact_asset_id: null, final_url: null, timeline_url: null, findings,
     })
     expect(items[1]).toEqual({
       film: { id: b.f.id, title: 'B', status: 'awaiting_review', cost_usd: 0, current_version: 1 },
       final_asset_id: final.id, contact_asset_id: contact.id,
-      final_url: expect.stringMatching(new RegExp(`^/v1/assets/${final.id}/content\\?exp=\\d+&sig=[0-9a-f]{64}$`)), findings: null,
+      final_url: expect.stringMatching(new RegExp(`^/v1/assets/${final.id}/content\\?exp=\\d+&sig=[0-9a-f]{64}$`)),
+      timeline_url: expect.stringMatching(new RegExp(`^/v1/assets/${timeline.id}/content\\?exp=\\d+&sig=[0-9a-f]{64}$`)), findings: null,
     })
     expect(res.json().meta.next_cursor).toBe(b.f.id)
     const page2 = await t.app.inject({ method: 'GET', url: `/v1/review-queue?cursor=${b.f.id}`, headers })

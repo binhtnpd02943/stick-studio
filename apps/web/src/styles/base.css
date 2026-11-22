@@ -704,3 +704,154 @@ button:hover {
 .version-current {
   color: var(--accent-ink);
 }
+
+/* review (mobile first) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.review-page {
+  display: flex;
+  flex-direction: column;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.review-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* the shell header (about 57px) sits above; the nav row below takes the rest */
+  min-height: calc(100dvh - 57px - 56px);
+}
+
+.review-stage {
+  position: relative;
+  flex: 1 1 auto;
+  touch-action: pan-y;
+}
+
+.review-stage .film-video {
+  height: 100%;
+  min-height: 60dvh;
+  aspect-ratio: 9 / 16;
+}
+
+.review-top {
+  position: absolute;
+  inset: 12px 12px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.review-top > * {
+  pointer-events: auto;
+}
+
+.review-top h2 {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 15px;
+}
+
+.review-qa {
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+}
+
+.review-qa summary {
+  cursor: pointer;
+}
+
+.review-qa :focus-visible {
+  outline-color: var(--bg);
+}
+
+.review-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.review-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.review-buttons button {
+  flex: 1 1 0;
+  min-height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.review-redo {
+  border: 1.5px solid var(--ink);
+  background: var(--bg);
+}
+
+.review-toast {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 99px;
+  background: var(--pill);
+  color: var(--ink);
+  font: 400 13px/1.5 var(--mono);
+  text-align: center;
+}
+
+.review-nav {
+  order: -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+}
+
+.review-counter {
+  color: var(--ink);
+  font: 500 13px/1.5 var(--mono);
+}
+
+.review-nav button {
+  min-height: 44px;
+}
+
+.review-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.chip {
+  min-height: 44px;
+  border: 1.5px solid var(--line);
+  background: var(--bg);
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+@media (max-width: 719.98px) {
+  .shell-review .shell-main {
+    padding: 0 16px;
+  }
+}

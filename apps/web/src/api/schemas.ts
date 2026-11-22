@@ -109,6 +109,7 @@ export const ReviewItem = z.object({
   final_asset_id: z.string().nullable(),
   final_url: z.string().nullable(),
   contact_asset_id: z.string().nullable(),
+  timeline_url: z.string().nullable(),
   findings: z.unknown().nullable(),
 })
 export type ReviewItem = z.infer<typeof ReviewItem>

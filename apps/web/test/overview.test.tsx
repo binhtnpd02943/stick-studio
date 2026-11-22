@@ -1,7 +1,8 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { Overview } from '../src/pages/Overview'
 import '../src/styles/base.css'
+import { STICK_STATES } from '../src/stick/timelines'
 import { FakeEventSource, detail, film, json, mockApi, ok, renderRoutes, stubCanvas } from './helpers'
 
 const routes = [{ path: '/', element: <Overview /> }, { path: '*', element: <p>đích</p> }]
@@ -14,7 +15,7 @@ function api({ running = [], reviewMeta = {}, override = {} }: Setup = {}) {
     '/v1/films': (url) => ok(url.searchParams.get('status') === 'running' ? running : []),
     '/v1/review-queue': () => ok(
       [
-        { film: { id: 'r1', title: 'Vì sao trời mưa?', status: 'awaiting_review', cost_usd: 0.2, current_version: 1 }, final_asset_id: null, final_url: null, contact_asset_id: null, findings: null },
+        { film: { id: 'r1', title: 'Vì sao trời mưa?', status: 'awaiting_review', cost_usd: 0.2, current_version: 1 }, final_asset_id: null, final_url: null, contact_asset_id: null, timeline_url: null, findings: null },
       ],
       reviewMeta,
     ),
@@ -59,6 +60,21 @@ describe('overview', () => {
     expect(meter).toHaveAttribute('aria-valuenow', '2.5')
     expect(meter).toHaveAttribute('aria-valuemax', '10')
     expect(screen.getByRole('link', { name: 'Xem tất cả' })).toHaveAttribute('href', '/films?status=running')
+  })
+
+  test('a waiting film draws its preview from the review queue timeline_url', async () => {
+    api({
+      override: {
+        '/v1/review-queue': () => ok([{
+          film: { id: 'r1', title: 'Vì sao trời mưa?', status: 'awaiting_review', cost_usd: 0.2, current_version: 1 },
+          final_asset_id: null, final_url: null, contact_asset_id: null, timeline_url: 'https://files.test/t/r1.json?exp=1&sig=a', findings: null,
+        }]),
+        '/t/r1.json': () => json(200, STICK_STATES.done),
+      },
+    })
+    const { container } = renderRoutes(routes, '/')
+
+    await waitFor(() => expect(container.querySelector('.film-card canvas')).toBeInTheDocument())
   })
 
   test('the compact timeline keeps each step status readable by screen readers', async () => {

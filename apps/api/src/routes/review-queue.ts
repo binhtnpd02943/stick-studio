@@ -1,4 +1,4 @@
-import { filmDetail, listReviewQueue } from '@stick/db'
+import { currentAssetIds, filmDetail, listReviewQueue } from '@stick/db'
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { okList } from '../envelope.js'
@@ -14,16 +14,19 @@ export function reviewQueueRoutes(app: FastifyInstance, { db, cfg }: ApiDeps): v
     const list = await listReviewQueue(db, workspaceId, req.query)
     // shortcut: one detail query per item (limit <= 100); join in SQL if the queue gets hot.
     const details = await Promise.all(list.items.map((f) => filmDetail(db, workspaceId, f.id)))
+    const timelines = await currentAssetIds(db, workspaceId, list.items.map((f) => f.id), 'timeline')
     const items = details.flatMap((d) => {
       if (!d) return [] // gone since the list query
       const { film, steps, assets } = d
       const gate = steps.find((s) => s.step === 'gate')
       const finalId = assets.find((a) => a.kind === 'final')?.id ?? null
+      const timelineId = timelines.get(film.id)
       return [{
         film: { id: film.id, title: film.title, status: film.status, cost_usd: film.costUsd, current_version: film.currentVersion },
         final_asset_id: finalId,
         final_url: finalId && signedAssetUrl(finalId, cfg.urlSigningKey).url,
         contact_asset_id: assets.find((a) => a.kind === 'contact_sheet')?.id ?? null,
+        timeline_url: timelineId ? signedAssetUrl(timelineId, cfg.urlSigningKey).url : null,
         findings: film.status === 'qa_failed' && gate?.status === 'failed' ? gate.error : null,
       }]
     })

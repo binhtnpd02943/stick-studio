@@ -69,9 +69,10 @@ export const useFilmPages = (filter: FilmFilter = {}) =>
 const IN_FLIGHT: readonly FilmStatus[] = ['queued', 'running']
 
 /** Polls only while the event stream is offline and the film is still moving; with a live stream the events refresh it. */
-export function useFilm(id: string) {
+export function useFilm(id: string, enabled = true) {
   const live = useFilmLive(id)
   return useQuery<FilmDetail>({
+    enabled,
     queryKey: ['film', id],
     queryFn: read(`/v1/films/${id}`, FilmDetail),
     refetchInterval: (query) => {

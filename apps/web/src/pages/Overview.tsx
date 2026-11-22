@@ -57,7 +57,7 @@ export function Overview() {
   const liveLoaded = runningQ.isSuccess && queuedQ.isSuccess
   const live = [...(runningQ.data ?? []), ...(queuedQ.data ?? [])]
   const review = reviewQ.data
-  const waiting = (review?.items ?? []).map(({ film }) => ({ ...film, timeline_url: null })) // the queue carries no timeline url
+  const waiting = (review?.items ?? []).map(({ film, timeline_url }) => ({ ...film, timeline_url }))
   const waitingCount = review?.more ? `${REVIEW_PREVIEW}+` : String(waiting.length)
   const finished = (recent ?? []).filter((f) => !MOVING.includes(f.status)).slice(0, RECENT_ROWS)
 

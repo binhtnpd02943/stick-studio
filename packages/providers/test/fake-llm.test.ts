@@ -1,4 +1,4 @@
-import { LlmSchemaError, type LlmRequest } from '@stick/core'
+import { LlmSchemaError, type LlmRequest, MAX_HOOK_WORDS, StorySchema } from '@stick/core'
 import { describe, expect, it, test } from 'vitest'
 import { z } from 'zod/v4'
 import { FakeLlm, fakeFilmResponses } from '../src/index.js'
@@ -47,5 +47,23 @@ describe('fakeFilmResponses', () => {
     expect(a.screenplay.title).toBe('Vì sao lá rụng?')
     expect(a.screenplay.scenes[0]!.beats[0]!.say!.text).toBe('Lan ơi, vì sao lá rụng?')
     expect(fakeFilmResponses('Vì sao lá rụng?')).toEqual(a)
+  })
+})
+
+describe('fakeFilmResponses with a long title', () => {
+  test('an 80-character title still makes a valid story: the opening uses the title only when the hook stays within its word cap', () => {
+    const title = 'Tại sao bầu trời lại có màu xanh vào ban ngày và màu cam khi hoàng hôn buông xuống?'.slice(0, 80)
+    expect(title).toHaveLength(80)
+    const { story, screenplay } = fakeFilmResponses(title) as { story: { title: string; hook: string }; screenplay: { title: string } }
+    const parsed = StorySchema.safeParse(story)
+    expect(parsed.error?.issues).toBeUndefined()
+    expect(story.title).toBe(title)
+    expect(screenplay.title).toBe(title)
+    expect(story.hook.trim().split(/\s+/).length).toBeLessThanOrEqual(MAX_HOOK_WORDS)
+  })
+
+  test('a short title still opens with it and parses', () => {
+    const { story } = fakeFilmResponses('Vì sao lá rụng?')
+    expect(StorySchema.safeParse(story).error?.issues).toBeUndefined()
   })
 })

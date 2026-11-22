@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { HexSchema, IdSchema } from './screenplay.js'
 import { VOICE_IDS } from './providers.js'
 
-const MAX_HOOK_WORDS = 12
+export const MAX_HOOK_WORDS = 12
 
 export const StorySchema = z.object({
   title: z.string().min(1).max(80),

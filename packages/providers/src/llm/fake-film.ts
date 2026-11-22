@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { MAX_HOOK_WORDS } from '@stick/core'
 
 const EXAMPLES = resolve(import.meta.dirname, '../../../../examples')
 const readExample = (name: string): Record<string, any> => JSON.parse(readFileSync(join(EXAMPLES, name), 'utf8'))
@@ -14,7 +15,9 @@ const lowerFirst = (text: string) => text.charAt(0).toLocaleLowerCase('vi') + te
 export function fakeFilmResponses(title?: string): { story: unknown; screenplay: unknown } {
   const sp = readExample('phan-so.screenplay.json')
   const story = readExample('phan-so.story.json')
-  const opening = title && `Lan ơi, ${lowerFirst(title)}`
+  const asked = title && `Lan ơi, ${lowerFirst(title)}`
+  // The story's hook is capped in words; a longer title keeps the canned opening line.
+  const opening = asked && asked.trim().split(/\s+/).length <= MAX_HOOK_WORDS ? asked : undefined
   const scenes = sp.scenes.map((s: { start: Record<string, string>; beats: { say?: { text: string } }[] }, i: number) => ({
     ...s,
     start: Object.entries(s.start).map(([who, mark]) => ({ who, mark })),
@@ -23,5 +26,5 @@ export function fakeFilmResponses(title?: string): { story: unknown; screenplay:
   if (!title) return { story, screenplay: { ...sp, scenes } }
   const storyScenes = story.scenes.map((s: { beats: { line: string }[] }, i: number) =>
     i === 0 ? { ...s, beats: s.beats.map((b, j) => (j === 0 ? { ...b, line: opening } : b)) } : s)
-  return { story: { ...story, title, hook: opening, scenes: storyScenes }, screenplay: { ...sp, title, scenes } }
+  return { story: { ...story, title, ...(opening ? { hook: opening, scenes: storyScenes } : {}) }, screenplay: { ...sp, title, scenes } }
 }

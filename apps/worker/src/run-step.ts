@@ -101,6 +101,12 @@ function errorDetails(e: unknown): unknown {
   return {}
 }
 
+/** The step never started, so there is no input hash yet; the row exists to carry the reason. */
+async function recordBudgetBlock(db: Db, job: StepJob, attempt: number, e: BudgetExceededError): Promise<void> {
+  const run = await startRun(db, { versionId: job.filmVersionId, step: job.step, attempt, inputHash: 'budget-blocked' })
+  await finishRun(db, run.id, { status: 'failed', error: { code: 'budget', message: e.message, details: errorDetails(e) } })
+}
+
 /** Runs one film step for one job. Throws TransientStepError only when the queue should retry. */
 export async function runStepJob(deps: WorkerDeps, job: StepJob, attempt: { n: number; final: boolean }): Promise<StepOutcome> {
   const detail = await liveFilm(deps, job)
@@ -129,8 +135,16 @@ async function runLive(
   const { db, cfg, log } = deps
   const { film } = detail
   const version = detail.version.version
-  // A BudgetExceededError here reaches runStepJob's catch, which sets blocked_budget.
-  await checkBudget(db, job.workspaceId, job.filmId, { film: cfg.maxCostPerFilmUsd, day: cfg.maxCostPerDayUsd }, deps.now?.())
+  try {
+    await checkBudget(db, job.workspaceId, job.filmId, { film: cfg.maxCostPerFilmUsd, day: cfg.maxCostPerDayUsd }, deps.now?.())
+  } catch (e) {
+    // Record why in step_runs (same shape as an in-step block) so the film detail shows it; runStepJob's catch then sets blocked_budget.
+    if (e instanceof BudgetExceededError) {
+      // Best effort: a failure here (e.g. this attempt already succeeded) must not mask the budget block.
+      await recordBudgetBlock(db, job, attempt.n, e).catch((err: unknown) => log.warn({ job, err }, 'could not record budget block'))
+    }
+    throw e
+  }
 
   const dir = (state.dir = await makeWorkDir(cfg.cacheDir, job.filmVersionId, job.step))
   const topic = film.brief ? `${film.title}\n\n${film.brief}` : film.title

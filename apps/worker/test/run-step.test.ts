@@ -9,7 +9,7 @@ import {
 import { createTestDb, seedWorkspace } from '@stick/db/testing'
 import { GateFailedError, STEP_VERSIONS, ScreenplayRejectedError, type runFilmStep } from '@stick/pipeline'
 import { FakeTts, FsStorage, loadServerConfig, meteredLlm, meteredTts } from '@stick/providers'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import pino from 'pino'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import { inputHash } from '../src/hash.js'
@@ -193,6 +193,19 @@ describe('runStepJob', () => {
     expect(called).toBe(false)
     expect(await status(f.ws, f.film.id)).toBe('blocked_budget')
     expect(h.events.at(-1)).toMatchObject({ type: 'film', status: 'blocked_budget' })
+    // the reason is queryable from the film detail, not only from the logs
+    const [run] = await runsOf(db, f.version.id)
+    expect(run).toMatchObject({ step: 'story', status: 'failed', error: { code: 'budget', details: { scope: 'day', spentUsd: 1, capUsd: 1 } } })
+  })
+
+  test('a non-finite spent value fails safe: counts as over the cap', async () => {
+    const f = await newFilm()
+    await db.execute(sql`update films set cost_usd = 'NaN'::numeric where id = ${f.film.id}`)
+    let called = false
+    const h = harness({ runStep: stub(async () => { called = true; return {} }) })
+    expect(await runStepJob(h.deps, f.job('story'), first)).toBe('failed')
+    expect(called).toBe(false)
+    expect(await status(f.ws, f.film.id)).toBe('blocked_budget')
   })
 
   test('GateFailedError sets qa_failed with findings in step_runs.error and a qa_report asset', async () => {

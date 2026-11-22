@@ -143,3 +143,23 @@ button:hover {
     display: none;
   }
 }
+
+/* stick canvases */
+.scene-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  background: var(--bg);
+}
+
+.stick-state {
+  width: 160px;
+  margin: 48px auto;
+  text-align: center;
+}
+
+.stick-state figcaption {
+  margin-top: 8px;
+  color: var(--muted);
+  font: 400 13px/1.4 var(--mono);
+}

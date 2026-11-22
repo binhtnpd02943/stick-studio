@@ -51,7 +51,7 @@ describe('RequireAuth', () => {
   test('shows a busy line, then the children and the csrf token once /me succeeds', async () => {
     routes['GET /v1/me'] = () => ok(ME)
     mount('/films')
-    expect(screen.getByText('Đang tải…')).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByText('Đang tải…').closest('[aria-busy]')).toHaveAttribute('aria-busy', 'true')
     expect(await screen.findByText('privát')).toBeInTheDocument()
     expect(getCsrfToken()).toBe('tok-1')
   })

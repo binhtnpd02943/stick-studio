@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router'
 import { ApiError } from '../api/client'
 import { useMe } from '../api/queries'
 import { vi } from '../i18n/vi'
+import { StickState } from '../stick/StickState'
 import { ErrorNotice } from './ErrorNotice'
 
 export function RequireAuth({ children }: { children: ReactNode }) {
@@ -14,6 +15,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     return <Navigate to={`/login?next=${encodeURIComponent(pathname + search)}`} replace />
   }
   if (me.isError) return <ErrorNotice error={me.error} />
-  // Task 8 swaps in <StickState kind="rendering">.
-  return <p aria-busy="true">{vi.loading}</p>
+  return (
+    <div aria-busy="true">
+      <StickState kind="rendering" label={vi.loading} />
+    </div>
+  )
 }

@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
-import { createDoneFilm, createFilm, expectAllStepsSucceeded, login } from './helpers.js'
+import { STEP_TIMEOUT_MS, createDoneFilm, createFilm, expectAllStepsSucceeded, filmStatus, login } from './helpers.js'
 
 const SCREENSHOT = 'test-results/studio-floor.png'
 const DARK_PIXELS_MIN = 100
 
-test('owner logs in, creates a film, watches its steps go live, approves it on a phone, then a bad screenplay edit shows the issue', async ({ page }) => {
+test('owner makes a film from the overview, watches its steps go live, downloads it on a phone, redoes it with a note, then a bad screenplay edit shows the issue', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await login(page)
   const filmUrl = await createFilm(page, 'Phân số là gì?')
@@ -18,28 +18,35 @@ test('owner logs in, creates a film, watches its steps go live, approves it on a
     }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-status'] })
   })
 
-  const pill = page.locator('.film-detail-head .status-pill')
   await expect(page.locator('.studio-floor')).toBeVisible()
   await expect(page.locator('.studio-scene')).toBeVisible()
-  await expect(pill).toHaveText(/Đang chờ|Đang chạy/)
+  await expect(page.getByRole('status').filter({ hasText: /Bước \d trên 8/ })).toBeVisible()
   await page.screenshot({ path: SCREENSHOT })
 
   await expectAllStepsSucceeded(page)
-  await expect(pill).toHaveText('Chờ duyệt')
+  await expect(filmStatus(page)).toHaveText('Xong')
   expect(await page.evaluate(() => (window as unknown as { sawRunning: boolean }).sawRunning)).toBe(true)
 
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/review')
+  await page.goto(filmUrl)
   await expect(page.locator('video')).toHaveAttribute('src', /\/v1\/assets\//)
-  const approve = page.getByRole('button', { name: 'Duyệt', exact: true })
-  await expect(approve).toBeInViewport({ ratio: 1 })
-  expect((await approve.boundingBox())!.height).toBeGreaterThanOrEqual(48)
-  await approve.click()
-  await expect(page.getByText('Hết phim chờ duyệt')).toBeVisible()
+  const download = page.getByRole('link', { name: 'Tải về', exact: true })
+  await expect(download).toBeInViewport({ ratio: 1 })
+  expect((await download.boundingBox())!.height).toBeGreaterThanOrEqual(48)
+  await expect(download).toHaveAttribute('href', /^\/v1\/assets\/[^/]+\/content\?exp=\d+&sig=[0-9a-f]{64}$/)
+  await expect(download).toHaveAttribute('download', '')
+
+  await page.getByRole('button', { name: 'Làm lại', exact: true }).click()
+  const sheet = page.getByRole('dialog')
+  await sheet.getByRole('textbox', { name: 'Góp ý' }).fill('Lan nói chậm hơn')
+  await sheet.getByRole('button', { name: 'Làm lại', exact: true }).click()
+  await expect(sheet).toBeHidden() // closes once the redo is accepted
 
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto(filmUrl)
-  await expect(pill).toHaveText('Đã duyệt')
+  await page.getByRole('tab', { name: 'Các bản (2)' }).click({ timeout: STEP_TIMEOUT_MS })
+  await expect(page.getByText('Lan nói chậm hơn')).toBeVisible()
+  await expect(filmStatus(page)).toHaveText('Xong', { timeout: STEP_TIMEOUT_MS })
 
   await page.getByRole('tab', { name: 'Kịch bản' }).click()
   await page.getByRole('button', { name: 'Sửa', exact: true }).click()
@@ -50,7 +57,7 @@ test('owner logs in, creates a film, watches its steps go live, approves it on a
   await json.fill(text.replace(/"action": "[^"]*"/, '"action": "fly_to_moon"'))
   await page.getByRole('button', { name: 'Lưu', exact: true }).click()
   await expect(page.getByRole('alert').filter({ hasText: 'unknown_action' })).toBeVisible()
-  await expect(pill).toHaveText('Đã duyệt')
+  await expect(filmStatus(page)).toHaveText('Xong')
 })
 
 test('a film card draws ink on its canvas in a real browser', async ({ page }) => {

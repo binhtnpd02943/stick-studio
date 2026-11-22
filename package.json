@@ -3,17 +3,21 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
     "render": "tsx scripts/render-film.ts",
     "make": "tsx scripts/make-film.ts",
-    "preview": "tsx scripts/preview-action.ts"
+    "preview": "tsx scripts/preview-action.ts",
+    "db:generate": "drizzle-kit generate --config packages/db/drizzle.config.ts",
+    "coverage:db": "vitest run packages/db --coverage.enabled --coverage.include='packages/db/src/**' --coverage.thresholds.lines=80 --coverage.thresholds.functions=80"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.1.1"

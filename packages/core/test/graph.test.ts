@@ -1,13 +1,20 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
 
-const PACKAGES = fileURLToPath(new URL('../../', import.meta.url))
+const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 type Pkg = { name: string; dependencies?: Record<string, string>; devDependencies?: Record<string, string> }
 
-const dirs = readdirSync(PACKAGES, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
-const pkgs = dirs.map((d) => ({ dir: join(PACKAGES, d), pkg: JSON.parse(readFileSync(join(PACKAGES, d, 'package.json'), 'utf8')) as Pkg }))
+// apps/ arrives with the API and worker; scan it only when present
+const pkgs = ['packages', 'apps'].flatMap((group) => {
+  const groupDir = join(ROOT, group)
+  if (!existsSync(groupDir)) return []
+  return readdirSync(groupDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => {
+    const dir = join(groupDir, d.name)
+    return { dir, pkg: JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as Pkg }
+  })
+})
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {

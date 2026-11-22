@@ -6,8 +6,9 @@ export async function checkBudget(db: Db, ws: string, filmId: string, defaults: 
   const [workspace, film] = await Promise.all([getWorkspace(db, ws), getFilm(db, ws, filmId)])
   if (!workspace || !film) throw new Error('film not found')
   const filmCap = workspace.maxCostPerFilmUsd ?? defaults.film
-  if (film.costUsd >= filmCap) throw new BudgetExceededError('film', film.costUsd, filmCap)
+  // `!(x < cap)` instead of `x >= cap`: a NaN spend must block, not pass.
+  if (!(film.costUsd < filmCap)) throw new BudgetExceededError('film', film.costUsd, filmCap)
   const dayCap = workspace.maxCostPerDayUsd ?? defaults.day
   const spent = await spentOnDay(db, ws, now)
-  if (spent >= dayCap) throw new BudgetExceededError('day', spent, dayCap)
+  if (!(spent < dayCap)) throw new BudgetExceededError('day', spent, dayCap)
 }

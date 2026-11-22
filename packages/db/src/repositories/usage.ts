@@ -20,6 +20,8 @@ export interface UsageInput {
 
 /** Books one paid call: the event and `films.cost_usd += cost` commit together, and the increment is done in SQL so concurrent bookings add up. */
 export async function bookUsage(db: Db, workspaceId: string, input: UsageInput): Promise<UsageEvent> {
+  // Postgres numeric accepts 'NaN', which would poison every sum and silently disable both budget caps.
+  if (!Number.isFinite(input.costUsd) || input.costUsd < 0) throw new Error(`invalid usage cost: ${input.costUsd} (must be finite and not negative)`)
   const cost = String(input.costUsd)
   return db.transaction(async (tx) => {
     const updated = await tx.update(films)

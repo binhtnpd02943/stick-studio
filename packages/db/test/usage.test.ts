@@ -26,6 +26,16 @@ describe('usage', () => {
     expect(await spentOnDay(db, ws, new Date())).toBe(1)
   })
 
+  test.each([['NaN', Number.NaN], ['Infinity', Number.POSITIVE_INFINITY], ['negative', -0.5]])(
+    'bookUsage rejects a %s cost before any write, so caps cannot be disabled',
+    async (_name, cost) => {
+      const { ws, film, version } = await newFilm()
+      await expect(bookUsage(db, ws, booking(film.id, version.id, cost))).rejects.toThrow(/finite|negative|cost/i)
+      expect((await getFilm(db, ws, film.id))?.costUsd).toBe(0)
+      expect(await spentOnDay(db, ws, new Date())).toBe(0)
+    },
+  )
+
   test('bookUsage on another workspace film books nothing', async () => {
     const a = await newFilm()
     const b = await newFilm()

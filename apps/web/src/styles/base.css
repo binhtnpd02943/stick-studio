@@ -553,13 +553,11 @@ button:disabled {
   }
 }
 
-/* thumbnails: a 9:16 still, letterboxed on soft paper once the box is capped */
+/* thumbnails: a 9:16 still at most 340px tall; the badges sit on the picture */
 .film-thumb {
   position: relative;
-  display: flex;
-  justify-content: center;
+  width: min(100%, calc(340px * 9 / 16));
   aspect-ratio: 9 / 16;
-  max-height: 340px;
   overflow: hidden;
   border-radius: 12px;
   background: var(--soft);
@@ -571,7 +569,7 @@ button:disabled {
 }
 
 .film-thumb .scene-preview {
-  width: auto;
+  width: 100%;
   height: 100%;
 }
 
@@ -670,6 +668,17 @@ button:disabled {
 .film-player-box .film-video {
   border: 0;
   background: var(--soft);
+}
+
+.film-no-video {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 9 / 16;
+  padding: 32px;
+  border-radius: 16px;
+  background: var(--soft);
+  color: var(--body);
+  text-align: center;
 }
 
 .film-side {
@@ -1040,6 +1049,26 @@ button:disabled {
   background: var(--soft);
 }
 
+.film-phone-video.is-empty {
+  flex: none;
+}
+
+.film-phone-video.is-empty .film-no-video {
+  aspect-ratio: auto;
+  padding: 24px;
+}
+
+.film-phone-issues {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px var(--gutter);
+}
+
+.dock.dock-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .film-phone-info {
   display: flex;
   flex-direction: column;
@@ -1048,7 +1077,7 @@ button:disabled {
 }
 
 .film-phone-info h1 {
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1.3;
 }
 
@@ -1189,7 +1218,7 @@ button:disabled {
 .dialog-head button {
   width: 40px;
   padding: 0;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .dialog-actions {
@@ -1254,7 +1283,7 @@ button:disabled {
   color: var(--warn);
 }
 
-.mono,
+/* JSON is code, so its editor is the one place words are mono */
 .field textarea.mono {
   font: 400 13px/1.5 var(--mono);
 }

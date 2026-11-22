@@ -1,5 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import { useLogout } from '../api/queries'
 import { vi } from '../i18n/vi'
+import { BrandMark } from './Brand'
 
 const ITEMS = [
   { to: '/', label: vi.nav.overview, end: true },
@@ -10,18 +12,14 @@ const ITEMS = [
 ] as const
 
 export function Layout() {
+  const logout = useLogout()
   const inReview = useLocation().pathname.startsWith('/review')
   return (
     <div className={inReview ? 'shell shell-review' : 'shell'}>
       <header className="shell-header">
         <div className="shell-bar">
           <Link to="/" className="shell-brand">
-            <svg width="22" height="34" viewBox="0 0 60 100" aria-hidden="true">
-              <g fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="30" cy="16" r="11" />
-                <path d="M30 27 L30 62 M30 38 L14 54 M30 38 L46 26 M30 62 L18 92 M30 62 L42 92" />
-              </g>
-            </svg>
+            <BrandMark />
             <span>{vi.brand}</span>
           </Link>
           <nav aria-label={vi.nav.label} className="shell-nav">
@@ -36,7 +34,7 @@ export function Layout() {
               ×
             </Link>
           )}
-          <button type="button" className="shell-logout">
+          <button type="button" className="shell-logout" disabled={logout.isPending} onClick={() => logout.mutate()}>
             {vi.logout}
           </button>
         </div>

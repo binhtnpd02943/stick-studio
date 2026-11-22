@@ -79,6 +79,8 @@ describe('openapi', () => {
       'GET /v1/channels', 'POST /v1/channels', 'GET /v1/channels/{id}', 'PATCH /v1/channels/{id}',
       'GET /v1/characters', 'POST /v1/characters', 'PATCH /v1/characters/{id}', 'DELETE /v1/characters/{id}',
       'GET /v1/assets/{id}/url', 'GET /v1/review-queue', 'GET /v1/usage',
+      'POST /v1/films', 'GET /v1/films', 'GET /v1/films/{id}', 'GET /v1/films/{id}/events', 'POST /v1/films/{id}/redo',
+      'POST /v1/films/{id}/cancel', 'POST /v1/films/{id}/review', 'PATCH /v1/films/{id}/screenplay',
     ].sort())
     expect(spec.paths['/v1/workspace'].patch.requestBody).toBeDefined()
   })

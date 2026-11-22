@@ -12,6 +12,9 @@ import { ApiError, errorHandler } from './errors.js'
 import { assetRoutes } from './routes/assets.js'
 import { authRoutes } from './routes/auth.js'
 import { channelRoutes } from './routes/channels.js'
+import { filmActionRoutes } from './routes/film-actions.js'
+import { filmEventRoutes } from './routes/film-events.js'
+import { filmRoutes } from './routes/films.js'
 import { characterRoutes } from './routes/characters.js'
 import { healthRoutes } from './routes/health.js'
 import { meRoutes } from './routes/me.js'
@@ -27,6 +30,8 @@ export interface BuildAppOptions {
   logStream?: { write(line: string): void }
   /** Redis key prefix for rate-limit counters; tests give each app its own. */
   rateLimitNamespace?: string
+  /** SSE keep-alive interval; tests shorten it. */
+  ssePingMs?: number
 }
 
 export const RATE_LIMIT = { max: 120, timeWindow: '1 minute' }
@@ -95,7 +100,9 @@ export async function buildApp(deps: ApiDeps, opts: BuildAppOptions = {}): Promi
   // 7. routes.
   for (const routes of [
     healthRoutes, authRoutes, meRoutes, workspaceRoutes, channelRoutes, characterRoutes, assetRoutes, reviewQueueRoutes, usageRoutes,
+    filmRoutes, filmActionRoutes,
   ]) routes(app, deps)
+  filmEventRoutes(app, deps, { pingMs: opts.ssePingMs })
   app.setNotFoundHandler((_req, reply) => sendError(reply, 404, 'not_found', 'not found'))
 
   // 8. errors.

@@ -5,6 +5,7 @@ import { createQueues, enqueueStep, startWorker, urlTarget } from '@stick/worker
 import { Redis } from 'ioredis'
 import pino from 'pino'
 import { buildApp } from './app.js'
+import { createEventHub } from './events-hub.js'
 import { failStart, serve } from './serve.js'
 
 /** API and worker in one process, sharing one database: the only way to run on PGlite. */
@@ -21,14 +22,16 @@ async function main(): Promise<void> {
   const redis = new Redis(cfg.redisUrl, { enableOfflineQueue: false, maxRetriesPerRequest: 1 })
     .on('error', (err) => console.error('redis error:', err.message))
   const queues = createQueues(cfg.redisUrl)
+  const hub = createEventHub(cfg.redisUrl)
   const app = await buildApp({
     db, storage, cfg, redis,
     enqueue: (job) => enqueueStep(queues, job),
-    subscribe: () => () => {}, // Task 10 replaces this with the Redis event hub.
+    subscribe: hub.subscribe,
   })
   await serve(app, cfg.host, cfg.port, async () => {
     await worker.close()
     await queues.close()
+    await hub.close()
     await redis.quit()
     await closeDb()
   })

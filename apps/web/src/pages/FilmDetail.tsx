@@ -7,6 +7,7 @@ import { ErrorNotice } from '../components/ErrorNotice'
 import { FilmPlayer } from '../components/FilmPlayer'
 import { StatusPill } from '../components/StatusPill'
 import { StepTimeline } from '../components/StepTimeline'
+import { StudioFloor } from '../components/studio/StudioFloor'
 import { vi } from '../i18n/vi'
 import { FilmActions } from './film/FilmActions'
 import { QaTab } from './film/QaTab'
@@ -86,6 +87,7 @@ export function FilmDetail() {
             <FilmActions film={film} />
             {reviewable && <Link to={`/review?film=${film.id}`} className="primary link-button">{vi.detail.review}</Link>}
           </div>
+          <StudioFloor detail={query.data} collapsible={film.status !== 'queued' && film.status !== 'running'} />
           <StepTimeline steps={steps} />
         </section>
       </div>

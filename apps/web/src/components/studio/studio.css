@@ -1,0 +1,87 @@
+/* Studio floor ("Đội sản xuất"). Motion and art ported from docs/superpowers/mockups/studio-floor.html. */
+.studio-floor { width: 100%; }
+.studio-title { margin: 0 0 8px; font-family: var(--mono); font-size: 12px; color: var(--body); }
+.studio-toggle { margin-bottom: 12px; }
+.studio-frame { position: relative; width: 100%; overflow: hidden; }
+.studio-scene { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+.studio-scene svg * { transform-box: fill-box; }
+.studio-furniture { position: absolute; left: 0; top: 0; }
+.studio-person { position: absolute; width: 80px; }
+.studio-tag, .studio-you { width: 160px; margin-left: -40px; text-align: center; font-size: 13px; line-height: 1.2; white-space: nowrap; }
+.studio-you { position: absolute; left: 150px; top: 860px; width: 120px; margin-left: 0; }
+.studio-tag > span, .studio-you > span { border-radius: 99px; padding: 2px 8px; background: var(--bg); }
+.studio-tag b, .studio-you b { font-weight: 600; }
+.studio-tag span span, .studio-you span span { font-family: var(--mono); font-size: 11px; }
+.studio-person.is-working .studio-tag > span, .studio-you.is-final > span { background: var(--accent); }
+.studio-walker { position: absolute; width: 50px; height: 96px; }
+.studio-bubble { position: absolute; width: 170px; height: 80px; box-sizing: border-box; background: var(--bg); border: 1.5px solid var(--ink); border-radius: 14px; padding: 6px 4px; animation: studio-pop .35s ease-out both; transform-origin: 30% 100%; }
+.studio-bubble::after { content: ""; position: absolute; left: 52px; bottom: -7px; width: 12px; height: 12px; background: var(--bg); border-right: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); transform: rotate(45deg); }
+.studio-bubble-label { margin: 0; height: 100%; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 14px; font-weight: 500; }
+.studio-say { position: absolute; white-space: nowrap; background: var(--bg); border: 1.5px solid var(--ink); border-radius: 12px 12px 12px 2px; padding: 3px 10px; font-size: 12px; animation: studio-pop .3s ease-out both; transform-origin: 0% 100%; }
+@keyframes studio-legA{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes studio-legB{0%,100%{opacity:0}50%{opacity:1}}
+@keyframes studio-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+@keyframes studio-hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes studio-type{0%,100%{transform:translate(0,0)}50%{transform:translate(-1px,-2px)}}
+@keyframes studio-sip{0%,72%,100%{transform:rotate(0deg)}80%,90%{transform:rotate(-80deg)}}
+@keyframes studio-stretch{0%,78%,100%{transform:rotate(0deg)}84%,94%{transform:rotate(-150deg)}}
+@keyframes studio-scroll{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+@keyframes studio-think{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-6deg)}}
+@keyframes studio-lean{0%,100%{transform:rotate(0deg)}50%{transform:rotate(4deg)}}
+@keyframes studio-wave{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-25deg)}}
+@keyframes studio-pop{0%{opacity:0;transform:scale(.4)}70%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+@keyframes studio-fadein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes studio-blink{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes studio-squash{0%,15%{transform:scaleY(1)}70%,100%{transform:scaleY(.18)}}
+@keyframes studio-open{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes studio-bounce{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes studio-clap{0%,100%{transform:rotate(0deg)}40%{transform:rotate(-30deg)}}
+@keyframes studio-slideL{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes studio-slideR{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes studio-spin{to{transform:rotate(360deg)}}
+@keyframes studio-spinR{to{transform:rotate(-360deg)}}
+@keyframes studio-draw{from{stroke-dashoffset:200}to{stroke-dashoffset:0}}
+@keyframes studio-film{from{transform:translateX(0)}to{transform:translateX(-16px)}}
+@keyframes studio-flash{0%,70%,100%{opacity:0;transform:scale(.6)}78%{opacity:1;transform:scale(1.2)}}
+@keyframes studio-drop{from{opacity:0;transform:translateY(-14px) rotate(-12deg)}to{opacity:1;transform:none}}
+@keyframes studio-clockhand{to{transform:rotate(360deg)}}
+@keyframes studio-steam{0%{opacity:0;transform:translateY(4px)}50%{opacity:.7}100%{opacity:0;transform:translateY(-8px)}}
+.studio-scene .legA{animation:studio-legA .3s steps(1) infinite}
+.studio-scene .legB{animation:studio-legB .3s steps(1) infinite}
+.studio-scene .bob{animation:studio-bob 3.4s ease-in-out infinite}
+.studio-scene .hop{animation:studio-hop .3s ease-in-out infinite}
+.studio-scene .lean{animation:studio-lean 4.6s ease-in-out infinite;transform-origin:50% 100%}
+.studio-scene .type{animation:studio-type .22s steps(2) infinite}
+.studio-scene .sip{animation:studio-sip 7s ease-in-out infinite;transform-origin:0% 0%}
+.studio-scene .stretch{animation:studio-stretch 9s ease-in-out infinite;transform-origin:0% 0%}
+.studio-scene .scroll{animation:studio-scroll 1.1s ease-in-out infinite}
+.studio-scene .think{animation:studio-think 2.6s ease-in-out infinite;transform-origin:0% 0%}
+.studio-scene .wave{animation:studio-wave .35s ease-in-out infinite;transform-origin:0% 100%}
+.studio-scene .blinky{animation:studio-blink .5s ease-in-out infinite}
+.studio-scene .pop{animation:studio-pop .4s ease-out both}
+.studio-scene .clock{animation:studio-clockhand 12s linear infinite;transform-origin:50% 100%}
+.studio-scene .steam{animation:studio-steam 2.4s ease-out infinite}
+.studio-scene .a-note{animation:studio-fadein .35s both}
+.studio-scene .a-bulb{animation:studio-blink .7s ease-in-out infinite}
+.studio-scene .a-squash{animation:studio-squash 1.8s ease-in-out infinite;transform-origin:50% 0%}
+.studio-scene .a-card{animation:studio-fadein .35s both}
+.studio-scene .a-open{animation:studio-open .45s both;transform-origin:0% 50%}
+.studio-scene .a-hl{animation:studio-open .6s .45s both;transform-origin:0% 50%}
+.studio-scene .a-stamp{animation:studio-pop .3s 1.1s both}
+.studio-scene .a-bar{animation:studio-bounce .5s ease-in-out infinite;transform-origin:50% 100%}
+.studio-scene .a-clap{animation:studio-clap .5s ease-in-out infinite;transform-origin:0% 100%}
+.studio-scene .a-slideL{animation:studio-slideL .8s both}
+.studio-scene .a-slideR{animation:studio-slideR .8s .25s both}
+.studio-scene .a-draw{animation:studio-draw 1.2s both}
+.studio-scene .a-gear{animation:studio-spin 1.6s linear infinite;transform-origin:center}
+.studio-scene .a-gearR{animation:studio-spinR 1.1s linear infinite;transform-origin:center}
+.studio-scene .a-film{animation:studio-film .5s linear infinite}
+.studio-scene .a-flash{animation:studio-flash .9s ease-out infinite}
+.studio-scene .a-drop{animation:studio-drop .4s both}
+.studio-scene .d2{animation-delay:.3s}
+.studio-scene .d3{animation-delay:.6s}
+.studio-scene .d4{animation-delay:.9s}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-scene, .studio-scene * { animation: none !important; transition: none !important; }
+}

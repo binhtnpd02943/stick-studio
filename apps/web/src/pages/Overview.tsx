@@ -9,6 +9,7 @@ import { FilmCard } from '../components/FilmCard'
 import { NewFilmButton } from '../components/NewFilmForm'
 import { StatusPill } from '../components/StatusPill'
 import { StepTimeline } from '../components/StepTimeline'
+import { StudioFloor } from '../components/studio/StudioFloor'
 import { vi } from '../i18n/vi'
 import { StickState } from '../stick/StickState'
 
@@ -18,8 +19,8 @@ const RECENT_ROWS = 5
 const RECENT_FETCH = 12
 const MOVING: readonly FilmListItem['status'][] = ['queued', 'running', 'awaiting_review']
 
-/** One stream per card, so the page renders at most MAX_LIVE_ON_OVERVIEW of these. */
-function LiveFilm({ film }: { film: FilmListItem }) {
+/** One stream per card, so the page renders at most MAX_LIVE_ON_OVERVIEW of these. The floor reuses the card's stream. */
+function LiveFilm({ film, floor }: { film: FilmListItem; floor: boolean }) {
   useFilmEvents(film.id)
   const detail = useFilm(film.id).data
   return (
@@ -28,6 +29,7 @@ function LiveFilm({ film }: { film: FilmListItem }) {
         <Link to={`/films/${film.id}`}>{film.title}</Link>
         <StatusPill status={detail?.film.status ?? film.status} />
       </div>
+      {floor && detail && <StudioFloor detail={detail} />}
       <div className="compact"><StepTimeline steps={detail?.steps ?? []} /></div>
     </article>
   )
@@ -84,7 +86,7 @@ export function Overview() {
         {liveError && <ErrorNotice error={liveError} />}
         {!liveError && !liveLoaded && <p>{vi.loading}</p>}
         {liveLoaded && live.length === 0 && <StickState kind="empty" label={vi.overview.runningEmpty} />}
-        {live.slice(0, MAX_LIVE_ON_OVERVIEW).map((film) => <LiveFilm key={film.id} film={film} />)}
+        {live.slice(0, MAX_LIVE_ON_OVERVIEW).map((film) => <LiveFilm key={film.id} film={film} floor={film.id === runningQ.data?.[0]?.id} />)}
       </Section>
       <Section
         id="waiting"

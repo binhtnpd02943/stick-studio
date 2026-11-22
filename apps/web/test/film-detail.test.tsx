@@ -20,7 +20,32 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+const wideFloor = () => vi.stubGlobal('ResizeObserver', class {
+  constructor(private cb: ResizeObserverCallback) {}
+  observe() { this.cb([{ contentRect: { width: 1280 } } as ResizeObserverEntry], this as unknown as ResizeObserver) }
+  disconnect() {}
+})
+
 describe('film detail', () => {
+  test('the studio floor shows above the timeline while running and is a toggle otherwise', async () => {
+    wideFloor()
+    mockApi({ '/v1/films/f1': () => ok(detailWith('queued')) })
+    const first = open()
+    expect(await screen.findByText('Hùng đang nhận đơn mới')).toHaveAttribute('role', 'status')
+    expect(screen.queryByRole('button', { name: 'Xem đội làm việc' })).not.toBeInTheDocument()
+    expect(FakeEventSource.instances).toHaveLength(1)
+    first.unmount()
+
+    mockApi({ '/v1/films/f1': () => ok(detailWith('awaiting_review')) })
+    open()
+    const toggle = await screen.findByRole('button', { name: 'Xem đội làm việc' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(document.querySelector('.studio-scene')).toBeNull()
+    await userEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('status')).toHaveTextContent('Phim xong rồi, chờ bạn duyệt')
+  })
+
   test('detail shows player, status, version and the live step timeline', async () => {
     mockApi({ '/v1/films/f1': () => ok(detailWith('running')) })
     open()

@@ -126,6 +126,21 @@ describe('overview', () => {
     expect(FakeEventSource.instances).toHaveLength(3)
   })
 
+  test('the first running film shows the studio floor on its own stream, within the cap', async () => {
+    vi.stubGlobal('ResizeObserver', class {
+      constructor(private cb: ResizeObserverCallback) {}
+      observe() { this.cb([{ contentRect: { width: 1280 } } as ResizeObserverEntry], this as unknown as ResizeObserver) }
+      disconnect() {}
+    })
+    api({ running: [1, 2, 3, 4].map((n) => film({ id: `f${n}`, title: `Phim ${n}` })) })
+    renderRoutes(routes, '/')
+
+    expect(await screen.findByText('Tùng đang viết kịch bản')).toHaveAttribute('role', 'status')
+    expect(document.querySelectorAll('.studio-scene')).toHaveLength(1)
+    expect(screen.getByRole('link', { name: 'Phim 1' }).closest('article')!.querySelector('.studio-scene')).not.toBeNull()
+    expect(FakeEventSource.instances).toHaveLength(3)
+  })
+
   test('review count shows 20+ when there is a next page', async () => {
     api({ reviewMeta: { next_cursor: 'abc' } })
     renderRoutes(routes, '/')

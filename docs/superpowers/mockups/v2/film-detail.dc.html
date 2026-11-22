@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Stick Studio — Chi tiết phim</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+:root{--bg:#ffffff;--ink:#1b1b1b;--body:#4a4a4a;--muted:#767676;--line:#ececec;--soft:#f6f6f5;--accent:#ff8c26;--ok:#2f7a4f;--ok-bg:#eaf5ee}
+body{margin:0;background:var(--bg)}
+.app{min-height:1040px;background:var(--bg);color:var(--ink);font:15px/1.5 'Be Vietnam Pro',system-ui,sans-serif}
+.num{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.bar{border-bottom:1px solid var(--line)}
+.bar-in{max-width:1120px;margin:0 auto;padding:12px 32px;display:flex;align-items:center;gap:32px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink);text-decoration:none}
+.nav{display:flex;gap:4px;flex:1}
+.nav a{padding:8px 14px;border-radius:8px;color:var(--body);text-decoration:none;font-size:14px}
+.nav a[aria-current]{background:var(--soft);color:var(--ink);font-weight:600}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:13px;font-weight:600}
+main{max-width:1120px;margin:0 auto;padding:24px 32px 64px;display:flex;flex-direction:column;gap:32px}
+.crumb{font-size:14px;color:var(--muted)}
+.crumb a{color:var(--muted)}
+.top{display:grid;grid-template-columns:360px 1fr;gap:48px;align-items:start}
+.player{position:relative;width:360px;aspect-ratio:9/16;border-radius:16px;overflow:hidden;background:#fafafa}
+.player svg{display:block;width:100%;height:100%}
+.ctrl{position:absolute;left:0;right:0;bottom:0;padding:24px 16px 14px;background:linear-gradient(transparent,rgba(0,0,0,.55));display:flex;align-items:center;gap:12px;color:#fff;font-size:13px}
+.ctrl .track{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.35)}
+.ctrl .track i{display:block;width:38%;height:100%;border-radius:2px;background:#fff}
+.side{display:flex;flex-direction:column;gap:24px;min-width:0}
+h1{margin:0;font-size:28px;line-height:1.25;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--body)}
+.okchip{display:inline-flex;align-items:center;gap:6px;width:max-content;padding:4px 10px;border-radius:999px;background:var(--ok-bg);color:var(--ok);font-size:13px;font-weight:500}
+.acts{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.primary{height:48px;padding:0 24px;border:0;border-radius:10px;background:var(--accent);color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+.second{height:48px;padding:0 20px;border:1.5px solid var(--ink);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-weight:500;cursor:pointer}
+.note{font-size:13px;color:var(--muted)}
+.note a{color:var(--body)}
+.redo{display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:14px;background:var(--soft)}
+.redo h2{margin:0;font-size:16px;font-weight:600}
+.redo textarea{min-height:72px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;resize:vertical;background:var(--bg)}
+.redo-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.redo select{height:40px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font:inherit;font-size:14px;background:var(--bg)}
+.quiet{height:40px;padding:0 16px;border:1px solid var(--ink);border-radius:8px;background:var(--bg);font:inherit;font-size:14px;cursor:pointer}
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--line)}
+.tabs button{padding:12px 0;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-size:15px;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--ink)}
+.script{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.scene{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:12px}
+.scene-h{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.scene-t{font-weight:600}
+.line{display:grid;grid-template-columns:auto 1fr;gap:8px;font-size:14px;line-height:1.45}
+.who{display:inline-flex;align-items:center;gap:6px;font-weight:500}
+.who i{width:8px;height:8px;border-radius:50%}
+</style>
+</helmet>
+<div class="app">
+  <header class="bar">
+    <div class="bar-in">
+      <a class="logo" href="Main.dc.html"><svg width="18" height="28" viewBox="0 0 60 100" aria-hidden="true"><g fill="none" stroke="#1b1b1b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="16" r="11"></circle><path d="M30 27 L30 62 M30 38 L14 54 M30 38 L46 26 M30 62 L18 92 M30 62 L42 92"></path></g></svg>Stick Studio</a>
+      <nav class="nav" aria-label="Chính">
+        <a href="Main.dc.html">Tổng quan</a>
+        <a href="#" aria-current="page">Phim</a>
+        <a href="Cast.dc.html">Nhân vật</a>
+        <a href="#">Cài đặt</a>
+      </nav>
+      <span class="avatar" aria-label="Tài khoản">A</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="crumb"><a href="#">Phim</a> / Phân số là gì?</div>
+
+    <div class="top">
+      <div class="player">
+        <svg viewBox="0 0 90 160" aria-label="Video phim"><rect width="90" height="160" fill="#fafafa"></rect><text x="45" y="30" text-anchor="middle" font-family="Be Vietnam Pro, sans-serif" font-size="6.5" fill="#1b1b1b">Phân số là gì?</text><rect x="8" y="50" width="16" height="16" fill="none" stroke="#1b1b1b" stroke-width=".8"></rect><path d="M16 50 v16 M8 58 h16" stroke="#1b1b1b" stroke-width=".8"></path><path d="M0 112 H90" stroke="#1b1b1b" stroke-width="1"></path><g fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><g stroke="#1b1b1b"><circle cx="26" cy="70" r="4.5"></circle><path d="M26 74.5 L26 92 M26 80 L19 87 M26 80 L33 76 M26 92 L22 111 M26 92 L30 111"></path></g><g stroke="#d97757"><circle cx="50" cy="70" r="4.5"></circle><path d="M50 74.5 L50 92 M50 80 L58 74 M50 80 L44 87 M50 92 L46 111 M50 92 L54 111"></path><path d="M46 67 q4 -5 8 0 q3 1 2 6"></path></g></g><rect x="60" y="62" width="22" height="16" fill="#fff" stroke="#1b1b1b" stroke-width=".8"></rect><path d="M71 62 v16 M60 70 h22" stroke="#ff8c26" stroke-width=".8"></path><path d="M63 78 L61 111 M79 78 L81 111" stroke="#1b1b1b" stroke-width=".8"></path></svg>
+        <div class="ctrl"><span aria-hidden="true">▶</span><span class="num">0:10 / 0:26</span><span class="track"><i></i></span></div>
+      </div>
+
+      <div class="side">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <h1>Phân số là gì?</h1>
+          <div class="meta"><span class="num">0:26</span><span>3 cảnh</span><span>Minh, Lan</span><span class="num">$0.38</span><span>xong 10 phút trước</span></div>
+          <span class="okchip">✓ Đạt kiểm tra chất lượng</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="acts">
+            <button class="primary" type="button">Tải video MP4</button>
+            <button class="second" type="button" disabled style="opacity: .45; cursor: not-allowed;">Đăng lên TikTok</button>
+          </div>
+          <span class="note">Chưa kết nối kênh TikTok. <a href="#">Kết nối trong Cài đặt</a></span>
+        </div>
+
+        <section class="redo" aria-labelledby="redo-h">
+          <h2 id="redo-h">Chưa ưng? Làm lại với góp ý</h2>
+          <textarea aria-label="Góp ý" placeholder="Ví dụ: Lan nói chậm hơn, thêm cảnh cuối Minh ăn miếng bánh"></textarea>
+          <div class="redo-row">
+            <label style="font-size: 14px; color: #4a4a4a; display: flex; align-items: center; gap: 8px;">Sửa từ
+              <select aria-label="Sửa từ bước"><option>Kịch bản</option><option>Cốt truyện</option><option>Lồng tiếng</option><option>Hình ảnh</option></select>
+            </label>
+            <button class="quiet" type="button">Làm lại</button>
+            <span class="note">Bản hiện tại vẫn được giữ.</span>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <section style="display: flex; flex-direction: column; gap: 20px;">
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true">Kịch bản</button>
+        <button role="tab" aria-selected="false">Chất lượng</button>
+        <button role="tab" aria-selected="false">Các bản <span class="num">(1)</span></button>
+      </div>
+      <div class="script">
+        <sc-for list="{{scenes}}" as="s" hint-placeholder-count="3">
+          <article class="scene">
+            <div class="scene-h"><span>Cảnh {{s.n}}</span><span class="num">{{s.len}}</span></div>
+            <div class="scene-t">{{s.place}}</div>
+            <sc-for list="{{s.lines}}" as="l" hint-placeholder-count="2">
+              <div class="line"><span class="who"><i style="background: {{l.ink}}"></i>{{l.who}}</span><span>{{l.text}}</span></div>
+            </sc-for>
+          </article>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const M = { who: 'Minh', ink: '#1b1b1b' };
+    const L = { who: 'Lan', ink: '#d97757' };
+    return {
+      scenes: [
+        { n: 1, len: '0:06', place: 'Lớp học, giờ ra chơi', lines: [{ ...M, text: 'Lan ơi, phân số là gì vậy?' }, { ...L, text: 'Để mình chỉ cho cậu xem nhé.' }] },
+        { n: 2, len: '0:13', place: 'Lớp học, trước bảng trắng', lines: [{ ...L, text: 'Mình chia cái bánh thành bốn phần bằng nhau.' }, { ...M, text: 'Mình ăn một phần thì còn ba phần, đúng không?' }, { ...L, text: 'Đúng rồi! Đó là một phần tư.' }] },
+        { n: 3, len: '0:07', place: 'Ở nhà, phòng khách', lines: [{ ...M, text: 'À, mình hiểu rồi!' }, { ...L, text: 'Chuẩn luôn! Cậu giỏi lắm.' }] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

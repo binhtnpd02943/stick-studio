@@ -332,6 +332,16 @@ describe('film routes', () => {
       expect(lines.map((l) => JSON.parse(l) as { msg?: string }).some((l) => l.msg === 'could not publish film event')).toBe(true)
     })
 
+    test('a publish that never settles is abandoned: the action still succeeds and the timeout is logged', async () => {
+      await t.close()
+      const lines: string[] = []
+      t = await testApi({ logStream: { write: (l) => { lines.push(l) } }, publish: () => new Promise(() => {}) })
+      const id = await newFilm()
+      expect((await post(id, 'cancel')).statusCode).toBe(200)
+      const logged = lines.map((l) => JSON.parse(l) as { msg?: string; err?: { message?: string } }).find((l) => l.msg === 'could not publish film event')
+      expect(logged?.err?.message).toMatch(/timed out/)
+    })
+
     test('a rejected transition publishes nothing', async () => {
       const id = await newFilm()
       expect((await post(id, 'cancel')).statusCode).toBe(200)

@@ -17,28 +17,43 @@ const MIGRATION_LOCK = 72_74_01
 export interface CreateDbOptions {
   url?: string
   pgliteDir?: string
+  /** Test seam: defaults to the committed `packages/db/migrations`. */
+  migrationsFolder?: string
 }
 
 export async function createDb(opts: CreateDbOptions = {}): Promise<{ db: Db; close(): Promise<void> }> {
-  if (opts.url) return createPostgresDb(opts.url)
+  const migrationsFolder = opts.migrationsFolder ?? MIGRATIONS
+  if (opts.url) return createPostgresDb(opts.url, migrationsFolder)
   const client = new PGlite(opts.pgliteDir ?? 'memory://')
   const db = drizzlePglite(client, { schema })
-  await migratePglite(db, { migrationsFolder: MIGRATIONS })
+  await migratePglite(db, { migrationsFolder })
   return { db, close: () => client.close() }
 }
 
-async function createPostgresDb(url: string) {
+async function createPostgresDb(url: string, migrationsFolder: string) {
   const pool = new pg.Pool({ connectionString: url })
-  const locker = await pool.connect()
   try {
-    await locker.query('select pg_advisory_lock($1)', [MIGRATION_LOCK])
-    await migratePg(drizzlePg(locker, { schema }), { migrationsFolder: MIGRATIONS })
+    await migrateUnderLock(pool, migrationsFolder)
   } catch (err) {
     await pool.end()
     throw err
-  } finally {
-    await locker.query('select pg_advisory_unlock($1)', [MIGRATION_LOCK]).catch(() => undefined)
-    locker.release()
   }
   return { db: drizzlePg(pool, { schema }) as Db, close: () => pool.end() }
+}
+
+async function migrateUnderLock(pool: pg.Pool, migrationsFolder: string) {
+  const locker = await pool.connect()
+  // pool.end() waits for checked-out clients, so the locker must be released before any caller ends the pool.
+  // A failed connection is destroyed (release(true)), which also drops its session-level advisory lock.
+  let broken = false
+  try {
+    await locker.query('select pg_advisory_lock($1)', [MIGRATION_LOCK])
+    await migratePg(drizzlePg(locker, { schema }), { migrationsFolder })
+    await locker.query('select pg_advisory_unlock($1)', [MIGRATION_LOCK])
+  } catch (err) {
+    broken = true
+    throw err
+  } finally {
+    locker.release(broken)
+  }
 }

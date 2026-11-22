@@ -1,6 +1,7 @@
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import {
-  type Db, archiveCharacter, audit, createChannel, createCharacter, getChannel, getCharacter, getWorkspace,
+  type Db, archiveCharacter, audit, auditLog, createChannel, createCharacter, getChannel, getCharacter, getWorkspace,
   listChannels, listCharacters, updateChannel, updateCharacter, updateWorkspace,
 } from '../src/index.js'
 import { createTestDb, seedWorkspace } from '../src/testing.js'
@@ -75,9 +76,16 @@ describe('workspace', () => {
     expect((await getWorkspace(db, workspace.id))?.maxCostPerFilmUsd).toBeNull()
   })
 
-  test('audit writes a row scoped to the workspace', async () => {
+  test('audit writes rows scoped to the workspace, with and without an actor', async () => {
     const { workspace, user } = await seedWorkspace(db)
+    const other = await seedWorkspace(db)
     await audit(db, workspace.id, { actorId: user.id, action: 'film.create', target: 'film:1', data: { a: 1 } })
     await audit(db, workspace.id, { action: 'x', target: 'y' })
+    const rows = await db.select().from(auditLog).where(eq(auditLog.workspaceId, workspace.id)).orderBy(auditLog.id)
+    expect(rows.map(({ actorId, action, target, data }) => ({ actorId, action, target, data }))).toEqual([
+      { actorId: user.id, action: 'film.create', target: 'film:1', data: { a: 1 } },
+      { actorId: null, action: 'x', target: 'y', data: null },
+    ])
+    expect(await db.select().from(auditLog).where(eq(auditLog.workspaceId, other.workspace.id))).toHaveLength(0)
   })
 })

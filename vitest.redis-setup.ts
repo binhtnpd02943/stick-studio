@@ -28,8 +28,8 @@ function ping(port: number): Promise<boolean> {
   })
 }
 
-/** A private redis-server on a free port for the server project; killed on teardown. */
-export default async function setup(project: TestProject): Promise<() => Promise<void>> {
+/** A private redis-server on a free port, with no persistence. */
+export async function startRedis(): Promise<{ url: string; stop(): Promise<void> }> {
   const port = await freePort()
   const child = spawn(process.env.REDIS_SERVER_BIN || 'redis-server', ['--port', String(port), '--save', '', '--appendonly', 'no'], { stdio: 'ignore' })
   const spawnError = new Promise<never>((_, reject) =>
@@ -46,11 +46,20 @@ export default async function setup(project: TestProject): Promise<() => Promise
     child.kill()
     throw e
   }
-  project.provide('redisUrl', `redis://127.0.0.1:${port}`)
-  return async () => {
-    if (child.exitCode !== null) return
-    const exited = new Promise((r) => child.once('exit', r))
-    child.kill()
-    await exited
+  return {
+    url: `redis://127.0.0.1:${port}`,
+    async stop() {
+      if (child.exitCode !== null) return
+      const exited = new Promise((r) => child.once('exit', r))
+      child.kill()
+      await exited
+    },
   }
+}
+
+/** The server project's Redis; killed on teardown. */
+export default async function setup(project: TestProject): Promise<() => Promise<void>> {
+  const redis = await startRedis()
+  project.provide('redisUrl', redis.url)
+  return redis.stop
 }

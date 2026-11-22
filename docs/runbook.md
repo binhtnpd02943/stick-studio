@@ -1,6 +1,6 @@
 # Stick Studio runbook
 
-How to run the backend (API + worker) locally and what to do when it misbehaves. Follow-ups and known gaps: [plan 4 follow-ups](superpowers/plans/2026-11-22-plan-4-followups.md).
+How to run the backend (API + worker) locally and what to do when it misbehaves. Follow-ups and known gaps: [plan 4 follow-ups](superpowers/plans/2026-11-22-plan-4-followups.md) and [plan 5 follow-ups](superpowers/plans/2026-11-22-plan-5-followups.md).
 
 ## Prerequisites
 - Node 24 and npm (npm workspaces; run `npm install` once at the repo root).
@@ -33,11 +33,17 @@ The seed creates the workspace, the owner and a channel, with caps of $1 per fil
 - `STICK_FAKE=1` runs the whole pipeline with fake LLM and TTS: no key, no cost.
 - OpenAPI is at `/v1/openapi.json`; `/healthz` and `/readyz` are public.
 
+## Web UI
+- Dev: `npm run dev` (API on :3000) and, in a second terminal, `npm run web` (Vite on http://localhost:5173, proxying `/v1` to the API).
+- Production: `npm run web:build`, then `export STICK_WEB_DIR=apps/web/dist` and run `npm run dev` or `npm run api`. The API serves the app on its own port.
+- Safari keeps no `Secure` cookie on `http://localhost`, so login does not stick there. Use Chrome for local dev, or the Tailscale URL below.
+
 ## Phone access
-The session cookie is `Secure`, so the browser only keeps it over HTTPS. Reach the API through Tailscale:
+The session cookie is `Secure`, so the browser only keeps it over HTTPS. Reach the API (and the built web app, with `STICK_WEB_DIR` set) through Tailscale:
 ```bash
 tailscale serve --bg 3000      # HTTPS on your tailnet name, forwarding to http://127.0.0.1:3000
 ```
+Then open `https://<machine>.<tailnet>.ts.net` on the phone; `/review` is the phone surface.
 The API trusts `X-Forwarded-For` from loopback, which is what `tailscale serve` sends, so the login rate limit is per client. Do not expose the port any other way without revisiting that.
 
 ## Tests
@@ -47,7 +53,9 @@ npm run typecheck
 npm run test:db:pg     # packages/db against the compose Postgres (STICK_TEST_DATABASE_URL set for you)
 npm run test:e2e:pg    # the end-to-end film (API + worker, fake providers) against the compose Postgres
 npm run coverage:db    # packages/db coverage, thresholds 80% lines and functions
+npm run test:e2e:web   # builds the web app, then Playwright: browser film flow, API contract, axe (fake providers)
 ```
+`test:e2e:web` starts its own server on :4317 (`e2e/serve.ts`: private redis-server, in-memory PGlite, `STICK_FAKE=1`), so port 4317 must be free. It uses Playwright's cached Chromium; set `STICK_E2E_CHANNEL=chrome` to use the installed Google Chrome instead, or run `npx playwright install chromium` once.
 `test:db:pg` and `test:e2e:pg` need `npm run infra:up` first.
 
 ## Operating notes

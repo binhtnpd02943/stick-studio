@@ -1,0 +1,25 @@
+{
+  "name": "@stick/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@stick/core": "0.0.0",
+    "@stick/db": "0.0.0",
+    "@stick/library": "0.0.0",
+    "@stick/pipeline": "0.0.0",
+    "@stick/providers": "0.0.0",
+    "bullmq": "6.7.1",
+    "ioredis": "6.0.0",
+    "pino": "10.4.0"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
+    "drizzle-orm": "0.45.4"
+  }
+}

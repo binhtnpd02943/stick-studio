@@ -50,6 +50,15 @@ describe('SPA fallback', () => {
     expect(res.headers['cache-control']).toBe('public, max-age=31536000, immutable')
   })
 
+  test('the shell and static files carry x-content-type-options nosniff', async () => {
+    await withWeb()
+    for (const url of ['/', '/films/123', '/assets/app-abc123.js']) {
+      const res = await t.app.inject({ method: 'GET', url })
+      expect(res.statusCode, url).toBe(200)
+      expect(res.headers['x-content-type-options'], url).toBe('nosniff')
+    }
+  })
+
   test('a missing hashed asset is the JSON 404, never index.html (a rebuild leaves old pages pointing at gone files)', async () => {
     await withWeb()
     for (const url of ['/assets/app-old.js', '/assets/app-old', '/favicon.ico']) {

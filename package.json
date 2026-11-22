@@ -8,7 +8,10 @@
   ],
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "typecheck": "tsc -p tsconfig.base.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
+    "web": "npm run dev -w @stick/web",
+    "web:build": "npm run build -w @stick/web",
+    "test:e2e:web": "npm run web:build && playwright test",
     "worker": "tsx apps/worker/src/main.ts",
     "render": "tsx scripts/render-film.ts",
     "make": "tsx scripts/make-film.ts",

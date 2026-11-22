@@ -1,0 +1,22 @@
+@font-face {
+  font-family: 'Balsamiq Sans';
+  src: url('../../../../assets/fonts/PatrickHand-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root {
+  --bg: #ffffff;
+  --ink: oklch(0.2 0 0);
+  --body: oklch(0.42 0 0);
+  --muted: oklch(0.55 0 0);
+  --faint: oklch(0.74 0 0);
+  --line: oklch(0.93 0 0);
+  --pill: oklch(0.965 0 0);
+  --pill-hover: oklch(0.935 0 0);
+  --accent: #ff8c26;
+  --accent-ink: #b45309;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: 'Be Vietnam Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}

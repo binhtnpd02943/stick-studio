@@ -11,5 +11,6 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["packages/*/src", "packages/*/test", "apps/*/src", "apps/*/test", "scripts", "vitest.redis-setup.ts"]
+  "include": ["packages/*/src", "packages/*/test", "apps/*/src", "apps/*/test", "scripts", "vitest.redis-setup.ts", "e2e", "playwright.config.ts"],
+  "exclude": ["apps/web"]
 }

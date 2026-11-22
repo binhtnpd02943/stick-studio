@@ -1,4 +1,4 @@
-import { type QueryKey, skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type QueryKey, skipToken, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { z } from 'zod/v4'
 import { ApiError, apiFetch, setCsrfToken } from './client'
@@ -7,7 +7,9 @@ import {
   AssetUrl, Channel, Character, Film, FilmDetail, FilmListItem, type FilmStatus, LoginResult, Me, ReviewItem, Usage, Version, Workspace,
 } from './schemas'
 
-const PAGE = 'limit=100' // shortcut: first page only; add cursor paging when a list outgrows 100.
+const PAGE = 'limit=100' // shortcut: first page only; only the films list (useFilmPages) pages by cursor.
+const FILMS_PAGE = 24
+export const REVIEW_PREVIEW = 20
 const ASSET_URL_STALE_MS = 10 * 60_000 // the signed url lives 900 s
 const FILM_POLL_MS = 5_000 // never faster than the rate budget allows
 
@@ -38,12 +40,31 @@ export const useWorkspace = () => useQuery({ queryKey: ['workspace'], queryFn: r
 export const useChannels = () => useQuery({ queryKey: ['channels'], queryFn: read(`/v1/channels?${PAGE}`, z.array(Channel)) })
 export const useCharacters = () => useQuery({ queryKey: ['characters'], queryFn: read(`/v1/characters?${PAGE}`, z.array(Character)) })
 
-export interface FilmFilter { status?: FilmStatus; channel_id?: string }
-export function useFilms(filter: FilmFilter = {}) {
+export interface FilmFilter { status?: FilmStatus; channel_id?: string; limit?: number }
+const filmsPath = (filter: FilmFilter, cursor?: string) => {
   const params = new URLSearchParams(PAGE)
-  for (const [k, v] of Object.entries(filter)) if (v) params.set(k, v)
-  return useQuery({ queryKey: ['films', filter], queryFn: read(`/v1/films?${params}`, z.array(FilmListItem)) })
+  for (const [k, v] of Object.entries(filter)) if (v) params.set(k, String(v))
+  if (cursor) params.set('cursor', cursor)
+  return `/v1/films?${params}`
 }
+
+/** The first page of films (up to `filter.limit`, default 100). */
+export const useFilms = (filter: FilmFilter = {}) =>
+  useQuery({ queryKey: ['films', filter], queryFn: read(filmsPath(filter), z.array(FilmListItem)) })
+
+const nextCursor = (meta: Record<string, unknown>) => (typeof meta.next_cursor === 'string' ? meta.next_cursor : undefined)
+
+/** Films page by page for the list screen; `fetchNextPage` follows the API's cursor. */
+export const useFilmPages = (filter: FilmFilter = {}) =>
+  useInfiniteQuery({
+    queryKey: ['films', 'pages', filter],
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const { data, meta } = await apiFetch(filmsPath({ limit: FILMS_PAGE, ...filter }, pageParam), z.array(FilmListItem))
+      return { items: data, next: nextCursor(meta) }
+    },
+    getNextPageParam: (last) => last.next,
+  })
 
 const IN_FLIGHT: readonly FilmStatus[] = ['queued', 'running']
 
@@ -63,6 +84,16 @@ export function useFilm(id: string) {
 export const useVersions = (id: string) =>
   useQuery({ queryKey: ['film', id, 'versions'], queryFn: read(`/v1/films/${id}/versions`, z.array(Version)) })
 export const useReviewQueue = () => useQuery({ queryKey: ['review-queue'], queryFn: read(`/v1/review-queue?${PAGE}`, z.array(ReviewItem)) })
+
+/** The head of the queue for the overview: `more` is true when the queue goes past this page. */
+export const useReviewPreview = () =>
+  useQuery({
+    queryKey: ['review-queue', 'preview'],
+    queryFn: async () => {
+      const { data, meta } = await apiFetch(`/v1/review-queue?limit=${REVIEW_PREVIEW}`, z.array(ReviewItem))
+      return { items: data, more: nextCursor(meta) !== undefined }
+    },
+  })
 
 export function useUsageToday() {
   const day = new Date().toISOString().slice(0, 10) // the API's days are UTC

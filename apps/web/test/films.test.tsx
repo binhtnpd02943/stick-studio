@@ -87,6 +87,24 @@ describe('film card', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
+
+  test('an expired signed url (403) refreshes the lists and draws the preview from the fresh url', async () => {
+    mockApi({ '/t/f1.json': (url) => (url.searchParams.get('sig') === 'a' ? json(403, {}) : json(200, STICK_STATES.done)) })
+    const client = createQueryClient(() => {})
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+    const ui = (f: ReturnType<typeof film>) => (
+      <QueryClientProvider client={client}><MemoryRouter><FilmCard film={f} /></MemoryRouter></QueryClientProvider>
+    )
+    const stale = film({ timeline_url: 'https://files.test/t/f1.json?exp=1&sig=a' })
+    const { container, rerender } = render(ui(stale))
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['films'] }))
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['review-queue'] })
+    expect(container.querySelector('canvas')).not.toBeInTheDocument()
+
+    rerender(ui({ ...stale, timeline_url: 'https://files.test/t/f1.json?exp=2&sig=b' }))
+
+    await waitFor(() => expect(container.querySelector('canvas')).toBeInTheDocument())
+  })
 })
 
 describe('new film', () => {

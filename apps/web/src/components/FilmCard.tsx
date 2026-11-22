@@ -1,6 +1,6 @@
 import type { Timeline } from '@stick/core'
-import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router'
 import { z } from 'zod/v4'
 import { ApiError } from '../api/client'
@@ -18,17 +18,26 @@ const TimelineJson = z.custom<Timeline>((v) => Array.isArray((v as Timeline | nu
 /** The timeline never changes within a film version, so it is keyed by film and version, not by the signed url (which differs on every list fetch). */
 function useOpeningScene(film: FilmCardFilm): Timeline | undefined {
   const { timeline_url: url } = film
-  const { data } = useQuery({
+  const qc = useQueryClient()
+  const refreshed = useRef(false)
+  const { data, isError, refetch } = useQuery({
     queryKey: ['timeline', film.id, film.current_version],
     enabled: url !== null,
     staleTime: Infinity,
     gcTime: Infinity,
     queryFn: async () => {
       const res = await fetch(url!, { credentials: 'same-origin' }).catch(() => { throw new ApiError(0, 'network', 'network error') })
+      if (res.status === 403 && !refreshed.current) {
+        // The signed url expired (900 s) in a cached list: fetch fresh lists once; the effect below retries with the new url.
+        refreshed.current = true
+        void qc.invalidateQueries({ queryKey: ['films'] })
+        void qc.invalidateQueries({ queryKey: ['review-queue'] })
+      }
       if (!res.ok) throw new ApiError(res.status, 'internal', 'timeline not available')
       return TimelineJson.parse(await res.json())
     },
   })
+  useEffect(() => { if (isError) void refetch() }, [url]) // retry only when a new url arrives
   return useMemo(() => (data ? openingScene(data) : undefined), [data])
 }
 

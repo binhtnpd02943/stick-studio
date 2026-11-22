@@ -1,9 +1,10 @@
 import { auditLog, createApiToken, getWorkspace } from '@stick/db'
 import { eq } from 'drizzle-orm'
+import { channel as diagnosticsChannel } from 'node:diagnostics_channel'
 import { Redis } from 'ioredis'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { buildApp } from '../src/app.js'
-import { type TestApi, testApi } from './helpers.js'
+import { type TestApi, login, testApi } from './helpers.js'
 
 let t: TestApi
 beforeEach(async () => { t = await testApi() })
@@ -105,7 +106,8 @@ describe('workspace', () => {
     expect(rows.map((r) => r.action)).toEqual(['workspace.update', 'workspace.update'])
     expect(rows[1]).toMatchObject({ actorId: t.seeded.user.id, target: `workspace:${t.seeded.workspace.id}`, data: { max_cost_per_film_usd: null } })
 
-    for (const payload of [{}, { name: '' }, { name: 'x'.repeat(81) }, { max_cost_per_day_usd: 0 }, { max_cost_per_day_usd: -1 }, { max_cost_per_day_usd: '1' }]) {
+    for (const payload of [{}, { name: '' }, { name: 'x'.repeat(81) }, { max_cost_per_day_usd: 0 }, { max_cost_per_day_usd: -1 }, { max_cost_per_day_usd: '1' },
+      { max_cost_per_day_usd: 1e-7 }, { max_cost_per_day_usd: 1e7 }, { max_cost_per_film_usd: 0.001 }, { max_cost_per_film_usd: 100_000 }]) {
       const bad = await t.app.inject({ method: 'PATCH', url: '/v1/workspace', headers, payload })
       expect(bad.statusCode, JSON.stringify(payload)).toBe(400)
     }
@@ -152,5 +154,67 @@ describe('health and rate limit', () => {
     expect((await t.app.inject({ method: 'GET', url: '/v1/me', headers: bearer(other.token) })).statusCode).toBe(200)
     // Health checks are never limited.
     expect((await t.app.inject({ method: 'GET', url: '/healthz' })).statusCode).toBe(200)
+  })
+})
+
+interface SeenRoute { method: string; url: string; public: boolean }
+
+/** Builds a test app while recording every route Fastify registers (url and its `config.public` flag). */
+async function appWithRouteList(): Promise<{ api: TestApi; routes: SeenRoute[] }> {
+  const routes: SeenRoute[] = []
+  const channel = diagnosticsChannel('fastify.initialization')
+  const onInit = (msg: unknown) => {
+    ;(msg as { fastify: { addHook(n: 'onRoute', fn: (r: { method: string | string[]; url: string; config?: { public?: boolean } }) => void): void } })
+      .fastify.addHook('onRoute', (r) => {
+        for (const method of [r.method].flat()) routes.push({ method, url: r.url, public: r.config?.public === true })
+      })
+  }
+  channel.subscribe(onInit)
+  try {
+    return { api: await testApi(), routes }
+  } finally {
+    channel.unsubscribe(onInit)
+  }
+}
+
+const UUID = '00000000-0000-4000-8000-000000000000'
+// A schema-valid body per route: validation runs before the auth preHandler, so `{}` would answer 400 first.
+const VALID_BODY: Record<string, unknown> = {
+  'PATCH /v1/workspace': { name: 'x' },
+  'POST /v1/channels': { display_name: 'c' },
+  'PATCH /v1/channels/:id': { display_name: 'c' },
+  'POST /v1/characters': { name: 'c', look: { ink: '#123456' }, voice_id: 'child' },
+  'PATCH /v1/characters/:id': { name: 'c' },
+  'POST /v1/films': { channel_id: UUID, title: 't' },
+  'POST /v1/films/:id/redo': { from_step: 'story', reason: 'r' },
+  'POST /v1/films/:id/review': { decision: 'approved' },
+  'PATCH /v1/films/:id/screenplay': { screenplay: {} },
+}
+
+describe('every route enforces auth', () => {
+  test('non-public routes are 401 without credentials; cookie mutations outside /v1/auth/ are 403 without the csrf header', async () => {
+    const { api, routes } = await appWithRouteList()
+    try {
+      const walked = routes.filter((r) => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(r.method) && r.url.startsWith('/'))
+      expect(walked.length).toBeGreaterThan(20)
+      expect(walked.filter((r) => r.public).map((r) => `${r.method} ${r.url}`).sort()).toEqual([
+        'GET /healthz', 'GET /readyz', 'GET /v1/assets/:id/content', 'GET /v1/openapi.json', 'POST /v1/auth/login',
+      ])
+      const { cookie } = await login(api.app, api.seeded.user.email, api.seeded.password)
+      for (const r of walked.filter((x) => !x.public)) {
+        const key = `${r.method} ${r.url}`
+        const url = r.url.replace(/:(\w+)/g, UUID)
+        const payload = ['GET', 'DELETE'].includes(r.method) ? undefined : VALID_BODY[key] ?? {}
+        const anon = await api.app.inject({ method: r.method as 'GET', url, payload })
+        expect(anon.statusCode, `${key} without credentials`).toBe(401)
+        expect(anon.json().error.code, key).toBe('unauthorized')
+        if (r.method === 'GET' || r.url.startsWith('/v1/auth/')) continue
+        const noCsrf = await api.app.inject({ method: r.method as 'POST', url, payload, headers: { cookie } })
+        expect(noCsrf.statusCode, `${key} with a cookie and no csrf header`).toBe(403)
+        expect(noCsrf.json().error.code, key).toBe('csrf_failed')
+      }
+    } finally {
+      await api.close()
+    }
   })
 })

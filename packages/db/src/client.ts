@@ -19,19 +19,22 @@ export interface CreateDbOptions {
   pgliteDir?: string
   /** Test seam: defaults to the committed `packages/db/migrations`. */
   migrationsFolder?: string
+  /** Idle-connection errors (e.g. a Postgres restart); without a listener the pool's 'error' event crashes the process. */
+  onError?: (err: Error) => void
 }
 
 export async function createDb(opts: CreateDbOptions = {}): Promise<{ db: Db; close(): Promise<void> }> {
   const migrationsFolder = opts.migrationsFolder ?? MIGRATIONS
-  if (opts.url) return createPostgresDb(opts.url, migrationsFolder)
+  if (opts.url) return createPostgresDb(opts.url, migrationsFolder, opts.onError)
   const client = new PGlite(opts.pgliteDir ?? 'memory://')
   const db = drizzlePglite(client, { schema })
   await migratePglite(db, { migrationsFolder })
   return { db, close: () => client.close() }
 }
 
-async function createPostgresDb(url: string, migrationsFolder: string) {
+async function createPostgresDb(url: string, migrationsFolder: string, onError?: (err: Error) => void) {
   const pool = new pg.Pool({ connectionString: url })
+  pool.on('error', onError ?? ((err) => console.error('postgres pool error:', err.message)))
   try {
     await migrateUnderLock(pool, migrationsFolder)
   } catch (err) {

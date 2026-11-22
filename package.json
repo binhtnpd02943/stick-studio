@@ -13,7 +13,7 @@
     "make": "tsx scripts/make-film.ts",
     "preview": "tsx scripts/preview-action.ts",
     "db:generate": "drizzle-kit generate --config packages/db/drizzle.config.ts",
-    "coverage:db": "vitest run packages/db --coverage.enabled --coverage.include='packages/db/src/**' --coverage.thresholds.lines=80 --coverage.thresholds.functions=80",
+    "coverage:db": "vitest run --project unit packages/db --coverage.enabled --coverage.include='packages/db/src/**' --coverage.thresholds.lines=80 --coverage.thresholds.functions=80",
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
     "test:db:pg": "STICK_TEST_DATABASE_URL=postgres://stick:stick@127.0.0.1:5432/stick_test vitest run packages/db"

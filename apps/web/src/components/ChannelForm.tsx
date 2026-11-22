@@ -39,10 +39,13 @@ export function ChannelForm({ channel, access = 'write', onDone }: { channel?: C
   const [locale, setLocale] = useState(channel?.locale ?? DEFAULT_LOCALE)
   const [policy, setPolicy] = useState<ChannelInput['review_policy']>(channel?.review_policy ?? 'manual')
   const [threshold, setThreshold] = useState(channel?.auto_score_threshold?.toString() ?? '')
+  const [thresholdBad, setThresholdBad] = useState(false) // a number input reads garbage like "1e" as ''
   const [submitted, setSubmitted] = useState(false)
 
   const auto = policy === 'auto_if_score'
-  const parsedThreshold = auto ? parseNumber(threshold, THRESHOLD_MIN, THRESHOLD_MAX) : null
+  // A manual draft keeps the stored threshold the user cannot see; only switching away from auto clears it.
+  const keptThreshold = channel?.review_policy === 'manual' ? channel.auto_score_threshold : null
+  const parsedThreshold = auto ? (thresholdBad ? undefined : parseNumber(threshold, THRESHOLD_MIN, THRESHOLD_MAX)) : keptThreshold
   const displayName = name.trim()
   const localeValue = locale.trim()
   const errors = {
@@ -84,7 +87,7 @@ export function ChannelForm({ channel, access = 'write', onDone }: { channel?: C
         {auto && (
           <div className="field">
             <label htmlFor={`${id}-threshold`}>{vi.settings.threshold}</label>
-            <input id={`${id}-threshold`} type="number" min={THRESHOLD_MIN} max={THRESHOLD_MAX} step="any" value={threshold} onChange={(e) => setThreshold(e.target.value)} aria-invalid={!!show(errors.threshold)} aria-describedby={`${id}-threshold-error`} aria-required="true" />
+            <input id={`${id}-threshold`} type="number" min={THRESHOLD_MIN} max={THRESHOLD_MAX} step="any" value={threshold} onChange={(e) => { setThreshold(e.target.value); setThresholdBad(e.currentTarget.validity.badInput) }} aria-invalid={!!show(errors.threshold)} aria-describedby={`${id}-threshold-error`} aria-required="true" />
             <span id={`${id}-threshold-error`} className="field-meta">{show(errors.threshold)}</span>
           </div>
         )}

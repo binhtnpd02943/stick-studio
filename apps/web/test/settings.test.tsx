@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import type { Channel, Workspace } from '../src/api/schemas'
@@ -37,6 +37,8 @@ describe('settings', () => {
     const user = userEvent.setup()
     const { patchWorkspace } = await open()
     expect(screen.getByText('Để trống: dùng mặc định $10.00')).toBeInTheDocument()
+    expect(screen.getByText('Đang đặt $3.00')).toBeInTheDocument() // a set cap is not the default, so no default hint for it
+    expect(screen.getAllByText(/^Để trống/)).toHaveLength(1)
     const film = screen.getByLabelText('Trần chi phí mỗi phim (USD)')
     expect(film).toHaveValue(3)
     expect(film).toHaveAttribute('step', '0.01')
@@ -90,6 +92,36 @@ describe('settings', () => {
     await user.click(screen.getByRole('button', { name: 'Lưu kênh' }))
     await waitFor(() => expect(saveChannel).toHaveBeenCalledTimes(1))
     expect(body(saveChannel.mock.calls[0]!)).toEqual({ display_name: 'Toán hay' })
+  })
+
+  test('renaming a manual channel that holds a threshold sends only the name', async () => {
+    const user = userEvent.setup()
+    const { saveChannel } = await open('owner', [channel({ auto_score_threshold: 70 })])
+    const name = screen.getByLabelText('Tên hiển thị')
+    await user.clear(name)
+    await user.type(name, 'Toán hay')
+    await user.click(screen.getByRole('button', { name: 'Lưu kênh' }))
+    await waitFor(() => expect(saveChannel).toHaveBeenCalledTimes(1))
+    expect(body(saveChannel.mock.calls[0]!)).toEqual({ display_name: 'Toán hay' })
+  })
+
+  test('garbage in a number field (badInput reads as empty) blocks the save instead of sending null', async () => {
+    const user = userEvent.setup()
+    const { patchWorkspace, saveChannel } = await open('owner', [channel({ review_policy: 'auto_if_score', auto_score_threshold: 80 })])
+    const garbage = (input: HTMLElement) => {
+      Object.defineProperty(input, 'validity', { value: { badInput: true } })
+      fireEvent.change(input, { target: { value: '' } })
+    }
+    const film = screen.getByLabelText('Trần chi phí mỗi phim (USD)')
+    garbage(film)
+    await user.click(screen.getByRole('button', { name: 'Lưu' }))
+    expect(film).toHaveAttribute('aria-invalid', 'true')
+    expect(patchWorkspace).not.toHaveBeenCalled()
+    const threshold = screen.getByLabelText('Ngưỡng điểm')
+    garbage(threshold)
+    await user.click(screen.getByRole('button', { name: 'Lưu kênh' }))
+    expect(threshold).toHaveAttribute('aria-invalid', 'true')
+    expect(saveChannel).not.toHaveBeenCalled()
   })
 
   test('add channel posts display_name and locale vi-VN', async () => {

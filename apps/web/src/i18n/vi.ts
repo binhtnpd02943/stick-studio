@@ -132,6 +132,7 @@ export const vi = {
     capFilm: 'Trần chi phí mỗi phim (USD)',
     capDay: 'Trần chi phí mỗi ngày (USD)',
     capDefault: (effective: string) => `Để trống: dùng mặc định ${effective}`,
+    capSet: (cap: string) => `Đang đặt ${cap}`,
     capInvalid: (min: string, max: number) => `Nhập số từ ${min} đến ${max}`,
     save: 'Lưu',
     saving: 'Đang lưu…',

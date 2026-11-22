@@ -25,12 +25,13 @@ function WorkspaceForm({ workspace, access }: { workspace: Workspace; access: Ac
     max_cost_per_film_usd: workspace.max_cost_per_film_usd?.toString() ?? '',
     max_cost_per_day_usd: workspace.max_cost_per_day_usd?.toString() ?? '',
   })
+  const [bad, setBad] = useState<Record<CapKey, boolean>>({ max_cost_per_film_usd: false, max_cost_per_day_usd: false }) // a number input reads garbage like "1e" as ''
   const [submitted, setSubmitted] = useState(false)
 
   const nameValue = name.trim()
   const nameError = nameValue.length === 0 ? vi.settings.nameRequired : nameValue.length > NAME_MAX ? vi.settings.nameTooLong(NAME_MAX) : null
   // empty means "use the default" (null); a non-empty value out of range is `undefined`
-  const parsed = (key: CapKey) => (caps[key].trim() === '' ? null : parseNumber(caps[key], CAP_MIN_USD, CAP_MAX_USD))
+  const parsed = (key: CapKey) => (bad[key] ? undefined : caps[key].trim() === '' ? null : parseNumber(caps[key], CAP_MIN_USD, CAP_MAX_USD))
   const capError = vi.settings.capInvalid(String(CAP_MIN_USD).replace('.', ','), CAP_MAX_USD)
   const invalid = !!nameError || CAPS.some(({ key }) => parsed(key) === undefined)
 
@@ -65,10 +66,10 @@ function WorkspaceForm({ workspace, access }: { workspace: Workspace; access: Ac
               <label htmlFor={`ws-${key}`}>{label}</label>
               <input
                 id={`ws-${key}`} type="number" step="0.01" min={CAP_MIN_USD} max={CAP_MAX_USD} value={caps[key]}
-                onChange={(e) => setCaps({ ...caps, [key]: e.target.value })} aria-invalid={error} aria-describedby={`ws-${key}-meta`}
+                onChange={(e) => { setCaps({ ...caps, [key]: e.target.value }); setBad({ ...bad, [key]: e.currentTarget.validity.badInput }) }} aria-invalid={error} aria-describedby={`ws-${key}-meta`}
               />
               <span id={`ws-${key}-meta`} className="field-meta">
-                <span>{error ? capError : vi.settings.capDefault(formatUsd(workspace[effective]))}</span>
+                <span>{error ? capError : workspace[key] === null ? vi.settings.capDefault(formatUsd(workspace[effective])) : vi.settings.capSet(formatUsd(workspace[key]))}</span>
               </span>
             </div>
           )

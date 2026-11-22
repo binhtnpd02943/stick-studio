@@ -7,8 +7,12 @@ import { ErrorNotice } from '../components/ErrorNotice'
 import { vi } from '../i18n/vi'
 import '../styles/login.css'
 
-/** Only a path on this origin: one leading slash, not `//host` or `/\host`. */
-const safeNext = (next: string | null): string => (next && /^\/(?![/\\])/.test(next) ? next : '/')
+/** Only a location on this origin. The URL parser applies the browser's own rules (tabs, newlines, backslashes). */
+function safeNext(next: string | null): string {
+  if (!next) return '/'
+  const url = new URL(next, window.location.origin)
+  return url.origin === window.location.origin ? url.pathname + url.search + url.hash : '/'
+}
 
 function LoginError({ error }: { error: unknown }) {
   if (error instanceof ApiError && error.status === 401) return <p role="alert" className="error-notice">{vi.login.wrong}</p>

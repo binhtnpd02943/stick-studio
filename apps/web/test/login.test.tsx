@@ -20,10 +20,10 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-async function submit(next = '/films') {
+async function submit(next = '/films', encode = true) {
   const router = createMemoryRouter(
     [{ path: '/login', element: <Login /> }, { path: '*', element: <p>đích</p> }],
-    { initialEntries: [`/login?next=${encodeURIComponent(next)}`] },
+    { initialEntries: [`/login?next=${encode ? encodeURIComponent(next) : next}`] },
   )
   render(<QueryClientProvider client={createQueryClient(onUnauthorized)}><RouterProvider router={router} /></QueryClientProvider>)
   const user = userEvent.setup()
@@ -71,7 +71,13 @@ describe('login', () => {
     expect(JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string)).toEqual({ email: 'ban@vidu.vn', password: 'secret' })
   })
 
-  test.each(['//evil.example', 'https://evil.example', '/\\evil.example'])('a next of %s navigates to /', async (next) => {
+  test.each(['/%09/evil.example', '/%0a/evil.example'])('a raw query next of %s (control char once decoded) navigates to /', async (next) => {
+    fetchMock.mockResolvedValue(respond(200, { data: { csrf_token: 'tok' }, error: null, meta: {} }))
+    const router = await submit(next, false)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+  })
+
+  test.each(['//evil.example', 'https://evil.example', '/\\evil.example', '/\t/evil.example'])('a next of %s navigates to /', async (next) => {
     fetchMock.mockResolvedValue(respond(200, { data: { csrf_token: 'tok' }, error: null, meta: {} }))
     const router = await submit(next)
     await waitFor(() => expect(router.state.location.pathname).toBe('/'))

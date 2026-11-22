@@ -8,7 +8,8 @@ import { ErrorNotice } from './ErrorNotice'
 export function RequireAuth({ children }: { children: ReactNode }) {
   const me = useMe()
   const { pathname, search } = useLocation()
-  if (me.isSuccess) return children
+  // Keep the page when a background refetch fails; a 401 is redirected by the global query handler.
+  if (me.data) return children
   if (me.error instanceof ApiError && me.error.status === 401) {
     return <Navigate to={`/login?next=${encodeURIComponent(pathname + search)}`} replace />
   }

@@ -56,6 +56,17 @@ describe('RequireAuth', () => {
     expect(getCsrfToken()).toBe('tok-1')
   })
 
+  test('a failed background refetch of /me keeps the children mounted', async () => {
+    routes['GET /v1/me'] = () => ok(ME)
+    const { client } = mount('/films')
+    expect(await screen.findByText('privát')).toBeInTheDocument()
+    routes['GET /v1/me'] = () => failure(500, 'internal')
+    await client.invalidateQueries({ queryKey: ['me'] })
+    await waitFor(() => expect(client.getQueryState(['me'])?.status).toBe('error'))
+    expect(screen.getByText('privát')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   test('a 401 from /me redirects to /login with next', async () => {
     routes['GET /v1/me'] = () => failure(401, 'unauthorized')
     const { router } = mount('/films?status=failed')

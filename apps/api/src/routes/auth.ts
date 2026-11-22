@@ -18,7 +18,12 @@ export function authRoutes(app: FastifyInstance, { db }: ApiDeps): void {
 
   r.post('/v1/auth/login', {
     schema: { body: LoginBody, tags: ['auth'] },
-    config: { public: true, rateLimit: { ...LOGIN_RATE_LIMIT, keyGenerator: (req) => req.ip } },
+    config: {
+      public: true,
+      // Fails closed: with the store down, login is refused rather than left unlimited. Other routes skip a broken store.
+      rateLimit: { ...LOGIN_RATE_LIMIT, keyGenerator: (req) => req.ip, skipOnError: false },
+      internalMessage: 'login temporarily unavailable',
+    },
   }, async (req, reply) => {
     const user = await verifyPassword(db, req.body.email, req.body.password)
     const membership = user && await primaryMembership(db, user.id)

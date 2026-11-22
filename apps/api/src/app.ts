@@ -5,7 +5,7 @@ import { MIN_SIGNING_KEY_LENGTH } from '@stick/providers'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import { v7 } from 'uuid'
-import { authHook } from './auth.js'
+import { authHook, requireAuth } from './auth.js'
 import { sendError } from './envelope.js'
 import { ApiError, errorHandler } from './errors.js'
 import { authRoutes } from './routes/auth.js'
@@ -78,6 +78,11 @@ export async function buildApp(deps: ApiDeps, opts: BuildAppOptions = {}): Promi
   // 6. auth.
   app.decorateRequest('principal', null as never)
   app.addHook('onRequest', authHook(deps.db))
+  // Route-level, and added after the rate limiter's onRoute, so it runs after the limiter's preHandler.
+  // (App-level preHandlers would run before route-level ones.)
+  app.addHook('onRoute', (route) => {
+    route.preHandler = [...[route.preHandler ?? []].flat(), requireAuth]
+  })
 
   // 7. routes.
   for (const routes of [healthRoutes, authRoutes, meRoutes, workspaceRoutes]) routes(app, deps)

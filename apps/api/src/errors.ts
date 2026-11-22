@@ -27,5 +27,5 @@ export function errorHandler(err: FastifyError, request: FastifyRequest, reply: 
     return sendError(reply, err.statusCode, 'bad_request', err.message)
   }
   request.log.error({ err }, 'unhandled error')
-  return sendError(reply, 500, 'internal', 'internal error')
+  return sendError(reply, 500, 'internal', request.routeOptions.config.internalMessage ?? 'internal error')
 }

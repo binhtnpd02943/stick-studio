@@ -1,6 +1,7 @@
 import { createApiToken, createSession, createUser, apiTokens, workspaceMembers } from '@stick/db'
 import { seedWorkspace } from '@stick/db/testing'
 import { and, eq } from 'drizzle-orm'
+import { Redis } from 'ioredis'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { type TestApi, login, testApi } from './helpers.js'
 
@@ -136,6 +137,52 @@ describe('rate limits and logs', () => {
     expect(limited.statusCode).toBe(429)
     expect(limited.json()).toMatchObject({ data: null, error: { code: 'rate_limited' } })
     expect((await attempt('10.0.0.2')).statusCode).toBe(401)
+  })
+
+  test('unauthenticated requests are limited to 120/min per IP', async () => {
+    const anon = (ip: string) => t.app.inject({ method: 'GET', url: '/v1/me', remoteAddress: ip })
+    for (let i = 0; i < 120; i++) expect((await anon('10.0.1.1')).statusCode, `request ${i + 1}`).toBe(401)
+    const limited = await anon('10.0.1.1')
+    expect(limited.statusCode).toBe(429)
+    expect(limited.json().error.code).toBe('rate_limited')
+    expect((await anon('10.0.1.2')).statusCode).toBe(401)
+  })
+
+  test('the login counter is separate from the global per-IP counter', async () => {
+    const ip = '10.0.2.1'
+    const loginAttempt = () => t.app.inject({
+      method: 'POST', url: '/v1/auth/login', remoteAddress: ip, payload: { email: 'nobody@example.test', password: 'whatever-password' },
+    })
+    // Exhaust the global budget: login still has its own 10.
+    for (let i = 0; i < 121; i++) await t.app.inject({ method: 'GET', url: '/v1/me', remoteAddress: ip })
+    expect((await t.app.inject({ method: 'GET', url: '/v1/me', remoteAddress: ip })).statusCode).toBe(429)
+    for (let i = 0; i < 10; i++) expect((await loginAttempt()).statusCode).toBe(401)
+    expect((await loginAttempt()).statusCode).toBe(429)
+
+    // Exhausting login does not touch another IP's global budget, nor its own login allowance elsewhere.
+    const other = '10.0.2.2'
+    for (let i = 0; i < 11; i++) {
+      await t.app.inject({ method: 'POST', url: '/v1/auth/login', remoteAddress: other, payload: { email: 'nobody@example.test', password: 'whatever-password' } })
+    }
+    expect((await t.app.inject({ method: 'GET', url: '/v1/me', remoteAddress: other })).statusCode).toBe(401)
+  })
+
+  test('login fails closed when the rate-limit store is down; other routes keep working', async () => {
+    await t.close()
+    // As in main.ts: no offline queue, so commands against a closed port fail at once.
+    const down = new Redis('redis://127.0.0.1:1', { enableOfflineQueue: false, maxRetriesPerRequest: 1 }).on('error', () => {})
+    try {
+      t = await testApi({ redis: down })
+      const started = Date.now()
+      const res = await t.app.inject({ method: 'POST', url: '/v1/auth/login', payload: { email: t.seeded.user.email, password: t.seeded.password } })
+      expect(Date.now() - started).toBeLessThan(5_000)
+      expect(res.statusCode).toBe(500)
+      expect(res.json()).toMatchObject({ data: null, error: { code: 'internal', message: 'login temporarily unavailable', details: {} } })
+      expect(res.headers['set-cookie']).toBeUndefined()
+      expect((await t.app.inject({ method: 'GET', url: '/v1/me', headers: bearer(t.seeded.token) })).statusCode).toBe(200)
+    } finally {
+      down.disconnect()
+    }
   })
 
   test('logs never contain the bearer token, cookie or password', async () => {

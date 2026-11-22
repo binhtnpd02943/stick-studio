@@ -5,7 +5,11 @@ import { ApiError, forbidden, unauthorized } from './errors.js'
 
 declare module 'fastify' {
   interface FastifyRequest { principal: Principal }
-  interface FastifyContextConfig { public?: boolean }
+  interface FastifyContextConfig {
+    public?: boolean
+    /** Message of this route's 500s instead of 'internal error'. */
+    internalMessage?: string
+  }
 }
 
 export const SESSION_COOKIE = 'sid'
@@ -29,21 +33,30 @@ async function resolvePrincipal(db: Db, request: FastifyRequest): Promise<Princi
   return sid ? findSession(db, sid) : undefined
 }
 
-/** onRequest: sets request.principal, then enforces CSRF on cookie writes and read-only access for viewers. */
+/** onRequest: sets request.principal when the credentials are valid. Rejection waits for `requireAuth`. */
 export function authHook(db: Db) {
   return async (request: FastifyRequest): Promise<void> => {
     if (request.routeOptions.config.public) return
     const principal = await resolvePrincipal(db, request)
-    if (!principal) throw unauthorized()
-    request.principal = principal
-    if (!WRITE_METHODS.has(request.method)) return
-    if (principal.via === 'session') {
-      const sent = request.headers['x-csrf-token']
-      if (typeof sent !== 'string' || !principal.csrfToken || !sameToken(sent, principal.csrfToken)) {
-        throw new ApiError(403, 'csrf_failed', 'missing or invalid x-csrf-token')
-      }
-    }
-    // Viewers may still log out.
-    if (principal.role === 'viewer' && !request.routeOptions.url?.startsWith('/v1/auth/')) throw forbidden()
+    if (principal) request.principal = principal
   }
+}
+
+/**
+ * Route-level preHandler, added after the rate limiter's, so anonymous and failing requests are counted (per IP) before
+ * they get 401/403. Enforces CSRF on cookie writes and read-only access for viewers.
+ */
+export async function requireAuth(request: FastifyRequest): Promise<void> {
+  if (request.routeOptions.config.public) return
+  const principal = request.principal
+  if (!principal) throw unauthorized()
+  if (!WRITE_METHODS.has(request.method)) return
+  if (principal.via === 'session') {
+    const sent = request.headers['x-csrf-token']
+    if (typeof sent !== 'string' || !principal.csrfToken || !sameToken(sent, principal.csrfToken)) {
+      throw new ApiError(403, 'csrf_failed', 'missing or invalid x-csrf-token')
+    }
+  }
+  // Viewers may still log out.
+  if (principal.role === 'viewer' && !request.routeOptions.url?.startsWith('/v1/auth/')) throw forbidden()
 }

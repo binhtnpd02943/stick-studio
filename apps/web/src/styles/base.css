@@ -727,19 +727,22 @@ button:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* the shell header (about 57px) sits above; the nav row below takes the rest */
-  min-height: calc(100dvh - 57px - 56px);
+  /* a fixed height, so the buttons always fit the screen: the shell header (59px) sits above, the nav row (56px) below */
+  height: calc(100dvh - 59px - 56px);
 }
 
 .review-stage {
   position: relative;
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  min-height: 0;
   touch-action: pan-y;
 }
 
 .review-stage .film-video {
+  width: auto;
+  max-width: 100%;
   height: 100%;
-  min-height: 60dvh;
+  margin: 0 auto;
   aspect-ratio: 9 / 16;
 }
 

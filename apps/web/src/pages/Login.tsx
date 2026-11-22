@@ -5,14 +5,8 @@ import { useLogin } from '../api/queries'
 import { BrandMark } from '../components/Brand'
 import { ErrorNotice } from '../components/ErrorNotice'
 import { vi } from '../i18n/vi'
+import { safeNext } from '../safe-next'
 import '../styles/login.css'
-
-/** Only a location on this origin. The URL parser applies the browser's own rules (tabs, newlines, backslashes). */
-function safeNext(next: string | null): string {
-  if (!next) return '/'
-  const url = new URL(next, window.location.origin)
-  return url.origin === window.location.origin ? url.pathname + url.search + url.hash : '/'
-}
 
 function LoginError({ error }: { error: unknown }) {
   if (error instanceof ApiError && error.status === 401) return <p role="alert" className="error-notice">{vi.login.wrong}</p>

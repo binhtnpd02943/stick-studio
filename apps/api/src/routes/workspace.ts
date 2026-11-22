@@ -6,7 +6,9 @@ import { ok } from '../envelope.js'
 import { notFound } from '../errors.js'
 import type { ApiDeps } from '../types.js'
 
-const cap = z.number().positive().finite().nullable()
+const MIN_CAP_USD = 0.01
+const MAX_CAP_USD = 99_999
+const cap = z.number().min(MIN_CAP_USD).max(MAX_CAP_USD).nullable() // null falls back to the env default
 const WorkspacePatchBody = z.strictObject({
   name: z.string().min(1).max(80).optional(),
   max_cost_per_film_usd: cap.optional(),

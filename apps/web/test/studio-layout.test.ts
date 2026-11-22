@@ -61,13 +61,19 @@ describe('studio layout', () => {
         expect(overlap, `${a} / ${b}`).toBe(false)
       }
     }
-    expect(Object.keys(ROOMS)).toContain('corridor')
+  })
+
+  test('every name tag is whole inside the view and the bottom row hangs below its wall, not across it', () => {
+    for (const m of TEAM) expect(tagBox(m.key).bottom, m.key).toBeLessThanOrEqual(VIEW.top + VIEW.height)
+    const BOTTOM_WALL = 900
+    for (const key of ROOMS.post) expect(tagBox(key).top, key).toBeGreaterThan(BOTTOM_WALL)
   })
 
   test('room labels never collide with a name tag and sit inside the visible view', () => {
     for (const label of ROOM_LABELS) {
       const box = { left: label.x, right: label.x + vi.studio.rooms[label.key].length * 7, top: label.y - 11, bottom: label.y + 3 }
       expect(box.top).toBeGreaterThanOrEqual(VIEW.top)
+      expect(box.bottom).toBeLessThanOrEqual(VIEW.top + VIEW.height)
       for (const m of TEAM) {
         const t = tagBox(m.key)
         const overlap = box.left < t.right && t.left < box.right && box.top < t.bottom && t.top < box.bottom

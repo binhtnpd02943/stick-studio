@@ -3,8 +3,8 @@ import { type MemberKey, memberOf } from './team'
 // Geometry ported from docs/superpowers/mockups/studio-floor.html.
 export const SCENE = { width: 1280, height: 1000 } as const
 
-/** The drawn part of the scene: the mockup's header band (0–64) and footer below the rooms are not rendered. */
-export const VIEW = { top: 64, height: 848 } as const
+/** The drawn part of the scene: the mockup's header band (0–64) is not rendered; the bottom keeps room for the tags under the wall. */
+export const VIEW = { top: 64, height: 880 } as const
 
 export type Point = { x: number; y: number }
 export type SpotKey = MemberKey | 'review'
@@ -33,9 +33,13 @@ const FIGURE_LEFT: Record<MemberKey, number> = {
 /** Head centre inside the 80×130 figure box, per pose. */
 export const HEAD = { sit: { x: 30, y: 40 }, stand: { x: 40, y: 22 } } as const
 
-/** Name tags hang under each figure box (80×130), centred on it. */
+/** Name tags hang under each figure box (80×130), centred on it; the bottom row's hang below the outer wall (y 900). */
 const TAG_TOP = 130
-export const tagAt = (key: MemberKey): Point => ({ x: figureAt(key).x + 40, y: figureAt(key).y + TAG_TOP })
+const BOTTOM_TAG_Y = 906
+export const tagAt = (key: MemberKey): Point => {
+  const box = figureAt(key)
+  return { x: box.x + 40, y: FLOOR_OF[roomOf(key)] === 'bot' ? BOTTOM_TAG_Y : box.y + TAG_TOP }
+}
 
 /** Room labels; the corridor ones sit below the top room's name tags and clear of Hùng's head. */
 export const ROOM_LABELS = [

@@ -31,5 +31,7 @@ export async function expectAllStepsSucceeded(page: Page): Promise<void> {
 export async function createDoneFilm(page: Page, title: string): Promise<string> {
   const url = await createFilm(page, title)
   await expectAllStepsSucceeded(page)
+  // The last step succeeds a few writes before the film itself moves to awaiting_review.
+  await expect(page.locator('.film-detail-head .status-pill')).toHaveText('Chờ duyệt', { timeout: STEP_TIMEOUT_MS })
   return url
 }

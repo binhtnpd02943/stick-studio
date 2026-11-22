@@ -1,4 +1,4 @@
-import { type QueryKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type QueryKey, skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { z } from 'zod/v4'
 import { ApiError, apiFetch, setCsrfToken } from './client'
@@ -17,9 +17,9 @@ export type LiveState = 'connecting' | 'live' | 'offline'
 /** Outside the ['film', id] prefix so invalidating a film never resets the stream state. */
 export const filmLiveKey = (id: string): QueryKey => ['film-live', id]
 
-/** The SSE state of a film. Task 9's `useFilmEvents` writes it with `setQueryData(filmLiveKey(id), state)`. */
+/** The SSE state of a film. Task 9's `useFilmEvents` writes it with `setQueryData(filmLiveKey(id), state)`; nothing fetches it, so a fetch can never overwrite a write. */
 export function useFilmLive(id: string): LiveState {
-  const { data } = useQuery({ queryKey: filmLiveKey(id), queryFn: (): LiveState => 'connecting', staleTime: Infinity, gcTime: Infinity })
+  const { data } = useQuery<LiveState>({ queryKey: filmLiveKey(id), queryFn: skipToken, staleTime: Infinity, gcTime: Infinity })
   return data ?? 'connecting'
 }
 
@@ -45,13 +45,18 @@ export function useFilms(filter: FilmFilter = {}) {
   return useQuery({ queryKey: ['films', filter], queryFn: read(`/v1/films?${params}`, z.array(FilmListItem)) })
 }
 
-/** Polls only while the event stream is offline; with a live stream the events refresh it. */
+const IN_FLIGHT: readonly FilmStatus[] = ['queued', 'running']
+
+/** Polls only while the event stream is offline and the film is still moving; with a live stream the events refresh it. */
 export function useFilm(id: string) {
   const live = useFilmLive(id)
-  return useQuery({
+  return useQuery<FilmDetail>({
     queryKey: ['film', id],
     queryFn: read(`/v1/films/${id}`, FilmDetail),
-    refetchInterval: live === 'offline' ? FILM_POLL_MS : false,
+    refetchInterval: (query) => {
+      const status = query.state.data?.film.status
+      return live === 'offline' && status !== undefined && IN_FLIGHT.includes(status) ? FILM_POLL_MS : false
+    },
   })
 }
 

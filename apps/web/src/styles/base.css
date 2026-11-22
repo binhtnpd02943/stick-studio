@@ -163,3 +163,142 @@ button:hover {
   color: var(--muted);
   font: 400 13px/1.4 var(--mono);
 }
+
+/* status pill */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: var(--pill);
+  color: var(--ink);
+  font: 400 12px/1.5 var(--mono);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--accent);
+  outline: 1px solid var(--ink);
+}
+
+/* step timeline */
+.step-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step-timeline li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.step-marker {
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--faint);
+  font-size: 12px;
+}
+
+.step-timeline li[data-status='succeeded'] .step-marker {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.step-timeline li[data-status='running'] .step-marker {
+  background: var(--accent);
+  border-color: var(--ink);
+}
+
+.step-timeline li[data-status='failed'] .step-marker {
+  background: var(--accent);
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--ink);
+}
+
+.step-error {
+  color: var(--body);
+  font-size: 13px;
+}
+
+.step-status,
+.step-meta {
+  color: var(--muted);
+  font: 400 12px/1.5 var(--mono);
+  text-align: right;
+}
+
+/* film player and assets */
+.film-player {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.film-video,
+.asset-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: contain;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+/* cost badge */
+.cost-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cost-text {
+  color: var(--ink);
+  font: 500 13px/1.5 var(--mono);
+}
+
+.cost-meter {
+  width: 96px;
+  height: 8px;
+  border-radius: 99px;
+  outline: 1px solid var(--ink);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.cost-fill {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.cost-meter[data-state='warn'] .cost-fill {
+  background: var(--accent);
+}
+
+.cost-over {
+  color: var(--ink);
+  font: 500 12px/1.5 var(--mono);
+}

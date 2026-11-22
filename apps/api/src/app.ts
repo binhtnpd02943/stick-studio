@@ -1,5 +1,6 @@
 import fastifyCookie from '@fastify/cookie'
 import fastifyRateLimit from '@fastify/rate-limit'
+import fastifyStatic from '@fastify/static'
 import fastifySwagger from '@fastify/swagger'
 import { MIN_SIGNING_KEY_LENGTH } from '@stick/providers'
 import Fastify, { type FastifyInstance } from 'fastify'
@@ -8,9 +9,14 @@ import { v7 } from 'uuid'
 import { authHook, requireAuth } from './auth.js'
 import { sendError } from './envelope.js'
 import { ApiError, errorHandler } from './errors.js'
+import { assetRoutes } from './routes/assets.js'
 import { authRoutes } from './routes/auth.js'
+import { channelRoutes } from './routes/channels.js'
+import { characterRoutes } from './routes/characters.js'
 import { healthRoutes } from './routes/health.js'
 import { meRoutes } from './routes/me.js'
+import { reviewQueueRoutes } from './routes/review-queue.js'
+import { usageRoutes } from './routes/usage.js'
 import { workspaceRoutes } from './routes/workspace.js'
 import type { ApiDeps } from './types.js'
 
@@ -61,8 +67,9 @@ export async function buildApp(deps: ApiDeps, opts: BuildAppOptions = {}): Promi
   })
   app.get('/v1/openapi.json', { config: { public: true }, schema: { hide: true } }, async () => app.swagger())
 
-  // 4. cookie.
+  // 4. cookie, and reply.sendFile for asset content (no static routes of its own).
   await app.register(fastifyCookie)
+  await app.register(fastifyStatic, { root: deps.cfg.storageDir, serve: false })
 
   // 5. rate limit. A preHandler, so the principal from the auth hook keys it; a broken Redis lets requests through.
   await app.register(fastifyRateLimit, {
@@ -80,12 +87,15 @@ export async function buildApp(deps: ApiDeps, opts: BuildAppOptions = {}): Promi
   app.addHook('onRequest', authHook(deps.db))
   // Route-level, and added after the rate limiter's onRoute, so it runs after the limiter's preHandler.
   // (App-level preHandlers would run before route-level ones.)
+  // Do not add app- or route-level preValidation/preParsing/preHandler hooks that do work: they run before requireAuth.
   app.addHook('onRoute', (route) => {
     route.preHandler = [...[route.preHandler ?? []].flat(), requireAuth]
   })
 
   // 7. routes.
-  for (const routes of [healthRoutes, authRoutes, meRoutes, workspaceRoutes]) routes(app, deps)
+  for (const routes of [
+    healthRoutes, authRoutes, meRoutes, workspaceRoutes, channelRoutes, characterRoutes, assetRoutes, reviewQueueRoutes, usageRoutes,
+  ]) routes(app, deps)
   app.setNotFoundHandler((_req, reply) => sendError(reply, 404, 'not_found', 'not found'))
 
   // 8. errors.

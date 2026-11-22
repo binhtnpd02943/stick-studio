@@ -22,6 +22,11 @@ export function errorHandler(err: FastifyError, request: FastifyRequest, reply: 
   }
   if (err instanceof NotFoundError) return sendError(reply, 404, 'not_found', err.message)
   if (err instanceof ConflictError) return sendError(reply, 409, err.code, err.message, err.details)
+  // @fastify/send's error for an unsatisfiable Range; its headers carry `Content-Range: bytes */<size>`.
+  if (err.statusCode === 416) {
+    reply.headers((err as { headers?: Record<string, string> }).headers ?? {})
+    return sendError(reply, 416, 'bad_request', 'range not satisfiable')
+  }
   // Fastify's own client errors (bad JSON, wrong content type, body too large) carry safe, fixed messages.
   if (err.code?.startsWith('FST_') && err.statusCode && err.statusCode >= 400 && err.statusCode < 500) {
     return sendError(reply, err.statusCode, 'bad_request', err.message)

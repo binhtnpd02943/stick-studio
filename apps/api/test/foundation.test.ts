@@ -76,6 +76,9 @@ describe('openapi', () => {
     const routes = Object.entries(spec.paths as Record<string, object>).flatMap(([path, ops]) => Object.keys(ops).map((m) => `${m.toUpperCase()} ${path}`))
     expect(routes.sort()).toEqual([
       'GET /v1/me', 'GET /v1/workspace', 'PATCH /v1/workspace', 'POST /v1/auth/login', 'POST /v1/auth/logout',
+      'GET /v1/channels', 'POST /v1/channels', 'GET /v1/channels/{id}', 'PATCH /v1/channels/{id}',
+      'GET /v1/characters', 'POST /v1/characters', 'PATCH /v1/characters/{id}', 'DELETE /v1/characters/{id}',
+      'GET /v1/assets/{id}/url', 'GET /v1/review-queue', 'GET /v1/usage',
     ].sort())
     expect(spec.paths['/v1/workspace'].patch.requestBody).toBeDefined()
   })

@@ -25,6 +25,7 @@ export interface TestApi {
   app: FastifyInstance
   db: Db
   seeded: Awaited<ReturnType<typeof seedWorkspace>>
+  storage: FsStorage
   jobs: StepJob[]
   close(): Promise<void>
 }
@@ -40,16 +41,17 @@ export async function testApi(opts: TestApiOptions = {}): Promise<TestApi> {
   const seeded = await seedWorkspace(db)
   const ownRedis = opts.redis ? undefined : new Redis(inject('redisUrl'))
   const jobs: StepJob[] = []
+  const storage = new FsStorage({ root: cfg.storageDir })
   const app = await buildApp({
     db,
-    storage: new FsStorage({ root: cfg.storageDir }),
+    storage,
     cfg,
     redis: opts.redis ?? ownRedis!,
     enqueue: async (job) => { jobs.push(job) },
     subscribe: () => () => {},
   }, { logStream: opts.logStream ?? { write: () => {} }, rateLimitNamespace: `test-rl-${process.pid}-${Date.now()}-${counter++}:` })
   return {
-    app, db, seeded, jobs,
+    app, db, seeded, storage, jobs,
     async close() {
       await app.close()
       await ownRedis?.quit()

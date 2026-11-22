@@ -26,3 +26,10 @@ export async function expectAllStepsSucceeded(page: Page): Promise<void> {
   await expect(rows).toHaveCount(8)
   await expect(page.locator('[data-step][data-status="succeeded"]')).toHaveCount(8, { timeout: STEP_TIMEOUT_MS })
 }
+
+/** A film of this test's own that has run every step and waits for review; returns its detail url. */
+export async function createDoneFilm(page: Page, title: string): Promise<string> {
+  const url = await createFilm(page, title)
+  await expectAllStepsSucceeded(page)
+  return url
+}

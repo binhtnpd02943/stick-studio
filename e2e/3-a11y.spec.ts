@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { type Page, expect, test } from '@playwright/test'
-import { createFilm, expectAllStepsSucceeded, login } from './helpers.js'
+import { createDoneFilm, createFilm, expectAllStepsSucceeded, login } from './helpers.js'
 
 const MAX_TABS = 40
 
@@ -43,6 +43,7 @@ test('no axe wcag2a/wcag2aa violations on login, overview, films, film detail, r
 
 test('the review actions are reachable by keyboard and show a focus ring', async ({ page }) => {
   await login(page)
+  await createDoneFilm(page, 'Vì sao biển mặn?')
   await page.goto('/review')
   await expect(page.getByRole('button', { name: 'Làm lại', exact: true })).toBeVisible()
   let tabs = 0
@@ -51,5 +52,7 @@ test('the review actions are reachable by keyboard and show a focus ring', async
   }
   const redo = page.getByRole('button', { name: 'Làm lại', exact: true })
   await expect(redo).toBeFocused()
-  expect(await redo.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('solid')
+  const outline = await redo.evaluate((el) => ({ style: getComputedStyle(el).outlineStyle, width: getComputedStyle(el).outlineWidth }))
+  expect(outline.style).toBe('solid')
+  expect(outline.width).not.toBe('0px')
 })

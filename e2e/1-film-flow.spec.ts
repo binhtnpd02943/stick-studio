@@ -1,9 +1,7 @@
-import { copyFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
-import { createFilm, expectAllStepsSucceeded, login } from './helpers.js'
+import { createDoneFilm, createFilm, expectAllStepsSucceeded, login } from './helpers.js'
 
 const SCREENSHOT = 'test-results/studio-floor.png'
-const SCREENSHOT_COPY = '/private/tmp/claude-501/-Users-mac-Projects-stick-scene/7d9b50dd-1a6f-44a9-b3ca-13f5d44f59df/scratchpad/studio-floor.png'
 const DARK_PIXELS_MIN = 100
 
 test('owner logs in, creates a film, watches its steps go live, approves it on a phone, then a bad screenplay edit shows the issue', async ({ page }) => {
@@ -25,7 +23,6 @@ test('owner logs in, creates a film, watches its steps go live, approves it on a
   await expect(page.locator('.studio-scene')).toBeVisible()
   await expect(pill).toHaveText(/Đang chờ|Đang chạy/)
   await page.screenshot({ path: SCREENSHOT })
-  copyFileSync(SCREENSHOT, SCREENSHOT_COPY)
 
   await expectAllStepsSucceeded(page)
   await expect(pill).toHaveText('Chờ duyệt')
@@ -35,7 +32,7 @@ test('owner logs in, creates a film, watches its steps go live, approves it on a
   await page.goto('/review')
   await expect(page.locator('video')).toHaveAttribute('src', /\/v1\/assets\//)
   const approve = page.getByRole('button', { name: 'Duyệt', exact: true })
-  await expect(approve).toBeInViewport()
+  await expect(approve).toBeInViewport({ ratio: 1 })
   expect((await approve.boundingBox())!.height).toBeGreaterThanOrEqual(48)
   await approve.click()
   await expect(page.getByText('Hết phim chờ duyệt')).toBeVisible()
@@ -57,9 +54,11 @@ test('owner logs in, creates a film, watches its steps go live, approves it on a
 })
 
 test('a film card draws ink on its canvas in a real browser', async ({ page }) => {
+  const title = 'Vì sao lá rụng?'
   await login(page)
+  await createDoneFilm(page, title)
   await page.goto('/films')
-  const card = page.locator('.film-card').first()
+  const card = page.locator('.film-card').filter({ hasText: title })
   const canvas = card.locator('canvas')
   await expect(canvas).toBeVisible()
   await card.hover()

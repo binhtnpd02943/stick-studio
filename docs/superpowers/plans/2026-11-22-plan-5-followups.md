@@ -10,7 +10,7 @@ Branch plan-5-web-ui, commits 5eacaf6..HEAD. The web UI (apps/web) runs the whol
 - Contact-sheet failure semantics (worker fails the film, `make` CLI warns) and redo-past-gate skipping QA, both still open from plan 4.
 - `/topics` and `/library` pages, TikTok connect and voice audition are P2 (deviations in the plan).
 - Dark theme. Light only on purpose in P1; the tokens are on `:root` in `apps/web/src/styles/tokens.css`, so a dark set is a token override.
-- Studio floor polish, seen in the Task 16 screenshot at 1280×900: a tall empty band between "Đội sản xuất" and the scene, and adjacent name tags overlap ("Tùng · biên kịch" under "Linh · kiểm duyệt").
+- Studio floor, still open: a possible double cheer when contact-succeeded and awaiting_review arrive as separate SSE events; a real-run (non-fake) visual check of the work bubble, since in fake mode the steps outpace the walk animations; chatter's 6 s timer counts from when the floor first sees a step running, not from `started_at`. (The heading gap and overlapping name tags seen in the Task 16 screenshot are fixed in c2817bb.)
 
 ## Rulings
 Controller rulings from the plan-5 ledger, with the cost if each was wrong.

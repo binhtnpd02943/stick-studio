@@ -2,8 +2,13 @@ import { expect, request, test } from '@playwright/test'
 import { z } from 'zod/v4'
 import { Channel, Character, FilmDetail, FilmListItem, Me, ReviewItem, Usage, Version, Workspace } from '../apps/web/src/api/schemas.js'
 import { E2E_EMAIL, E2E_PASSWORD, E2E_PORT } from './constants.js'
+import { createDoneFilm, login } from './helpers.js'
 
-test('every GET the web uses parses with the web schemas', async () => {
+test('every GET the web uses parses with the web schemas', async ({ page }) => {
+  // A film of its own in the review queue, so ReviewItem (final_url, timeline_url) is really parsed.
+  await login(page)
+  await createDoneFilm(page, 'Vì sao có cầu vồng?')
+
   const api = await request.newContext({ baseURL: `http://localhost:${E2E_PORT}` })
   expect((await api.post('/v1/auth/login', { data: { email: E2E_EMAIL, password: E2E_PASSWORD } })).ok()).toBe(true)
   const get = async (path: string) => {
@@ -14,7 +19,7 @@ test('every GET the web uses parses with the web schemas', async () => {
 
   const films = await get('/v1/films')
   const filmId = (films as { id: string }[])[0]?.id
-  expect(filmId, 'the flow spec leaves a film behind').toBeTruthy()
+  expect(filmId).toBeTruthy()
   const day = new Date().toISOString().slice(0, 10)
   const checks: [string, z.ZodType][] = [
     ['/v1/me', Me],
@@ -30,5 +35,6 @@ test('every GET the web uses parses with the web schemas', async () => {
   for (const [path, schema] of checks) {
     expect(schema.safeParse(await get(path)).error?.issues, path).toBeUndefined()
   }
+  expect((await get('/v1/review-queue') as unknown[]).length, 'review queue has an item').toBeGreaterThan(0)
   await api.dispose()
 })

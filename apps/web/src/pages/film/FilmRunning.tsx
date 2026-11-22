@@ -17,7 +17,7 @@ export function FilmRunning({ detail }: { detail: FilmDetail }) {
       </div>
       <StudioFloor key={film.id} detail={detail} />
       <div className="film-running-status">
-        <p role="status" className="film-work">{workLine(detail)} · {vi.progress(stepNumber(detail), FILM_STEPS.length)}</p>
+        <p className="film-work">{workLine(detail)} · {vi.progress(stepNumber(detail), FILM_STEPS.length)}</p>
         <StepProgress detail={detail} />
       </div>
       <StepDetails steps={steps} />

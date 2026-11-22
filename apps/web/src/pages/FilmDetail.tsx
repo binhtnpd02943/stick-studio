@@ -24,14 +24,17 @@ const NEIGHBOUR_FETCH = 24 // the same page the overview picks its finished film
 
 const isTab = (v: string | null): v is TabId => (TAB_IDS as readonly string[]).includes(v ?? '')
 
-/** A panel mounts on first visit and then stays (hidden), so an open edit survives a trip to another tab. */
-function Tabs({ labels, initial, panel }: { labels: Record<TabId, ReactNode>; initial: TabId; panel: (tab: TabId) => ReactNode }) {
-  const [active, setActive] = useState<TabId>(initial)
-  const [visited, setVisited] = useState<ReadonlySet<TabId>>(() => new Set([initial]))
-  const show = (id: TabId) => {
-    setActive(id)
-    setVisited((v) => new Set(v).add(id))
-  }
+/**
+ * The active tab lives in ?tab=, so a link (the card's "Xem lỗi") can open one. A panel mounts on first visit and then
+ * stays (hidden), so an open edit survives a trip to another tab.
+ */
+function Tabs({ labels, panel }: { labels: Record<TabId, ReactNode>; panel: (tab: TabId) => ReactNode }) {
+  const [params, setParams] = useSearchParams()
+  const asked = params.get('tab')
+  const active: TabId = isTab(asked) ? asked : 'screenplay'
+  const [visited, setVisited] = useState<ReadonlySet<TabId>>(() => new Set([active]))
+  if (!visited.has(active)) setVisited(new Set(visited).add(active)) // a tab opened by a link
+  const show = (id: TabId) => setParams(id === 'screenplay' ? {} : { tab: id }, { replace: true, preventScrollReset: true })
   const refs = useRef<Record<string, HTMLButtonElement | null>>({})
   const move = (e: KeyboardEvent, from: number) => {
     const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
@@ -42,7 +45,7 @@ function Tabs({ labels, initial, panel }: { labels: Record<TabId, ReactNode>; in
     refs.current[next]?.focus()
   }
   return (
-    <section className="film-tabs">
+    <section className="film-tabs" id="film-tabs">
       <div role="tablist" aria-label={vi.detail.tabs} className="tabs">
         {TAB_IDS.map((id, i) => (
           <button
@@ -62,12 +65,9 @@ function Tabs({ labels, initial, panel }: { labels: Record<TabId, ReactNode>; in
 }
 
 function FilmTabs({ detail, facts }: { detail: Detail; facts: FilmFacts }) {
-  const [params] = useSearchParams()
   const { film, steps, assets } = detail
-  const tab = params.get('tab')
   return (
     <Tabs
-      initial={isTab(tab) ? tab : 'screenplay'}
       labels={{ screenplay: vi.detail.tabScreenplay, qa: vi.detail.tabQa, versions: vi.detail.tabVersions(film.current_version) }}
       panel={(id) =>
         id === 'screenplay' ? <ScreenplayTab film={film} facts={facts} />

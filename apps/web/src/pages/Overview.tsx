@@ -108,6 +108,7 @@ function Running() {
     <section className="section" aria-labelledby="running-h">
       <div className="section-head">
         <h2 id="running-h">{vi.overview.running}{loaded && <> <span className="count">· {live.length}</span></>}</h2>
+        {live.length > MAX_LIVE_ON_OVERVIEW && <Link to="/films?status=running" className="section-link">{vi.overview.seeAll}</Link>}
       </div>
       {error && <ErrorNotice error={error} />}
       {!error && !loaded && <p className="muted">{vi.loading}</p>}

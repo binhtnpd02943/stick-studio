@@ -4,7 +4,7 @@ import type { FilmListItem } from '../api/schemas'
 import { vi } from '../i18n/vi'
 import { formatUsd } from './CostBadge'
 import { FilmThumb } from './FilmThumb'
-import { relativeTime } from './format'
+import { downloadName, relativeTime } from './format'
 import { useDismiss } from './use-dismiss'
 
 /** "⋯": for now only Làm lại, which opens the film page at its redo box. */
@@ -39,7 +39,7 @@ export function FinishedCard({ film }: { film: FilmListItem }) {
         {failed ? (
           <Link to={`/films/${film.id}?tab=qa`} className="quiet link-button">{vi.card.seeIssues}</Link>
         ) : film.final_url ? (
-          <a href={film.final_url} download className="quiet link-button">{vi.card.download}</a>
+          <a href={film.final_url} download={downloadName(film.title)} className="quiet link-button">{vi.card.download}</a>
         ) : null}
         {/* Publishing is not built yet: the film page says why. */}
         <button type="button" disabled>{vi.card.publish}</button>

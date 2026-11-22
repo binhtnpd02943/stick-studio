@@ -19,7 +19,8 @@ function doneDetail(status: FilmStatus = 'awaiting_review', steps: never[] = [])
   return detailWith(status, {
     film: film({ status, cost_usd: 0.38, qa_score: status === 'qa_failed' ? 41 : 88 }),
     steps,
-    assets: [asset('fin1', 'final'), asset('sp1', 'screenplay'), asset('st1', 'story'), asset('tl1', 'timeline')],
+    // The gate runs before render, so a qa_failed film never has a final video.
+    assets: [...(status === 'qa_failed' ? [] : [asset('fin1', 'final')]), asset('sp1', 'screenplay'), asset('st1', 'story'), asset('tl1', 'timeline')],
   })
 }
 const doneRoutes = {
@@ -55,7 +56,10 @@ describe('film detail: running', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Phân số là gì?' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Đường dẫn' })).toHaveTextContent('Phim / Phân số là gì?')
     expect(document.querySelector('.studio-scene')).not.toBeNull()
-    expect(screen.getByText('Tùng đang viết kịch bản · Bước 2 trên 8')).toHaveAttribute('role', 'status')
+    // One live region: the floor's own sr-only line; the visible line is not announced again.
+    expect(screen.getByText('Tùng đang viết kịch bản · Bước 2 trên 8')).not.toHaveAttribute('role')
+    expect(screen.getAllByRole('status')).toHaveLength(1)
+    expect(screen.getByRole('status')).toHaveTextContent('Tùng đang viết kịch bản')
     expect(screen.getByRole('img', { name: 'Bước 2 trên 8' })).toBeInTheDocument()
     const details = screen.getByText('Chi tiết các bước').closest('details')!
     expect(details).not.toHaveAttribute('open')
@@ -77,7 +81,7 @@ describe('film detail: running', () => {
       FakeEventSource.instances[0]!.emit('step', { type: 'step', filmId: 'f1', versionId: 'f1-v1', step: 'story', status: 'running', attempt: 1, at })
     })
     await waitFor(() => expect(document.querySelector('[data-step="story"]')).toHaveAttribute('data-status', 'running'))
-    expect(screen.getByRole('status')).toHaveTextContent('Mai đang nghĩ ý tưởng · Bước 1 trên 8')
+    expect(document.querySelector('.film-work')).toHaveTextContent('Mai đang nghĩ ý tưởng · Bước 1 trên 8')
   })
 
   test('Huỷ posts cancel after confirm', async () => {
@@ -110,7 +114,7 @@ describe('film detail: done', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Phân số là gì?' })).toBeInTheDocument()
     const download = await screen.findByRole('link', { name: 'Tải video MP4' })
     expect(download).toHaveAttribute('href', FINAL_URL)
-    expect(download).toHaveAttribute('download')
+    expect(download).toHaveAttribute('download', 'Phân số là gì.mp4')
     expect(download).toHaveClass('primary')
     const meta = document.querySelector('.film-meta')!
     await waitFor(() => expect(meta).toHaveTextContent('0:26'))
@@ -124,6 +128,24 @@ describe('film detail: done', () => {
     expect(document.querySelectorAll('.primary')).toHaveLength(1)
     expect(screen.getByRole('region', { name: 'Video phim' })).toBeInTheDocument()
     expect(screen.queryByText(/v1|initial|Chờ duyệt/)).not.toBeInTheDocument()
+  })
+
+  test('the download url is fetched again before the signed one expires, even in a tab that stays focused', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      let n = 0
+      mockApi({ '/v1/films/f1': () => ok(doneDetail()), ...doneRoutes, '/v1/assets/fin1/url': () => ok({ url: `/v1/assets/fin1/content?exp=${++n}&sig=s`, expires_at: at }) })
+      open()
+      const link = await screen.findByRole('link', { name: 'Tải video MP4' })
+      const video = await waitFor(() => document.querySelector('video')!)
+      const firstHref = link.getAttribute('href')
+      const firstSrc = video.getAttribute('src')
+      await act(async () => { vi.advanceTimersByTime(10 * 60_000 + 1) })
+      await waitFor(() => expect(screen.getByRole('link', { name: 'Tải video MP4' }).getAttribute('href')).not.toBe(firstHref))
+      expect(document.querySelector('video')!.getAttribute('src')).toBe(firstSrc) // a playing video is never reloaded
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   test('the redo box needs a note, then sends it with the user-word step', async () => {
@@ -171,6 +193,24 @@ describe('film detail: done', () => {
     expect(screen.getByRole('tab', { name: 'Chất lượng' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Minh đứng yên 2,8 giây')).toBeInTheDocument()
     expect(screen.getByText('41')).toBeInTheDocument()
+  })
+
+  test('a qa_failed film has no video: a message stands where the player goes and Xem lỗi is the one accent, opening Chất lượng', async () => {
+    const steps = [step('gate', 'failed', { code: 'gate', message: 'qa', details: { findings: ['Minh đứng yên 2,8 giây'] } })]
+    mockApi({ '/v1/films/f1': () => ok(doneDetail('qa_failed', steps)), ...doneRoutes })
+    open()
+
+    expect(await screen.findByText(/Phim chưa được xuất video/)).toBeInTheDocument()
+    expect(screen.queryByText('Đang làm phim…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Tải video MP4' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tải video MP4' })).not.toBeInTheDocument()
+    const issues = screen.getByRole('link', { name: 'Xem lỗi' })
+    expect(issues).toHaveClass('primary')
+    expect(document.querySelectorAll('.primary')).toHaveLength(1)
+    expect(screen.getByRole('tab', { name: 'Kịch bản' })).toHaveAttribute('aria-selected', 'true')
+    await userEvent.click(issues)
+    expect(screen.getByRole('tab', { name: 'Chất lượng' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Minh đứng yên 2,8 giây')).toBeVisible()
   })
 
   test('a passed gate with no findings says so; its findings otherwise come from the qa_report asset', async () => {
@@ -275,6 +315,19 @@ describe('film detail: phone', () => {
     await userEvent.type(within(sheet).getByRole('textbox', { name: 'Góp ý' }), 'Chậm hơn')
     await userEvent.click(within(sheet).getByRole('button', { name: 'Làm lại' }))
     await waitFor(() => expect(redo).toHaveBeenCalledTimes(1))
+  })
+
+  test('a qa_failed film on a phone shows its issues inline, no download, and Làm lại as the one accent', async () => {
+    phone = true
+    const steps = [step('gate', 'failed', { code: 'gate', message: 'qa', details: { findings: ['Minh đứng yên 2,8 giây'] } })]
+    mockApi({ '/v1/films/f1': () => ok(doneDetail('qa_failed', steps)), '/v1/films': () => ok(neighbours), ...doneRoutes })
+    open()
+    expect(await screen.findByText('Minh đứng yên 2,8 giây')).toBeVisible()
+    expect(screen.getByText(/Phim chưa được xuất video/)).toBeInTheDocument()
+    expect(screen.queryByText('Đang làm phim…')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Tải về' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Làm lại' })).toHaveClass('primary')
+    expect(document.querySelectorAll('.primary')).toHaveLength(1)
   })
 
   test('swiping left on the video opens the next finished film, right the previous one', async () => {

@@ -20,7 +20,7 @@ test('owner makes a film from the overview, watches its steps go live, downloads
 
   await expect(page.locator('.studio-floor')).toBeVisible()
   await expect(page.locator('.studio-scene')).toBeVisible()
-  await expect(page.getByRole('status').filter({ hasText: /Bước \d trên 8/ })).toBeVisible()
+  await expect(page.locator('.film-work')).toHaveText(/Bước \d trên 8/)
   await page.screenshot({ path: SCREENSHOT })
 
   await expectAllStepsSucceeded(page)
@@ -34,7 +34,7 @@ test('owner makes a film from the overview, watches its steps go live, downloads
   await expect(download).toBeInViewport({ ratio: 1 })
   expect((await download.boundingBox())!.height).toBeGreaterThanOrEqual(48)
   await expect(download).toHaveAttribute('href', /^\/v1\/assets\/[^/]+\/content\?exp=\d+&sig=[0-9a-f]{64}$/)
-  await expect(download).toHaveAttribute('download', '')
+  await expect(download).toHaveAttribute('download', 'Phân số là gì.mp4')
 
   await page.getByRole('button', { name: 'Làm lại', exact: true }).click()
   const sheet = page.getByRole('dialog')

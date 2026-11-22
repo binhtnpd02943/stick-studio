@@ -9,7 +9,8 @@ import {
 
 const PAGE = 'limit=100' // shortcut: first page only; only the films list (useFilmPages) pages by cursor.
 const FILMS_PAGE = 24
-const ASSET_URL_STALE_MS = 10 * 60_000 // the signed url lives 900 s
+// A signed url lives 900 s. Anything that renders one is refetched by this age, also in a tab that never loses focus.
+const SIGNED_URL_REFRESH_MS = 10 * 60_000
 const FILM_POLL_MS = 5_000 // never faster than the rate budget allows
 
 const read = <T>(path: string, schema: z.ZodType<T>) => async (): Promise<T> => (await apiFetch(path, schema)).data
@@ -49,7 +50,7 @@ const filmsPath = (filter: FilmFilter, cursor?: string) => {
 
 /** The first page of films (up to `filter.limit`, default 100). */
 export const useFilms = (filter: FilmFilter = {}, enabled = true) =>
-  useQuery({ queryKey: ['films', filter], queryFn: read(filmsPath(filter), z.array(FilmListItem)), enabled })
+  useQuery({ queryKey: ['films', filter], queryFn: read(filmsPath(filter), z.array(FilmListItem)), enabled, refetchInterval: SIGNED_URL_REFRESH_MS })
 
 const nextCursor = (meta: Record<string, unknown>) => (typeof meta.next_cursor === 'string' ? meta.next_cursor : undefined)
 
@@ -89,7 +90,17 @@ export function useUsageToday() {
 }
 
 export const useAssetUrl = (id: string | null) =>
-  useQuery({ queryKey: ['asset-url', id], queryFn: read(`/v1/assets/${id}/url`, AssetUrl), enabled: id !== null, staleTime: ASSET_URL_STALE_MS })
+  useQuery({ queryKey: ['asset-url', id], queryFn: read(`/v1/assets/${id}/url`, AssetUrl), enabled: id !== null, staleTime: SIGNED_URL_REFRESH_MS })
+
+/** A signed url for a download link, refreshed on a timer; kept apart from media urls so a playing video never reloads. */
+export const useDownloadUrl = (id: string | null) =>
+  useQuery({
+    queryKey: ['asset-url', id, 'download'],
+    queryFn: read(`/v1/assets/${id}/url`, AssetUrl),
+    enabled: id !== null,
+    staleTime: SIGNED_URL_REFRESH_MS,
+    refetchInterval: SIGNED_URL_REFRESH_MS,
+  })
 
 /** A JSON asset (the timeline), fetched through its signed url and cached by asset id for good. */
 export function useAssetJson<T>(id: string | null, schema: z.ZodType<T>) {

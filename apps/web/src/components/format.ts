@@ -19,3 +19,12 @@ export function formatDuration(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds)) // floored like a video player's clock
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
+
+// Windows and macOS reserved characters plus control characters.
+const ILLEGAL_IN_FILE_NAMES = /[\\/:*?"<>|\u0000-\u001f]/g
+
+/** A film title as a safe download file name: "<title>.mp4". */
+export function downloadName(title: string): string {
+  const base = title.replace(ILLEGAL_IN_FILE_NAMES, '-').replace(/^[\s.-]+|[\s.-]+$/g, '')
+  return `${/[\p{L}\p{N}]/u.test(base) ? base : 'phim'}.mp4`
+}

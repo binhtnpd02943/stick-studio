@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import type { FilmListItem } from '../src/api/schemas'
@@ -116,6 +116,14 @@ describe('overview: running', () => {
     expect(screen.getByRole('heading', { name: 'Đang làm · 5' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Phim 4' })).not.toBeInTheDocument()
     expect(FakeEventSource.instances).toHaveLength(3)
+    expect(screen.getByRole('link', { name: 'Xem tất cả' })).toHaveAttribute('href', '/films?status=running')
+  })
+
+  test('with 3 or fewer running there is no "Xem tất cả"', async () => {
+    api({ running: [1, 2, 3].map((n) => film({ id: `f${n}`, title: `Phim ${n}` })) })
+    renderRoutes(routes, '/')
+    await screen.findByRole('link', { name: 'Phim 3' })
+    expect(screen.queryByRole('link', { name: 'Xem tất cả' })).not.toBeInTheDocument()
   })
 
   test('with nothing running there is one muted line, no illustration', async () => {
@@ -170,7 +178,7 @@ describe('overview: finished', () => {
 
     const download = within(card).getByRole('link', { name: 'Tải về' })
     expect(download).toHaveAttribute('href', '/v1/assets/a1/content?exp=1&sig=s')
-    expect(download).toHaveAttribute('download')
+    expect(download).toHaveAttribute('download', 'Phim xong 1.mp4')
     expect(within(card).getByRole('button', { name: 'Đăng' })).toBeDisabled()
     expect(card).toHaveTextContent('$0.38 ·')
 
@@ -183,12 +191,13 @@ describe('overview: finished', () => {
   })
 
   test('a qa_failed card is flagged and its first action opens the quality tab', async () => {
-    api({ recent: [done(1, { status: 'qa_failed', final_url: '/v1/assets/a1/content' })] })
+    api({ recent: [done(1, { status: 'qa_failed', timeline_url: 'https://files.test/t/d1.json?exp=1&sig=a' })], override: { '/t/d1.json': () => json(200, STICK_STATES.done) } })
     renderRoutes(routes, '/')
     const card = (await screen.findByRole('link', { name: 'Phim xong 1' })).closest('article')!
     expect(within(card).getByText('Cần xem lại')).toBeInTheDocument()
     expect(within(card).getByRole('link', { name: 'Xem lỗi' })).toHaveAttribute('href', '/films/d1?tab=qa')
     expect(within(card).queryByRole('link', { name: 'Tải về' })).not.toBeInTheDocument()
+    await waitFor(() => expect(card.querySelector('.film-thumb canvas')).toBeInTheDocument()) // the timeline exists before the gate
   })
 
   test('the thumbnail draws the opening scene from timeline_url and shows the length', async () => {
@@ -200,6 +209,21 @@ describe('overview: finished', () => {
     const card = (await screen.findByRole('link', { name: 'Phim xong 1' })).closest('article')!
     await waitFor(() => expect(card.querySelector('.film-thumb canvas')).toBeInTheDocument())
     expect(within(card).getByText('0:02')).toBeInTheDocument()
+  })
+
+  test('the finished list refetches before its signed download urls expire, even in a tab that stays focused', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const fetchMock = api({ recent: [done(1, { final_url: '/v1/assets/a1/content?exp=1&sig=s' })] })
+      renderRoutes(routes, '/')
+      await screen.findByRole('link', { name: 'Tải về' })
+      const listCalls = () => fetchMock.mock.calls.filter(([u]) => String(u).includes('limit=24')).length
+      const before = listCalls()
+      await act(async () => { vi.advanceTimersByTime(10 * 60_000 + 1) })
+      await waitFor(() => expect(listCalls()).toBeGreaterThan(before))
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   test('with nothing finished there is one muted line', async () => {

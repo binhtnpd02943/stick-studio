@@ -10,7 +10,7 @@ Branch plan-5-web-ui, commits 5eacaf6..HEAD. The web UI (apps/web) runs the whol
 - Contact-sheet failure semantics (worker fails the film, `make` CLI warns) and redo-past-gate skipping QA, both still open from plan 4.
 - `/topics` and `/library` pages, TikTok connect and voice audition are P2 (deviations in the plan).
 - Dark theme. Light only on purpose in P1; the tokens are on `:root` in `apps/web/src/styles/tokens.css`, so a dark set is a token override.
-- Studio floor, still open: a possible double cheer when contact-succeeded and awaiting_review arrive as separate SSE events; a real-run (non-fake) visual check of the work bubble, since in fake mode the steps outpace the walk animations; chatter's 6 s timer counts from when the floor first sees a step running, not from `started_at`. (The heading gap and overlapping name tags seen in the Task 16 screenshot are fixed in c2817bb.)
+- Studio floor, still open: a real-run (non-fake) visual check of the work bubble, since in fake mode the steps outpace the walk animations; chatter's 6 s timer counts from when the floor first sees a step running, not from `started_at`. (The heading gap and overlapping name tags seen in the Task 16 screenshot are fixed in c2817bb; the double cheer in adf8164.)
 
 ## Rulings
 Controller rulings from the plan-5 ledger, with the cost if each was wrong.
@@ -54,12 +54,19 @@ Film pages (Tasks 9–11)
 - `parseScreenplay` runs every render; edit is disabled with no hint when there is no screenplay asset; a 409 on save does not refetch; tabs lack Home/End; a useless Fragment. Dangling `aria-controls` for unvisited tabs; the visited set is not reset per film; no banner-recovery test. Test gaps: StatusPill/player asserts, 409/network keeps edits, 422 in JSON mode, roving tabIndex.
 
 Review, cast, settings (Tasks 12–14)
-- A 409 on a pinned film does not invalidate `['film', id]`, and the pinned film may duplicate; the reason can exceed 500 after a label change; focus falls to body after a decision, plus the toast live region; the timeline comes via an extra query instead of the film detail assets; swipe has no `isPrimary` check and no "swipe makes no POST" test; a `?film` detail error is silent. The Tab-order test title is stale; the in-flight test has no RED evidence and no positive swipe control.
+- A 409 on a pinned film does not invalidate `['film', id]`, and the pinned film may duplicate; the reason can exceed 500 after a label change; the toast live region (focus after a decision is fixed in 6022b34); the timeline comes via an extra query instead of the film detail assets; swipe has no `isPrimary` check and no "swipe makes no POST" test; a `?film` detail error is silent. The Tab-order test title is stale; the in-flight test has no RED evidence and no positive swipe control.
 - The cast test title overclaims (no refetch-failure test); the `looks()` test also sees the idle timeline; a null-look edge in `changes()`.
 - No test that a valid cap is sent as a number; the 0/100000 re-validate test is weak; `NAME_MAX` duplicated; no locale or name length tests; "Đã lưu" shows after a revert. The threshold half of the garbage-input test is not a regression guard (`thresholdBad` redundant), and `thresholdBad` goes stale after a manual↔auto toggle.
 
 Studio floor (Task 15)
 - Chatter starts 6 s from first sight, not from `started_at`; a failed film without a failed step gets the idle status line.
-- A possible double cheer when contact-succeeded and awaiting_review arrive as separate SSE events; the cheer is dropped if the final lands with a non-review handoff; on-screen chatter can overlap a new walker.
+- The cheer is dropped if the final lands with a non-review handoff; on-screen chatter can overlap a new walker.
+
+Final review (fix wave adf8164..940f3ae)
+- Review focus selector `.review-card h2, .stick-state figcaption` can hit the FilmPlayer "rendering" caption on a pinned card with no signed URL yet; try the h2 first. `decidedId` can linger on a pinned film until its refetch lands.
+- FilmCard's 403 refetch effect should also check `url !== null`; many expired cards each call `invalidateQueries` (converges, but restarts the list fetch).
+- StudioFloor's `!motion` early return sits before the `cheered` reset.
+- The budget failure path (`run-step.ts:107`) also ignores the `finishRun` CAS result.
+- P2: heartbeat for the stale sweep (a healthy render past 30 min is failed); SIGTERM during e2e server startup skips cleanup.
 
 Carried over from plan 4: see [plan 4 follow-ups](2026-11-22-plan-4-followups.md) (live-run prerequisites, Task 1–11 minors).

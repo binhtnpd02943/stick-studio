@@ -591,3 +591,116 @@ button:hover {
   color: var(--muted);
   font: 400 13px/1.5 var(--mono);
 }
+
+/* film detail */
+.film-detail-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+.film-detail-grid > section[aria-label='Video'] {
+  flex: 0 1 340px;
+  min-width: 260px;
+}
+
+.film-detail-info {
+  flex: 999 1 420px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.film-detail-head,
+.film-detail-actions,
+.film-actions,
+.dialog-actions,
+.editor-actions,
+.tab-toolbar,
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.film-detail-meta,
+.versions time,
+.version-current {
+  color: var(--muted);
+  font: 400 13px/1.5 var(--mono);
+}
+
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 99px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.tabs {
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs button[aria-selected='true'] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.dialog-actions {
+  justify-content: flex-end;
+}
+
+.issue-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.mono,
+.field textarea.mono {
+  font: 400 13px/1.5 var(--mono);
+}
+
+.story-view h3,
+.story-view h4 {
+  margin: 12px 0 6px;
+}
+
+.story-view dt {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.story-view dd {
+  margin: 0 0 8px;
+}
+
+.story-warnings {
+  padding: 10px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--pill);
+}
+
+.versions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.versions li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.version-current {
+  color: var(--accent-ink);
+}

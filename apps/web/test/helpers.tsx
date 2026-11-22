@@ -59,6 +59,8 @@ export class FakeEventSource {
   readyState = 0
   onerror: (() => void) | null = null
   constructor(readonly url: string) { FakeEventSource.instances.push(this) }
-  addEventListener() {}
+  listeners = new Map<string, (e: MessageEvent) => void>()
+  addEventListener(type: string, fn: (e: MessageEvent) => void) { this.listeners.set(type, fn) }
+  emit(type: string, data: unknown) { this.listeners.get(type)?.({ data: JSON.stringify(data) } as MessageEvent) }
   close() { this.readyState = 2 }
 }

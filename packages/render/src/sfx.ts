@@ -1,4 +1,5 @@
 import { mkdir, rename, rm } from 'node:fs/promises'
+import { randomBytes } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { SFX_IDS, type SfxId, type Timeline } from '@stick/core'
@@ -33,7 +34,8 @@ export async function ensureSfx(id: SfxId, cacheDir: string, opts: { ffmpegPath?
   const path = join(cacheDir, `${id}@${SFX_VERSION}.wav`)
   if (existsSync(path)) return path
   await mkdir(cacheDir, { recursive: true })
-  const partial = `${path}.partial.wav` // renamed when complete, so a crash never leaves a truncated cache entry
+  // Unique per call so concurrent callers never share a partial; renamed when complete, so a crash never leaves a truncated cache entry.
+  const partial = `${path}.partial-${process.pid}-${randomBytes(4).toString('hex')}.wav`
   const run = runFfmpeg(ffmpegPath, ['-y', '-f', 'lavfi', '-i', FILTERS[id], '-ar', String(RATE), '-ac', '1', '-c:a', 'pcm_s16le', '-fflags', '+bitexact', '-flags:a', '+bitexact', partial])
   run.child.stdin.end()
   try {

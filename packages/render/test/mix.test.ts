@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeAll, describe, expect, test } from 'vitest'
@@ -89,5 +89,35 @@ describe('mixFilm', () => {
     writeFileSync(source, 'stand-in video bytes')
     await expect(mixFilm(source, { voice: [], sfx: [] }, source)).rejects.toThrow('mixFilm: outPath must differ from videoPath')
     expect(existsSync(source)).toBe(true)
+  })
+
+  describe('loudness pass with a fake ffmpeg', () => {
+    const script = (name: string, body: string): string => {
+      const path = join(dir, name)
+      writeFileSync(path, `#!/bin/sh\n${body}\n`)
+      chmodSync(path, 0o755)
+      return path
+    }
+    const ffprobePath = script('fake-ffprobe', 'echo 2.0')
+
+    test('loudness pass that hangs is killed after loudnessTimeoutMs', async () => {
+      const ffmpegPath = script('hang-ffmpeg', 'sleep 30')
+      const started = Date.now()
+      await expect(
+        mixFilm(video, { voice: [], sfx: [] }, join(dir, 'hang.mp4'), { ffmpegPath, ffprobePath, loudnessTimeoutMs: 300 }),
+      ).rejects.toThrow(/loudness pass timed out after 300 ms/)
+      expect(Date.now() - started).toBeLessThan(5000)
+    }, 10_000)
+
+    test('loudness pass failure reports the stderr tail, not the filtergraph', async () => {
+      const ffmpegPath = script('fail-ffmpeg', 'for i in $(seq 1 30); do echo "line $i" >&2; done\nexit 1')
+      const err = await mixFilm(video, { voice: [], sfx: [] }, join(dir, 'fail.mp4'), { ffmpegPath, ffprobePath }).catch((e: Error) => e)
+      expect(err).toBeInstanceOf(Error)
+      const { message } = err as Error
+      expect(message).toContain('line 30')
+      expect(message).not.toContain('line 10')
+      expect(message).not.toContain('filter_complex')
+      expect(message).not.toContain('amix=')
+    })
   })
 })

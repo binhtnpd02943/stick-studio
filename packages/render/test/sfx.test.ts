@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { wavSeconds } from '@stick/core'
@@ -31,6 +31,14 @@ describe('ensureSfx', () => {
     const path = await ensureSfx('pop', dir)
     expect(path).toMatch(/pop@1\.wav$/)
     expect(await ensureSfx('pop', dir, { ffmpegPath: '/nonexistent/ffmpeg' })).toBe(path)
+  })
+
+  test('concurrent ensureSfx calls for one id all resolve to a valid wav and leave no partial files', async () => {
+    const dir = join(tmp, 'concurrent')
+    const paths = await Promise.all(Array.from({ length: 4 }, () => ensureSfx('ting', dir)))
+    expect(new Set(paths).size).toBe(1)
+    expect(Math.abs(wavSeconds(readFileSync(paths[0]!)) - 0.6)).toBeLessThanOrEqual(0.01)
+    expect(readdirSync(dir)).toEqual(['ting@1.wav'])
   })
 
   test('a failing ffmpeg leaves no partial file behind', async () => {

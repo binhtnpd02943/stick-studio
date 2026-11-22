@@ -252,4 +252,76 @@ describe('runStepJob', () => {
     expect(dirs[0]).not.toBe(dirs[1])
     for (const d of dirs) expect(existsSync(d)).toBe(false)
   })
+
+  test('an input download error (ENOENT) fails the film and publishes it', async () => {
+    const f = await newFilm()
+    expect(await runStepJob(harness().deps, f.job('story'), first)).toBe('succeeded')
+    class NoGet extends FsStorage {
+      override async getFile(): Promise<void> { throw Object.assign(new Error('gone'), { code: 'ENOENT' }) }
+    }
+    const h = harness({ storage: new NoGet({ root: cfg.storageDir }) })
+    expect(await runStepJob(h.deps, f.job('screenplay'), first)).toBe('failed')
+    expect(await status(f.ws, f.film.id)).toBe('failed')
+    expect(h.events.at(-1)).toMatchObject({ type: 'film', status: 'failed' })
+    expect(h.enqueued).toEqual([])
+  })
+
+  test('a transient input download error on a non-final attempt is retried', async () => {
+    const f = await newFilm()
+    expect(await runStepJob(harness().deps, f.job('story'), first)).toBe('succeeded')
+    class FlakyGet extends FsStorage {
+      override async getFile(): Promise<void> { throw Object.assign(new Error('reset'), { code: 'ECONNRESET' }) }
+    }
+    const h = harness({ storage: new FlakyGet({ root: cfg.storageDir }) })
+    await expect(runStepJob(h.deps, f.job('screenplay'), first)).rejects.toBeInstanceOf(TransientStepError)
+    expect(await status(f.ws, f.film.id)).toBe('running')
+    expect(await runStepJob(h.deps, f.job('screenplay'), { n: 4, final: true })).toBe('failed')
+    expect(await status(f.ws, f.film.id)).toBe('failed')
+  })
+
+  test('an enqueue failure after success is retried, and the re-delivery skips and enqueues', async () => {
+    const f = await newFilm()
+    const broken = harness({ enqueue: async () => { throw new Error('redis down') } })
+    await expect(runStepJob(broken.deps, f.job('story'), first)).rejects.toBeInstanceOf(TransientStepError)
+    expect(await status(f.ws, f.film.id)).toBe('running')
+    const h = harness()
+    expect(await runStepJob(h.deps, f.job('story'), { n: 2, final: false })).toBe('skipped')
+    expect(h.enqueued).toEqual([f.job('screenplay')])
+  })
+
+  test('an enqueue failure after success on the final attempt fails the film', async () => {
+    const f = await newFilm()
+    const h = harness({ enqueue: async () => { throw new Error('redis down') } })
+    expect(await runStepJob(h.deps, f.job('story'), { n: 4, final: true })).toBe('failed')
+    expect(await status(f.ws, f.film.id)).toBe('failed')
+  })
+
+  test('a gate failure still reaches qa_failed when uploading gate.json throws', async () => {
+    const f = await newFilm()
+    class NoPut extends FsStorage {
+      override async putFile(): Promise<{ bytes: number; sha256: string }> { throw new Error('disk full') }
+    }
+    const runStep = stub(async (_s, env) => {
+      writeFileSync(join(env.dir, 'gate.json'), JSON.stringify({ findings: ['idle'] }))
+      throw new GateFailedError(['idle'])
+    })
+    const h = harness({ storage: new NoPut({ root: cfg.storageDir }), runStep })
+    expect(await runStepJob(h.deps, f.job('gate'), first)).toBe('failed')
+    expect(await status(f.ws, f.film.id)).toBe('qa_failed')
+    expect((await runsOf(db, f.version.id))[0]).toMatchObject({ status: 'failed', error: { code: 'gate' } })
+  })
+
+  test('a v1 step failing after a cancel and redo leaves v2 untouched', async () => {
+    const f = await newFilm()
+    const runStep = stub(async () => {
+      await setFilmStatus(db, f.ws, f.film.id, 'cancelled')
+      await createVersion(db, f.ws, f.film.id, { reason: 'redo', restartFrom: 'story' })
+      await setFilmStatus(db, f.ws, f.film.id, 'running')
+      throw new Error('boom')
+    })
+    const h = harness({ runStep })
+    expect(await runStepJob(h.deps, f.job('story'), first)).toBe('failed')
+    expect(await getFilm(db, f.ws, f.film.id)).toMatchObject({ status: 'running', currentVersion: 2 })
+    expect(h.events.filter((e) => e.type === 'film').map((e) => e.status)).toEqual(['running'])
+  })
 })

@@ -76,4 +76,23 @@ describe('the stale-run sweep', () => {
     expect(enqueued).toEqual([])
     expect((await runsOf(db, f.version.id)).map((r) => r.status)).toEqual(['failed'])
   })
+
+  test('a worker whose step throws after its run was swept announces no second step failed', async () => {
+    const f = await runningFilm()
+    const enqueued: StepJob[] = []
+    const events: FilmEvent[] = []
+    const deps: WorkerDeps = {
+      db, storage, cfg, log,
+      enqueue: async (j) => { enqueued.push(j) }, publish: async (e) => { events.push(e) },
+      runStep: async () => { // the sweep lands while the step is still working, then the step fails
+        await sweepStaleRuns(db, new Date(Date.now() + 1_000))
+        throw new Error('boom')
+      },
+    }
+    const outcome = await runStepJob(deps, f.job, { n: 1, final: true })
+    expect(outcome).toBe('stopped')
+    expect(events.map((e) => (e.type === 'step' ? `step ${e.status}` : `film ${e.status}`))).toEqual(['step running'])
+    expect(enqueued).toEqual([])
+    expect((await runsOf(db, f.version.id)).map((r) => r.status)).toEqual(['failed'])
+  })
 })

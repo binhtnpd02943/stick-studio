@@ -180,7 +180,11 @@ async function runLive(
   } catch (e) {
     const code = classify(e)
     log.warn({ job, attempt: attempt.n, code, err: e }, 'step failed')
-    await finishRun(db, run.id, { status: 'failed', error: { code, message: e instanceof Error ? e.message : String(e), details: errorDetails(e) } })
+    const finished = await finishRun(db, run.id, { status: 'failed', error: { code, message: e instanceof Error ? e.message : String(e), details: errorDetails(e) } })
+    if (!finished) { // the sweep already failed this run and announced it
+      log.warn({ job, attempt: attempt.n }, 'run was swept as stale before it failed; not announcing')
+      return 'stopped'
+    }
     await publishStep(deps, job, 'failed', attempt.n)
     if (code === 'transient' && !attempt.final) throw new TransientStepError(e)
     if (code === 'gate') {

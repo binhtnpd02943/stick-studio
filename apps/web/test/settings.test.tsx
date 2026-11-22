@@ -68,7 +68,7 @@ describe('settings', () => {
     const user = userEvent.setup()
     const { saveChannel } = await open()
     expect(screen.queryByLabelText('Ngưỡng điểm')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('radio', { name: 'Tự duyệt khi điểm QA ≥' }))
+    await user.click(screen.getByRole('radio', { name: 'Tự duyệt khi điểm chất lượng ≥' }))
     const threshold = screen.getByLabelText('Ngưỡng điểm')
     await user.click(screen.getByRole('button', { name: 'Lưu kênh' }))
     expect(threshold).toHaveAttribute('aria-invalid', 'true')

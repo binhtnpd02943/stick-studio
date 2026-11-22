@@ -6,17 +6,30 @@
 }
 
 :root {
+  /* UI v2 palette (docs/superpowers/plans/2026-11-22-ui-v2.md). */
   --bg: #ffffff;
-  --ink: oklch(0.2 0 0);
-  --body: oklch(0.42 0 0);
-  --muted: oklch(0.55 0 0);
-  --faint: oklch(0.74 0 0);
-  --line: oklch(0.93 0 0);
-  --pill: oklch(0.965 0 0);
-  --pill-hover: oklch(0.935 0 0);
+  --ink: #1b1b1b;
+  --body: #4a4a4a;
+  --muted: #767676;
+  --line: #ececec;
+  --soft: #f6f6f5;
   --accent: #ff8c26;
-  --accent-ink: #b45309;
+  --ok: #2f7a4f;
+  --ok-bg: #eaf5ee;
+  --warn: #a15c07;
+  --warn-bg: #fff4e5;
+  /* The studio floor's art uses these two; its look stays as it was. */
+  --pill: oklch(0.965 0 0);
+  --faint: oklch(0.74 0 0);
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --sans: 'Be Vietnam Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --page: 1120px;
+  --gutter: 32px;
   color-scheme: light;
+}
+
+@media (max-width: 719.98px) {
+  :root {
+    --gutter: 16px;
+  }
 }

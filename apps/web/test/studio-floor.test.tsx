@@ -111,9 +111,9 @@ describe('studio floor', () => {
     expect(screen.queryByRole('status')).toBeNull()
   })
 
-  test('qa_failed shows Nam\'s bubble with Trượt QA and no final card', () => {
+  test('qa_failed shows Nam\'s bubble with Cần xem lại and no final card', () => {
     render(<StudioFloor detail={at_('qa_failed', 6, false)} />)
-    expect(q('.studio-bubble[data-member="gate"]')).toHaveTextContent('Trượt QA')
+    expect(q('.studio-bubble[data-member="gate"]')).toHaveTextContent('Cần xem lại')
     expect(q('.studio-final-card')).toBeNull()
     expect(q('.studio-walker')).toBeNull()
   })

@@ -43,7 +43,7 @@ describe('StepTimeline', () => {
   test('a gate failure shows the number of QA findings', () => {
     const error = { code: 'gate', message: 'gate failed', details: { findings: [{}, {}, {}] } }
     render(<StepTimeline steps={[run({ step: 'gate', status: 'failed', error })]} />)
-    expect(screen.getByText('3 cảnh báo QA')).toBeInTheDocument()
+    expect(screen.getByText('3 điều cần xem lại')).toBeInTheDocument()
   })
 
   test('a running step is aria-current', () => {

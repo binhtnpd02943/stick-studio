@@ -39,9 +39,10 @@ function useChoreography(floor: FloorState, motion: boolean) {
     const before = prev.current
     prev.current = floor
     if (!motion || before === floor) return
-    const acts: Act[] = handoffsBetween(before, floor)
-    if (floor.final && !before.final) acts.push('cheer')
-    if (acts.length > 0) setQueue((q) => [...q, ...acts])
+    // A review handoff carries its own cheer, so a change yields at most one act.
+    const act: Act | undefined = handoffsBetween(before, floor)[0] ?? (floor.final && !before.final ? 'cheer' : undefined)
+    // Keep the playing act and only the latest pending one: quick steps never build a backlog.
+    if (act) setQueue((q) => (q.length === 0 ? [act] : [q[0]!, act]))
   }, [floor, motion])
   useEffect(() => {
     if (motion) return
@@ -65,15 +66,17 @@ function useChoreography(floor: FloorState, motion: boolean) {
 }
 
 /** While a step runs past CHAT_AFTER_MS, an idle teammate says one line, at most every CHAT_EVERY_MS. */
-function useChatter(working: MemberKey | null, motion: boolean) {
+function useChatter(working: MemberKey | null, walking: MemberKey | null, motion: boolean) {
   const [chat, setChat] = useState<Say | null>(null)
+  const walkingNow = useRef(walking)
+  useEffect(() => { walkingNow.current = walking })
   useEffect(() => {
     if (!motion || !working || working === 'intake') return
-    const idle = TEAM.filter((m) => m.key !== working)
     let n = 0
     let hide: ReturnType<typeof setTimeout> | undefined
     let every: ReturnType<typeof setInterval> | undefined
     const speak = () => {
+      const idle = TEAM.filter((m) => m.key !== working && m.key !== walkingNow.current)
       const who = idle[(n + FILM_STEPS.indexOf(working) * 3) % idle.length]!.key
       setChat({ who, text: vi.studio.chat[n % vi.studio.chat.length]! })
       n += 1
@@ -108,12 +111,14 @@ export function StudioFloor({ detail, collapsible = false }: Props) {
   const motion = !useReducedMotion()
   const floor = useMemo(() => deriveFloor(detail), [detail])
   const frame = useChoreography(floor, motion)
-  const chat = useChatter(floor.working, motion)
+  const walker = frame?.walker ?? null
+  const chat = useChatter(floor.working, walker?.who ?? null, motion)
+  const working = frame?.hold ? null : floor.working
+  const final = floor.final && !frame?.hold
   const [open, setOpen] = useState(!collapsible)
   const wide = width >= MIN_FLOOR_WIDTH
 
   const failedLabel = detail.film.status === 'qa_failed' ? vi.status.qa_failed : vi.stepStatus.failed
-  const walker = frame?.walker ?? null
   const says: Say[] = [...(frame?.say ?? []), ...(chat ? [chat] : []), ...(floor.note ? [{ who: 'intake' as const, text: floor.note }] : [])]
   const sayAt = (who: Say['who']) => {
     if (who === 'walker') return { left: (walker?.at.x ?? 0) - 10, top: (walker?.at.y ?? 0) - 32 }
@@ -132,15 +137,15 @@ export function StudioFloor({ detail, collapsible = false }: Props) {
           <p role="status" className="sr-only">{statusLine(floor, failedLabel)}</p>
           <div className="studio-frame" style={{ height: SCENE.height * (width / SCENE.width) }}>
             <div className="studio-scene" aria-hidden="true" style={{ width: SCENE.width, height: SCENE.height, transform: `scale(${width / SCENE.width})` }}>
-              <Furniture working={floor.working} final={floor.final} motion={motion} />
+              <Furniture working={working} final={final} motion={motion} />
               {TEAM.map((m, i) => (
                 <Person
                   key={m.key} member={m} index={i} motion={motion}
-                  working={floor.working === m.key} cheer={!!frame?.cheer} away={walker?.who === m.key}
+                  working={working === m.key} cheer={!!frame?.cheer} away={walker?.who === m.key}
                 />
               ))}
-              <div className={floor.final ? 'studio-you is-final' : 'studio-you'}><span><b>{vi.studio.you}</b> <span>· {vi.studio.youRole}</span></span></div>
-              {floor.working && <WorkBubble who={floor.working} title={detail.film.title} />}
+              <div className={final ? 'studio-you is-final' : 'studio-you'}><span><b>{vi.studio.you}</b> <span>· {vi.studio.youRole}</span></span></div>
+              {working && <WorkBubble who={working} title={detail.film.title} />}
               {floor.failed && <WorkBubble who={floor.failed} title={detail.film.title} label={failedLabel} />}
               {walker && <Walker pose={walker} ms={frame!.ms} />}
               {says.map((s) => <span key={`${s.who}-${s.text}`} className="studio-say" style={sayAt(s.who)}>{s.text}</span>)}

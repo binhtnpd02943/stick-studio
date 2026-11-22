@@ -29,7 +29,7 @@ function LiveFilm({ film, floor }: { film: FilmListItem; floor: boolean }) {
         <Link to={`/films/${film.id}`}>{film.title}</Link>
         <StatusPill status={detail?.film.status ?? film.status} />
       </div>
-      {floor && detail && <StudioFloor detail={detail} />}
+      {floor && detail && <StudioFloor key={film.id} detail={detail} />}
       <div className="compact"><StepTimeline steps={detail?.steps ?? []} /></div>
     </article>
   )

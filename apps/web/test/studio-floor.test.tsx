@@ -53,14 +53,23 @@ describe('studio floor', () => {
     expect(walker).not.toBeNull()
     expect(walker!.querySelector('g')).toHaveAttribute('stroke', '#d97757')
     expect(screen.getByText('Xong phần mình rồi!')).toBeInTheDocument()
+    expect(q('.studio-bubble[data-member="screenplay"]')).toBeNull()
     advance(1600)
     expect(screen.getByText('Gửi Tùng nè!')).toBeInTheDocument()
+    expect(q('.studio-bubble[data-member="screenplay"]')).toBeNull()
     advance(1100)
     expect(screen.getByText('Ok, để mình lo!')).toBeInTheDocument()
     advance(2000)
     expect(q('.studio-walker')).toBeNull()
     expect(q('.studio-bubble[data-member="screenplay"]')).toBeVisible()
     expect(q('.studio-person.is-working[data-member="screenplay"]')).not.toBeNull()
+  })
+
+  test('a new order makes Hùng carry the brief to Mai', () => {
+    const { rerender } = render(<StudioFloor detail={at_('queued', 0, false)} />)
+    rerender(<StudioFloor detail={at_('running', 0)} />)
+    expect(q('.studio-walker[data-member="intake"]')).not.toBeNull()
+    expect(screen.getByText('Có đơn mới nè!')).toBeInTheDocument()
   })
 
   test('handoffs queue: the next one starts after the current finishes', () => {
@@ -71,6 +80,16 @@ describe('studio floor', () => {
     advance(4300)
     expect(q('.studio-walker[data-member="screenplay"]')).not.toBeNull()
     expect(screen.getByText('Xong phần mình rồi!')).toBeInTheDocument()
+  })
+
+  test('quick steps keep only the current act and the latest pending one', () => {
+    const { rerender } = render(<StudioFloor detail={at_('running', 0)} />)
+    for (let n = 1; n <= 4; n++) rerender(<StudioFloor detail={at_('running', n)} />)
+    expect(q('.studio-walker[data-member="story"]')).not.toBeNull()
+    advance(4300)
+    expect(q('.studio-walker[data-member="voice"]')).not.toBeNull()
+    advance(8000)
+    expect(q('.studio-walker')).toBeNull()
   })
 
   test('reduced motion renders no walker and no idle animation classes but still highlights the worker', () => {
@@ -102,8 +121,8 @@ describe('studio floor', () => {
   test('final puts the card on the owner\'s desk and the team cheers once', () => {
     const { rerender } = render(<StudioFloor detail={at_('running', 7)} />)
     rerender(<StudioFloor detail={at_('awaiting_review', 8)} />)
-    expect(q('.studio-final-card')).not.toBeNull()
     expect(q('.studio-walker[data-member="contact"]')).not.toBeNull()
+    expect(q('.studio-final-card')).toBeNull() // lands when Thảo arrives with the file
     let cheers = 0
     for (let t = 0; t < 15000; t += 100) {
       const before = screen.queryByText('Ship it!')
@@ -111,6 +130,7 @@ describe('studio floor', () => {
       if (!before && screen.queryByText('Ship it!')) cheers += 1
     }
     expect(cheers).toBe(1)
+    expect(q('.studio-final-card')).not.toBeNull()
     expect(screen.getByRole('status')).toHaveTextContent('Phim xong rồi, chờ bạn duyệt')
   })
 

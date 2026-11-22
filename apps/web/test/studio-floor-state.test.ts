@@ -49,6 +49,11 @@ describe('floor state', () => {
       .toEqual([{ from: 'voice', to: 'timeline' }])
   })
 
+  test('the order going from Hùng to Mai is a handoff from intake to story', () => {
+    expect(handoffsBetween(floorOf('queued'), floorOf('running', upTo(0, 'story')))).toEqual([{ from: 'intake', to: 'story' }])
+    expect(handoffsBetween(floorOf('queued'), floorOf('running', upTo(2, 'validate')))).toEqual([{ from: 'screenplay', to: 'validate' }])
+  })
+
   test('contact finishing hands off to review', () => {
     expect(handoffsBetween(floorOf('running', upTo(7, 'contact')), floorOf('awaiting_review', upTo(8))))
       .toEqual([{ from: 'contact', to: 'review' }])

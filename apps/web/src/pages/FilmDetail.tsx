@@ -73,6 +73,7 @@ export function FilmDetail() {
     <div className="page film-detail">
       {query.error && <ErrorNotice error={query.error} />}
       <Link to="/films" className="back-link">{vi.detail.back}</Link>
+      <StudioFloor key={film.id} detail={query.data} collapsible={film.status !== 'queued' && film.status !== 'running'} />
       <div className="film-detail-grid">
         <section className="film-detail-video" aria-label={vi.detail.video}><FilmPlayer assetId={final?.id ?? null} /></section>
         <section className="film-detail-info">
@@ -87,7 +88,6 @@ export function FilmDetail() {
             <FilmActions film={film} />
             {reviewable && <Link to={`/review?film=${film.id}`} className="primary link-button">{vi.detail.review}</Link>}
           </div>
-          <StudioFloor detail={query.data} collapsible={film.status !== 'queued' && film.status !== 'running'} />
           <StepTimeline steps={steps} />
         </section>
       </div>

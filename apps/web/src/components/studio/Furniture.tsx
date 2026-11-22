@@ -47,7 +47,7 @@ export function Furniture({ working, final, motion }: { working: MemberKey | nul
     <rect x="448" y="332" width="22" height="18" rx="2" fill={glow('validate')} stroke={INK} strokeWidth="2"></rect>
     <rect x="860" y="200" width="150" height="200" rx="6" fill={BG} fillOpacity=".6" stroke={INK} strokeWidth="2"></rect>
     <path d="M970 220 L996 246 M978 212 L1000 234" stroke={FAINT} strokeWidth="2" strokeLinecap="round"></path>
-    <rect x="900" y="176" width="70" height="20" rx="4" fill={working === 'voice' ? ACCENT : PILL} stroke={INK} strokeWidth="2"></rect><text x="935" y="190" textAnchor="middle" fontFamily={MONO} fontSize="10" fill={INK}>ON AIR</text>
+    <rect x="900" y="176" width="70" height="20" rx="4" fill={working === 'voice' ? ACCENT : PILL} stroke={INK} strokeWidth="2"></rect><text x="935" y="190" textAnchor="middle" fontFamily={MONO} fontSize="10" fill={INK}>{vi.studio.onAir}</text>
     <rect x="945" y="286" width="10" height="18" rx="5" fill={INK}></rect>
     <rect x="1090" y="210" width="150" height="110" rx="3" fill={BG} stroke={INK} strokeWidth="2.5"></rect>
     <g stroke={INK} strokeWidth="1.5"><rect x="1098" y="222" width="42" height="32" fill={PILL}></rect><rect x="1144" y="222" width="42" height="32" fill={glow('timeline')}></rect><rect x="1190" y="222" width="42" height="32" fill={PILL}></rect><path d="M1100 272 L1136 272 M1146 272 L1180 272 M1192 272 L1228 272 M1100 288 L1124 288 M1146 288 L1170 288" fill="none"></path></g>

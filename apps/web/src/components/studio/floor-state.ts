@@ -30,18 +30,20 @@ export function deriveFloor({ film, steps }: FilmDetail): FloorState {
 /** One handoff for the last step that became done; a reconnect snapshot after a gap never replays a backlog. */
 export function handoffsBetween(prev: FloorState, next: FloorState): Handoff[] {
   const last = FILM_STEPS.filter((s) => next.done.has(s) && !prev.done.has(s)).at(-1)
-  if (!last) return []
+  if (!last) return prev.working === 'intake' && next.working === 'story' ? [{ from: 'intake', to: 'story' }] : []
   return [{ from: last, to: FILM_STEPS[FILM_STEPS.indexOf(last) + 1] ?? 'review' }]
 }
 
 // Choreography: the mockup's buildFrames, one act at a time.
 export type Say = { who: MemberKey | 'walker'; text: string }
 export type WalkerPose = { who: MemberKey; at: Point; dir: 1 | -1; carry: boolean; moving: boolean; wave: boolean }
-export type Frame = { ms: number; walker: WalkerPose | null; say: readonly Say[]; cheer: boolean }
+/** `hold`: the file has not arrived yet, so the receiver is not shown working (nor the final card). */
+export type Frame = { ms: number; walker: WalkerPose | null; say: readonly Say[]; cheer: boolean; hold: boolean }
 export type Act = Handoff | 'cheer'
 
 export const BEAT_MS = 1100
-const beat = (o: Partial<Frame>): Frame => ({ ms: BEAT_MS, walker: null, say: [], cheer: false, ...o })
+const beat = (o: Partial<Frame>): Frame => ({ ms: BEAT_MS, walker: null, say: [], cheer: false, hold: false, ...o })
+const held = (frames: Frame[]) => frames.map((f) => ({ ...f, hold: true }))
 
 function walk(who: MemberKey, from: SpotKey, to: SpotKey, carry: boolean, dir0: 1 | -1): Frame[] {
   let prev = spot(from)
@@ -57,27 +59,38 @@ function walk(who: MemberKey, from: SpotKey, to: SpotKey, carry: boolean, dir0: 
 /** Which way the sender faces when standing at `to`'s spot: towards the receiver's head. */
 const faceAt = (to: SpotKey): 1 | -1 => (to === 'review' || headOf(to).x < spot(to).x ? -1 : 1)
 
+function cheerFrames(walker: WalkerPose | null): Frame[] {
+  const [ship, yeah, team] = vi.studio.cheer
+  return [
+    beat({ walker, cheer: true, say: [{ who: 'render', text: ship }, { who: 'story', text: yeah }] }),
+    beat({ walker, cheer: true, say: [{ who: 'voice', text: team }] }),
+  ]
+}
+
+/** The mockup's sequence: stand, walk the file over, hand it in, walk back. The review handoff ends in the cheer. */
 export function actFrames(act: Act): Frame[] {
-  if (act === 'cheer') {
-    const [ship, yeah, team] = vi.studio.cheer
-    return [
-      beat({ cheer: true, say: [{ who: 'render', text: ship }, { who: 'story', text: yeah }] }),
-      beat({ cheer: true, say: [{ who: 'voice', text: team }] }),
-    ]
-  }
+  if (act === 'cheer') return cheerFrames(null)
   const { from: a, to: b } = act
   const d0 = route(a, b)[0]!.x < spot(a).x ? -1 : 1
   const fd = faceAt(b)
   const stand = (dir: 1 | -1, carry: boolean, wave = false) => ({ who: a, at: spot(b), dir, carry, moving: false, wave })
-  const start = beat({ walker: { who: a, at: spot(a), dir: d0, carry: true, moving: false, wave: false }, say: [{ who: 'walker', text: vi.studio.done }] })
+  const first = a === 'intake' ? vi.studio.newOrderSay : vi.studio.done
+  const start = beat({ walker: { who: a, at: spot(a), dir: d0, carry: true, moving: false, wave: false }, say: [{ who: 'walker', text: first }] })
+  const there = held([start, ...walk(a, a, b, true, d0)])
   if (b === 'review') {
-    return [start, ...walk(a, a, b, true, d0), beat({ walker: stand(fd, true), say: [{ who: 'walker', text: vi.studio.sendReview }] }), ...walk(a, b, a, false, 1)]
+    return [
+      ...there,
+      beat({ walker: stand(fd, true), say: [{ who: 'walker', text: vi.studio.sendReview }] }),
+      ...cheerFrames(stand(fd, false, true)),
+      ...walk(a, b, a, false, 1),
+    ]
   }
   return [
-    start,
-    ...walk(a, a, b, true, d0),
-    beat({ walker: stand(fd, true), say: [{ who: 'walker', text: vi.studio.send(memberOf(b).name) }] }),
-    beat({ walker: stand(fd, false, true), say: [{ who: b, text: vi.studio.accept }] }),
+    ...there,
+    ...held([
+      beat({ walker: stand(fd, true), say: [{ who: 'walker', text: vi.studio.send(memberOf(b).name) }] }),
+      beat({ walker: stand(fd, false, true), say: [{ who: b, text: vi.studio.accept }] }),
+    ]),
     ...walk(a, b, a, false, fd === 1 ? -1 : 1),
   ]
 }

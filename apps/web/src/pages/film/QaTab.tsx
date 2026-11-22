@@ -5,16 +5,9 @@ import { AssetImage } from '../../components/AssetImage'
 import { ErrorNotice } from '../../components/ErrorNotice'
 import { findingText } from '../../components/IssueList'
 import { vi } from '../../i18n/vi'
+import { assetOf, gateFindings } from './facts'
 
 const QaReport = z.object({ findings: z.array(z.unknown()).optional() })
-const assetOf = (assets: FilmDetail['assets'], kind: string) => assets.find((a) => a.kind === kind)?.id ?? null
-
-/** The gate step's error carries the findings when it failed the film. */
-function gateFindings(steps: FilmDetail['steps']): unknown[] | undefined {
-  const gate = steps.find((s) => s.step === 'gate' && s.status === 'failed')
-  const findings = (gate?.error as { details?: { findings?: unknown } } | null | undefined)?.details?.findings
-  return Array.isArray(findings) ? findings : undefined
-}
 
 export function QaTab({ film, steps, assets }: { film: Film; steps: FilmDetail['steps']; assets: FilmDetail['assets'] }) {
   const failed = gateFindings(steps)
@@ -25,13 +18,13 @@ export function QaTab({ film, steps, assets }: { film: Film; steps: FilmDetail['
 
   return (
     <div className="qa-tab">
-      <p className="qa-score">{vi.qa.score}: <b>{film.qa_score ?? '—'}</b></p>
-      {contactId && <AssetImage assetId={contactId} alt={vi.qa.contact} />}
+      <p>{vi.qa.score}: <b className="num">{film.qa_score ?? '—'}</b></p>
       <h3>{vi.qa.findings}</h3>
       {reportId && report.error ? <ErrorNotice error={report.error} />
-        : reportId && report.isPending ? <p>{vi.loading}</p>
-        : findings.length === 0 ? <p>{vi.qa.none}</p>
-        : <ul>{findings.map((f, i) => <li key={i}>{f}</li>)}</ul>}
+        : reportId && report.isPending ? <p className="muted">{vi.loading}</p>
+        : findings.length === 0 ? <p className="muted">{vi.qa.none}</p>
+        : <ul className="qa-list">{findings.map((f, i) => <li key={i}>{f}</li>)}</ul>}
+      {contactId && <AssetImage assetId={contactId} alt={vi.qa.contact} />}
     </div>
   )
 }

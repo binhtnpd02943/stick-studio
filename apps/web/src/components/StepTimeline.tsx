@@ -41,3 +41,13 @@ export function StepTimeline({ steps }: { steps: FilmDetail['steps'] }) {
     </ol>
   )
 }
+
+/** The step rows folded under "Chi tiết các bước": there for whoever wants them, out of the way otherwise. */
+export function StepDetails({ steps }: { steps: FilmDetail['steps'] }) {
+  return (
+    <details className="step-details">
+      <summary>{vi.detail.steps}</summary>
+      <StepTimeline steps={steps} />
+    </details>
+  )
+}

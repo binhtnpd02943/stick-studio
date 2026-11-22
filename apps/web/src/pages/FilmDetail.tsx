@@ -1,30 +1,33 @@
-import { type KeyboardEvent, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { type KeyboardEvent, type ReactNode, useRef, useState } from 'react'
+import { Link, useLocation, useParams, useSearchParams } from 'react-router'
 import { useFilmEvents } from '../api/events'
-import { useFilm } from '../api/queries'
-import { formatUsd } from '../components/CostBadge'
+import { useFilm, useFilms } from '../api/queries'
+import type { FilmDetail as Detail, FilmStatus } from '../api/schemas'
 import { ErrorNotice } from '../components/ErrorNotice'
-import { FilmPlayer } from '../components/FilmPlayer'
-import { StatusPill } from '../components/StatusPill'
-import { StepTimeline } from '../components/StepTimeline'
-import { StudioFloor } from '../components/studio/StudioFloor'
+import { StepDetails } from '../components/StepTimeline'
+import { PHONE_QUERY, useMedia } from '../components/use-media'
 import { vi } from '../i18n/vi'
-import { FilmActions } from './film/FilmActions'
+import { useFilmFacts, type FilmFacts } from './film/facts'
+import { FilmDoneDesktop, FilmDonePhone, type Neighbours } from './film/FilmDone'
+import { FilmRunning } from './film/FilmRunning'
+import { FilmStopped } from './film/FilmStopped'
 import { QaTab } from './film/QaTab'
 import { ScreenplayTab } from './film/ScreenplayTab'
 import { VersionsTab } from './film/VersionsTab'
+import { finishedOf } from './Overview'
 
-const TABS = [
-  { id: 'screenplay', label: vi.detail.tabScreenplay },
-  { id: 'qa', label: vi.detail.tabQa },
-  { id: 'versions', label: vi.detail.tabVersions },
-] as const
-type TabId = (typeof TABS)[number]['id']
+const TAB_IDS = ['screenplay', 'qa', 'versions'] as const
+type TabId = (typeof TAB_IDS)[number]
+const IN_FLIGHT: readonly FilmStatus[] = ['queued', 'running']
+const STOPPED: readonly FilmStatus[] = ['failed', 'cancelled', 'blocked_budget']
+const NEIGHBOUR_FETCH = 24 // the same page the overview picks its finished films from
+
+const isTab = (v: string | null): v is TabId => (TAB_IDS as readonly string[]).includes(v ?? '')
 
 /** A panel mounts on first visit and then stays (hidden), so an open edit survives a trip to another tab. */
-function Tabs({ panel }: { panel: (tab: TabId) => React.ReactNode }) {
-  const [active, setActive] = useState<TabId>('screenplay')
-  const [visited, setVisited] = useState<ReadonlySet<TabId>>(() => new Set(['screenplay']))
+function Tabs({ labels, initial, panel }: { labels: Record<TabId, ReactNode>; initial: TabId; panel: (tab: TabId) => ReactNode }) {
+  const [active, setActive] = useState<TabId>(initial)
+  const [visited, setVisited] = useState<ReadonlySet<TabId>>(() => new Set([initial]))
   const show = (id: TabId) => {
     setActive(id)
     setVisited((v) => new Set(v).add(id))
@@ -34,27 +37,78 @@ function Tabs({ panel }: { panel: (tab: TabId) => React.ReactNode }) {
     const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
     if (step === 0) return
     e.preventDefault()
-    const next = TABS[(from + step + TABS.length) % TABS.length]!
-    show(next.id)
-    refs.current[next.id]?.focus()
+    const next = TAB_IDS[(from + step + TAB_IDS.length) % TAB_IDS.length]!
+    show(next)
+    refs.current[next]?.focus()
   }
   return (
-    <section>
+    <section className="film-tabs">
       <div role="tablist" aria-label={vi.detail.tabs} className="tabs">
-        {TABS.map((t, i) => (
+        {TAB_IDS.map((id, i) => (
           <button
-            key={t.id} ref={(el) => { refs.current[t.id] = el }} type="button" role="tab" id={`tab-${t.id}`}
-            aria-selected={active === t.id} aria-controls={`panel-${t.id}`} tabIndex={active === t.id ? 0 : -1}
-            onClick={() => show(t.id)} onKeyDown={(e) => move(e, i)}
+            key={id} ref={(el) => { refs.current[id] = el }} type="button" role="tab" id={`tab-${id}`}
+            aria-selected={active === id} aria-controls={`panel-${id}`} tabIndex={active === id ? 0 : -1}
+            onClick={() => show(id)} onKeyDown={(e) => move(e, i)}
           >
-            {t.label}
+            {labels[id]}
           </button>
         ))}
       </div>
-      {TABS.filter((t) => visited.has(t.id)).map((t) => (
-        <div key={t.id} role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} hidden={active !== t.id}>{panel(t.id)}</div>
+      {TAB_IDS.filter((id) => visited.has(id)).map((id) => (
+        <div key={id} role="tabpanel" id={`panel-${id}`} aria-labelledby={`tab-${id}`} hidden={active !== id}>{panel(id)}</div>
       ))}
     </section>
+  )
+}
+
+function FilmTabs({ detail, facts }: { detail: Detail; facts: FilmFacts }) {
+  const [params] = useSearchParams()
+  const { film, steps, assets } = detail
+  const tab = params.get('tab')
+  return (
+    <Tabs
+      initial={isTab(tab) ? tab : 'screenplay'}
+      labels={{ screenplay: vi.detail.tabScreenplay, qa: vi.detail.tabQa, versions: vi.detail.tabVersions(film.current_version) }}
+      panel={(id) =>
+        id === 'screenplay' ? <ScreenplayTab film={film} facts={facts} />
+        : id === 'qa' ? <QaTab film={film} steps={steps} assets={assets} />
+        : <VersionsTab film={film} />}
+    />
+  )
+}
+
+/** Where this film sits among the finished films, for the phone's swipe. */
+function useNeighbours(id: string, enabled: boolean): Neighbours | null {
+  const list = useFilms({ limit: NEIGHBOUR_FETCH }, enabled)
+  if (!enabled || !list.data) return null
+  const finished = finishedOf(list.data)
+  const index = finished.findIndex((f) => f.id === id)
+  if (index < 0) return null
+  return { index, count: finished.length, prev: finished[index - 1]?.id ?? null, next: finished[index + 1]?.id ?? null }
+}
+
+function Done({ detail }: { detail: Detail }) {
+  const phone = useMedia(PHONE_QUERY)
+  const facts = useFilmFacts(detail)
+  const redoOpen = useLocation().hash === '#redo'
+  const neighbours = useNeighbours(detail.film.id, phone)
+  if (phone) return <FilmDonePhone detail={detail} facts={facts} neighbours={neighbours} redoOpen={redoOpen} />
+  return (
+    <>
+      <FilmDoneDesktop detail={detail} facts={facts} redoOpen={redoOpen} />
+      <FilmTabs detail={detail} facts={facts} />
+      <StepDetails steps={detail.steps} />
+    </>
+  )
+}
+
+function Stopped({ detail }: { detail: Detail }) {
+  const facts = useFilmFacts(detail)
+  return (
+    <>
+      <FilmStopped detail={detail} />
+      <FilmTabs detail={detail} facts={facts} />
+    </>
   )
 }
 
@@ -64,39 +118,20 @@ export function FilmDetail() {
   const query = useFilm(id)
 
   // A failed refetch keeps the data: show the page with a banner, so an open edit is not unmounted.
-  if (!query.data) return query.error ? <ErrorNotice error={query.error} /> : <p>{vi.loading}</p>
-  const { film, version, steps, assets } = query.data
-  const final = assets.find((a) => a.kind === 'final')
-  const reviewable = film.status === 'awaiting_review' || film.status === 'qa_failed'
+  if (!query.data) return query.error ? <ErrorNotice error={query.error} /> : <p className="muted">{vi.loading}</p>
+  const detail = query.data
+  const { film } = detail
+  const body = IN_FLIGHT.includes(film.status) ? <FilmRunning detail={detail} />
+    : STOPPED.includes(film.status) ? <Stopped detail={detail} />
+    : <Done detail={detail} />
 
   return (
-    <div className="page film-detail">
+    <div className="page film-page" data-film-status={film.status}>
       {query.error && <ErrorNotice error={query.error} />}
-      <Link to="/films" className="back-link">{vi.detail.back}</Link>
-      <StudioFloor key={film.id} detail={query.data} collapsible={film.status !== 'queued' && film.status !== 'running'} />
-      <div className="film-detail-grid">
-        <section className="film-detail-video" aria-label={vi.detail.video}><FilmPlayer assetId={final?.id ?? null} /></section>
-        <section className="film-detail-info">
-          <div className="film-detail-head">
-            <h1>{film.title}</h1>
-            <StatusPill status={film.status} />
-          </div>
-          <p className="film-detail-meta">
-            <span>{formatUsd(film.cost_usd)}</span> · <span>v{version.version} · {version.reason}</span>
-          </p>
-          <div className="film-detail-actions">
-            <FilmActions film={film} />
-            {reviewable && <Link to={`/review?film=${film.id}`} className="primary link-button">{vi.detail.review}</Link>}
-          </div>
-          <StepTimeline steps={steps} />
-        </section>
-      </div>
-      <Tabs
-        panel={(tab) =>
-          tab === 'screenplay' ? <ScreenplayTab film={film} assets={assets} />
-          : tab === 'qa' ? <QaTab film={film} steps={steps} assets={assets} />
-          : <VersionsTab film={film} />}
-      />
+      <nav aria-label={vi.detail.crumb} className="crumb">
+        <Link to="/films">{vi.nav.films}</Link> <span aria-hidden="true">/</span> <span aria-current="page">{film.title}</span>
+      </nav>
+      {body}
     </div>
   )
 }

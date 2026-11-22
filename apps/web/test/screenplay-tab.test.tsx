@@ -37,11 +37,15 @@ const startEdit = async () => {
 }
 
 describe('screenplay tab', () => {
-  test('reads the story: title, logline, genre, hook, lines per scene and content warnings', async () => {
+  test('shows one card per scene with its place and each line under a cast-coloured name, plus the content warnings', async () => {
     serve('approved')
     open()
-    expect(await screen.findByText('Hai bạn chia bánh')).toBeInTheDocument()
-    expect(screen.getByText('Minh: Một nửa cái bánh', { exact: false })).toBeInTheDocument()
+    const first = (await screen.findByRole('heading', { name: 'Cảnh 1' })).closest('article')!
+    expect(first).toHaveTextContent('Phòng bếp')
+    expect(first).toHaveTextContent('MinhMột nửa cái bánh')
+    expect(first.querySelector('.scene-who i')).toHaveStyle({ background: '#1b1b1b' })
+    const second = screen.getByRole('heading', { name: 'Cảnh 2' }).closest('article')!
+    expect(second).toHaveTextContent('LanTa viết là 1/2')
     expect(screen.getByText('Con số cần kiểm chứng')).toBeInTheDocument()
   })
 
@@ -101,8 +105,8 @@ describe('screenplay tab', () => {
     expect(screen.getByLabelText('Cảnh 1 · Minh')).toHaveValue('Sửa rồi')
   })
 
-  test('editing is disabled while running with the hint', async () => {
-    serve('running')
+  test('editing is disabled once published, with the hint', async () => {
+    serve('published')
     open()
     expect(await screen.findByRole('button', { name: 'Sửa' })).toBeDisabled()
     expect(screen.getByText('Chỉ sửa được khi phim đã dừng')).toBeInTheDocument()
@@ -140,15 +144,15 @@ describe('screenplay tab', () => {
     await startEdit()
     await userEvent.type(await screen.findByLabelText('Cảnh 1 · Minh'), ' nữa')
 
-    await userEvent.click(screen.getByRole('tab', { name: 'QA' }))
+    await userEvent.click(screen.getByRole('tab', { name: 'Chất lượng' }))
     expect(screen.getByLabelText('Cảnh 1 · Minh')).not.toBeVisible()
     await userEvent.click(screen.getByRole('tab', { name: 'Kịch bản' }))
 
     expect(screen.getByLabelText('Cảnh 1 · Minh')).toHaveValue('Một nửa cái bánh nữa')
   })
 
-  test('a failed story asset shows the error instead of an empty view', async () => {
-    serve('approved', { '/v1/assets/st1/url': () => json(500, { data: null, error: { code: 'internal', message: 'x', details: null }, meta: {} }) })
+  test('a failed screenplay asset shows the error instead of an empty view', async () => {
+    serve('approved', { '/v1/assets/sp1/url': () => json(500, { data: null, error: { code: 'internal', message: 'x', details: null }, meta: {} }) })
     open()
     expect(await screen.findByRole('alert')).toHaveTextContent('Máy chủ gặp lỗi')
   })

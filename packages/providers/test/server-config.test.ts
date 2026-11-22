@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ConfigError, loadServerConfig } from '../src/index.js'
 
@@ -7,10 +8,10 @@ describe('loadServerConfig', () => {
   it('defaults apply', () => {
     expect(loadServerConfig({ STICK_URL_SIGNING_KEY: KEY32, STICK_FAKE: '1' }, 'dev')).toEqual({
       databaseUrl: undefined,
-      pgliteDir: 'out/.pglite',
+      pgliteDir: resolve('out/.pglite'),
       redisUrl: 'redis://127.0.0.1:6379',
-      storageDir: 'out/storage',
-      cacheDir: 'out/.cache',
+      storageDir: resolve('out/storage'),
+      cacheDir: resolve('out/.cache'),
       host: '127.0.0.1',
       port: 3000,
       urlSigningKey: KEY32,
@@ -32,6 +33,11 @@ describe('loadServerConfig', () => {
       databaseUrl: 'postgresql://u:p@h/db', redisUrl: 'redis://r:1', host: '0.0.0.0', port: 8080,
       anthropicApiKey: 'sk-x', maxCostPerFilmUsd: 0.5, maxCostPerDayUsd: 2, storageDir: '/s', cacheDir: '/c', pgliteDir: '/p',
     })
+  })
+
+  it('relative directories become absolute, as @fastify/static requires of the storage root', () => {
+    const cfg = loadServerConfig({ STICK_URL_SIGNING_KEY: KEY32, STICK_FAKE: '1', STICK_STORAGE_DIR: 'a/s', STICK_CACHE_DIR: 'a/c', STICK_PGLITE_DIR: 'a/p' }, 'dev')
+    expect(cfg).toMatchObject({ storageDir: resolve('a/s'), cacheDir: resolve('a/c'), pgliteDir: resolve('a/p') })
   })
 
   it.each(['api', 'dev'] as const)('%s role without STICK_URL_SIGNING_KEY names the variable', (role) => {

@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { z } from 'zod'
 import { ConfigError, DEFAULT_MODEL } from './config.js'
 import { costUsd } from './cost.js'
@@ -73,10 +74,11 @@ export function loadServerConfig(env: Record<string, string | undefined>, role: 
 
   return {
     databaseUrl: e.DATABASE_URL,
-    pgliteDir: e.STICK_PGLITE_DIR ?? 'out/.pglite',
+    pgliteDir: resolve(e.STICK_PGLITE_DIR ?? 'out/.pglite'),
     redisUrl: e.REDIS_URL ?? 'redis://127.0.0.1:6379',
-    storageDir: e.STICK_STORAGE_DIR ?? 'out/storage',
-    cacheDir: e.STICK_CACHE_DIR ?? 'out/.cache',
+    // Absolute: @fastify/static rejects a relative root, and paths should not depend on a later chdir.
+    storageDir: resolve(e.STICK_STORAGE_DIR ?? 'out/storage'),
+    cacheDir: resolve(e.STICK_CACHE_DIR ?? 'out/.cache'),
     host: e.HOST ?? '127.0.0.1',
     port: e.PORT,
     urlSigningKey: e.STICK_URL_SIGNING_KEY ?? '',

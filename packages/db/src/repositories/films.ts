@@ -91,12 +91,19 @@ export async function filmDetail(
   return { film, version, steps, assets: await assetsOf(db, workspaceId, version.id) }
 }
 
-/** One conditional UPDATE, so a cancel cannot be overwritten by a late transition from the old status. */
-export async function setFilmStatus(db: Db, workspaceId: string, filmId: string, to: FilmStatus): Promise<boolean> {
+/**
+ * One conditional UPDATE, so a cancel cannot be overwritten by a late transition from the old status.
+ * With `expectedVersion`, it also refuses once a redo has moved the film to a newer version.
+ */
+export async function setFilmStatus(db: Db, workspaceId: string, filmId: string, to: FilmStatus, expectedVersion?: number): Promise<boolean> {
   const from = FILM_STATUSES.filter((s) => canTransition(s, to))
   if (from.length === 0) return false
   const rows = await db.update(films).set({ status: to })
-    .where(and(inWorkspace(workspaceId, filmId), inArray(films.status, from)))
+    .where(and(
+      inWorkspace(workspaceId, filmId),
+      inArray(films.status, from),
+      expectedVersion === undefined ? undefined : eq(films.currentVersion, expectedVersion),
+    ))
     .returning({ id: films.id })
   return rows.length > 0
 }

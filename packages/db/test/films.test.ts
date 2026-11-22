@@ -63,6 +63,16 @@ describe('films', () => {
     expect((await getFilm(db, ws, film.id))?.status).toBe('approved')
   })
 
+  test('setFilmStatus with expectedVersion leaves a newer version untouched', async () => {
+    const { ws, film } = await newFilm()
+    await setFilmStatus(db, ws, film.id, 'cancelled')
+    await createVersion(db, ws, film.id, { reason: 'redo', restartFrom: 'story' })
+    expect(await setFilmStatus(db, ws, film.id, 'running', 2)).toBe(true)
+    expect(await setFilmStatus(db, ws, film.id, 'failed', 1)).toBe(false) // a late v1 failure
+    expect((await getFilm(db, ws, film.id))!.status).toBe('running')
+    expect(await setFilmStatus(db, ws, film.id, 'failed', 2)).toBe(true)
+  })
+
   test('cancel wins over a late running→awaiting_review', async () => {
     const { ws, film } = await newFilm()
     await setFilmStatus(db, ws, film.id, 'running')

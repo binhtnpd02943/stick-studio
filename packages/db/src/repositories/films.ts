@@ -125,6 +125,10 @@ export interface VersionInput {
   reason: string
   restartFrom: FilmStep
   screenplay?: { storageKey: string; bytes: number; sha256: string }
+  /** Statuses the film may be redone from; defaults to REDOABLE_STATUSES. */
+  from?: readonly FilmStatus[]
+  /** Refuse unless the film is still at this version (the one the caller looked at). */
+  expectedVersion?: number
 }
 
 export async function createVersion(db: Db, workspaceId: string, filmId: string, input: VersionInput): Promise<FilmVersion> {
@@ -132,7 +136,11 @@ export async function createVersion(db: Db, workspaceId: string, filmId: string,
     // The row lock serialises against setFilmStatus and a second redo.
     const [film] = await tx.select().from(films).where(inWorkspace(workspaceId, filmId)).for('update')
     if (!film) throw new NotFoundError('film not found')
-    if (!(REDOABLE_STATUSES as readonly string[]).includes(film.status)) throw new ConflictError('conflict', `a ${film.status} film cannot be redone`)
+    const from: readonly string[] = (input.from ?? REDOABLE_STATUSES).filter((st) => (REDOABLE_STATUSES as readonly string[]).includes(st))
+    if (!from.includes(film.status)) throw new ConflictError('conflict', `a ${film.status} film cannot be redone`)
+    if (input.expectedVersion !== undefined && film.currentVersion !== input.expectedVersion) {
+      throw new ConflictError('conflict', `film is at version ${film.currentVersion}, not ${input.expectedVersion}`)
+    }
     const parent = await versionOf(tx, filmId, film.currentVersion)
     const [version] = await tx.insert(filmVersions).values({
       filmId, version: parent.version + 1, parentVersion: parent.version, reason: input.reason, restartFromStep: input.restartFrom,

@@ -129,6 +129,18 @@ describe('films', () => {
     expect((await getFilm(db, ws, film.id))?.currentVersion).toBe(1)
   })
 
+  test('createVersion with `from` or `expectedVersion` refuses a film outside them', async () => {
+    const { ws, film } = await newFilm()
+    await setFilmStatus(db, ws, film.id, 'cancelled')
+    const notFrom = await createVersion(db, ws, film.id, { reason: 'r', restartFrom: 'story', from: ['qa_failed'] }).catch((e: unknown) => e)
+    expect((notFrom as ConflictError).code).toBe('conflict')
+    const stale = await createVersion(db, ws, film.id, { reason: 'r', restartFrom: 'story', expectedVersion: 2 }).catch((e: unknown) => e)
+    expect((stale as ConflictError).code).toBe('conflict')
+    expect((await getFilm(db, ws, film.id))?.currentVersion).toBe(1)
+    const v2 = await createVersion(db, ws, film.id, { reason: 'r', restartFrom: 'story', from: ['cancelled'], expectedVersion: 1 })
+    expect(v2.version).toBe(2)
+  })
+
   test('film of workspace A is undefined from workspace B in get, list and filmDetail', async () => {
     const a = await newFilm()
     const b = await seedWorkspace(db)

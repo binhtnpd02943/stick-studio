@@ -136,7 +136,8 @@ export async function createVersion(db: Db, workspaceId: string, filmId: string,
 export async function recentStories(db: Db, workspaceId: string, channelId: string, n = 30): Promise<{ title: string; logline: string }[]> {
   const rows = await db.select({ meta: assets.meta }).from(assets)
     .innerJoin(filmVersions, eq(filmVersions.id, assets.filmVersionId))
-    .innerJoin(films, eq(films.id, filmVersions.filmId))
+    // Only the current version: a redo copies story.json into each new version, which would repeat the story.
+    .innerJoin(films, and(eq(films.id, filmVersions.filmId), eq(filmVersions.version, films.currentVersion)))
     .where(and(eq(assets.workspaceId, workspaceId), eq(films.channelId, channelId), eq(assets.kind, 'story')))
     .orderBy(desc(assets.id))
     .limit(n)

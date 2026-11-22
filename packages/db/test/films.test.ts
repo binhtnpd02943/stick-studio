@@ -170,4 +170,16 @@ describe('films', () => {
     const other = await seedWorkspace(db)
     expect(await recentStories(db, other.workspace.id, s.channel.id)).toEqual([])
   })
+
+  test('recentStories lists a redone film once', async () => {
+    const s = await seedWorkspace(db)
+    const ws = s.workspace.id
+    const { film, version } = await createFilm(db, ws, { channelId: s.channel.id, title: 'redo', createdBy: s.user.id })
+    await replaceAsset(db, ws, asset(version.id, 'story.json', 'story', { title: 'redo', logline: 'l' }))
+    for (let i = 0; i < 2; i++) {
+      await setFilmStatus(db, ws, film.id, 'failed')
+      await createVersion(db, ws, film.id, { reason: 'again', restartFrom: 'screenplay' })
+    }
+    expect(await recentStories(db, ws, s.channel.id)).toEqual([{ title: 'redo', logline: 'l' }])
+  })
 })

@@ -33,14 +33,22 @@ function useWidth() {
 /** Handoffs and the final cheer, played one act at a time; returns the current frame. */
 function useChoreography(floor: FloorState, motion: boolean) {
   const prev = useRef(floor)
+  const cheered = useRef(false)
   const [queue, setQueue] = useState<readonly Act[]>([])
   const [index, setIndex] = useState(0)
   useEffect(() => {
     const before = prev.current
     prev.current = floor
     if (!motion || before === floor) return
-    // A review handoff carries its own cheer, so a change yields at most one act.
-    const act: Act | undefined = handoffsBetween(before, floor)[0] ?? (floor.final && !before.final ? 'cheer' : undefined)
+    // A review handoff carries its own cheer, and the step and status events arrive separately,
+    // in either order: cheer once per time the film becomes final.
+    if (before.final && !floor.final) cheered.current = false
+    const handoff = handoffsBetween(before, floor)[0]
+    const toReview = handoff?.to === 'review'
+    const act: Act | undefined = toReview
+      ? cheered.current ? undefined : handoff
+      : handoff ?? (floor.final && !before.final && !cheered.current ? 'cheer' : undefined)
+    if (act) cheered.current = act === 'cheer' || act.to === 'review'
     // Keep the playing act and only the latest pending one: quick steps never build a backlog.
     if (act) setQueue((q) => (q.length === 0 ? [act] : [q[0]!, act]))
   }, [floor, motion])

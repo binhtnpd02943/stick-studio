@@ -134,6 +134,28 @@ describe('studio floor', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Phim xong rồi, chờ bạn duyệt')
   })
 
+  test.each([
+    ['step then status', [at_('running', 8, false), at_('awaiting_review', 8, false)]],
+    ['status then step', [at_('awaiting_review', 7), at_('awaiting_review', 8, false)]],
+  ] as const)('separate events (%s) cheer only once', (_name, [first, second]) => {
+    const { rerender } = render(<StudioFloor detail={at_('running', 7)} />)
+    let cheers = 0
+    let shown = false
+    const watch = (ms: number) => {
+      for (let t = 0; t < ms; t += 100) {
+        advance(100)
+        const now = !!screen.queryByText('Ship it!')
+        if (now && !shown) cheers += 1
+        shown = now
+      }
+    }
+    rerender(<StudioFloor detail={first} />)
+    watch(300)
+    rerender(<StudioFloor detail={second} />)
+    watch(25000)
+    expect(cheers).toBe(1)
+  })
+
   test('chatter: one idle line after 6 s, then at most one every 8 s', () => {
     render(<StudioFloor detail={at_('running', 1)} />)
     advance(5900)

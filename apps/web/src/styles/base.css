@@ -559,6 +559,7 @@ button:disabled {
   width: min(100%, calc(340px * 9 / 16));
   aspect-ratio: 9 / 16;
   overflow: hidden;
+  border: 1px solid var(--line); /* the frame's paper is white like the page */
   border-radius: 12px;
   background: var(--soft);
 }

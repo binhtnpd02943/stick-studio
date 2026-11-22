@@ -66,6 +66,12 @@ describe('loadServerConfig', () => {
     expect(cfg).toMatchObject({ databaseUrl: undefined, port: 3000, llmModel: 'claude-sonnet-5-5' })
   })
 
+  it('whitespace-only values count as unset', () => {
+    const cfg = loadServerConfig({ DATABASE_URL: '  ', REDIS_URL: ' ', ANTHROPIC_API_KEY: '\t', STICK_FAKE: '1' }, 'worker')
+    expect(cfg).toMatchObject({ databaseUrl: undefined, redisUrl: 'redis://127.0.0.1:6379', anthropicApiKey: undefined })
+    expect(() => loadServerConfig({ STICK_URL_SIGNING_KEY: ' '.repeat(40), STICK_FAKE: '1' }, 'api')).toThrow(new ConfigError('STICK_URL_SIGNING_KEY is required'))
+  })
+
   it.each([
     ['PORT', 'abc'], ['PORT', '0'], ['PORT', '70000'], ['PORT', '1.5'],
     ['STICK_MAX_COST_USD', '0'], ['STICK_MAX_COST_USD', '-1'], ['STICK_MAX_COST_USD', 'NaN'], ['STICK_MAX_COST_USD', 'Infinity'], ['STICK_MAX_COST_USD', 'abc'],

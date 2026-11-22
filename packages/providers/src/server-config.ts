@@ -20,14 +20,14 @@ export interface ServerConfig {
 
 type Role = 'api' | 'worker' | 'dev'
 
-const MIN_SIGNING_KEY_LENGTH = 32
+export const MIN_SIGNING_KEY_LENGTH = 32
 
 // Every message is written here, never taken from zod, so no env value can reach an error.
-const unset = (v: unknown) => (v === '' ? undefined : v)
+const unset = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v)
 const str = () => z.preprocess(unset, z.string().optional())
 const positive = (name: string, fallback: number) =>
   z.preprocess(
-    (v) => (v === undefined || v === '' ? fallback : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN),
+    (v) => (unset(v) === undefined ? fallback : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN),
     z.number({ message: `${name} must be a positive number (USD)` }).finite({ message: `${name} must be a positive number (USD)` }).positive({ message: `${name} must be a positive number (USD)` }),
   )
 const priced = (model: string) => {
@@ -42,7 +42,7 @@ const EnvSchema = z.object({
   STICK_CACHE_DIR: str(),
   HOST: str(),
   PORT: z.preprocess(
-    (v) => (v === undefined || v === '' ? 3000 : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN),
+    (v) => (unset(v) === undefined ? 3000 : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN),
     z.number().int({ message: 'PORT must be an integer from 1 to 65535' }).min(1, { message: 'PORT must be an integer from 1 to 65535' }).max(65535, { message: 'PORT must be an integer from 1 to 65535' }),
   ),
   STICK_URL_SIGNING_KEY: str(),

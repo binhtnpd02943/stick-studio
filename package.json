@@ -13,7 +13,9 @@
     "make": "tsx scripts/make-film.ts",
     "preview": "tsx scripts/preview-action.ts",
     "db:generate": "drizzle-kit generate --config packages/db/drizzle.config.ts",
-    "coverage:db": "vitest run packages/db --coverage.enabled --coverage.include='packages/db/src/**' --coverage.thresholds.lines=80 --coverage.thresholds.functions=80"
+    "coverage:db": "vitest run packages/db --coverage.enabled --coverage.include='packages/db/src/**' --coverage.thresholds.lines=80 --coverage.thresholds.functions=80",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

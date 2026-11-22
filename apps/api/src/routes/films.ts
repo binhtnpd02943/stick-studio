@@ -74,11 +74,13 @@ export function filmRoutes(app: FastifyInstance, { db, enqueue, publish, cfg }: 
   r.get('/v1/films', { schema: { querystring: FilmListQuery, tags } }, async (req, reply) => {
     const { status, channel_id, limit, cursor } = req.query
     const list = await listFilms(db, req.principal.workspaceId, { status, channelId: channel_id, limit, cursor })
-    const timelines = await currentAssetIds(db, req.principal.workspaceId, list.items.map((f) => f.id), 'timeline')
-    const items = list.items.map((f) => {
-      const assetId = timelines.get(f.id)
-      return { ...toFilmWire(f), timeline_url: assetId ? signedAssetUrl(assetId, cfg.urlSigningKey).url : null }
-    })
+    const ids = list.items.map((f) => f.id)
+    const [timelines, finals] = await Promise.all([
+      currentAssetIds(db, req.principal.workspaceId, ids, 'timeline'),
+      currentAssetIds(db, req.principal.workspaceId, ids, 'final'),
+    ])
+    const signed = (assetId: string | undefined) => (assetId ? signedAssetUrl(assetId, cfg.urlSigningKey).url : null)
+    const items = list.items.map((f) => ({ ...toFilmWire(f), timeline_url: signed(timelines.get(f.id)), final_url: signed(finals.get(f.id)) }))
     return okList(reply, { items, nextCursor: list.nextCursor })
   })
 

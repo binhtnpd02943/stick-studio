@@ -86,6 +86,8 @@ export function ScenePreview({ timeline, idle, trigger, label, interactive = tru
     io.observe(canvas)
     void fontsReady().then(() => {
       ready = true
+      // A still first frame even off screen: a thumbnail below the fold must never sit as blank paper until scrolled to.
+      if (!visible && !stopped) draw(performance.now())
       start()
     })
     return () => {

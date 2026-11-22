@@ -69,7 +69,7 @@ export const Film = z.object({
 })
 export type Film = z.infer<typeof Film>
 
-export const FilmListItem = Film.extend({ timeline_url: z.string().nullable() })
+export const FilmListItem = Film.extend({ timeline_url: z.string().nullable(), final_url: z.string().nullable() })
 export type FilmListItem = z.infer<typeof FilmListItem>
 
 export const Version = z.object({

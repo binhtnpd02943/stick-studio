@@ -93,13 +93,13 @@ describe('useFilmEvents', () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['film', 'f1'] })
   })
 
-  test('a film event invalidates detail, versions, films and review-queue', () => {
+  test('a film event invalidates detail, versions and films', () => {
     qc.setQueryData(['film', 'f1'], detail())
     const invalidate = vi.spyOn(qc, 'invalidateQueries')
     renderHook(() => useFilmEvents('f1'), { wrapper })
     act(() => source().emit('film', { type: 'film', filmId: 'f1', status: 'awaiting_review', at }))
     expect(qc.getQueryData<FilmDetail>(['film', 'f1'])!.film.status).toBe('awaiting_review')
-    expect(invalidate.mock.calls.map(([f]) => f?.queryKey)).toEqual([['film', 'f1'], ['film', 'f1', 'versions'], ['films'], ['review-queue']])
+    expect(invalidate.mock.calls.map(([f]) => f?.queryKey)).toEqual([['film', 'f1'], ['film', 'f1', 'versions'], ['films']])
   })
 
   test('closes the stream on unmount', () => {

@@ -25,10 +25,10 @@ describe('films list', () => {
     await screen.findByText('Phim A')
     expect(screen.getByRole('button', { name: 'Tất cả' })).toHaveAttribute('aria-pressed', 'true')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Đang chạy' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Đang làm' }))
 
     expect(router.state.location.search).toBe('?status=running')
-    expect(screen.getByRole('button', { name: 'Đang chạy' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Đang làm' })).toHaveAttribute('aria-pressed', 'true')
     await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => String(u).includes('status=running'))).toBe(true))
   })
 
@@ -98,7 +98,6 @@ describe('film card', () => {
     const stale = film({ timeline_url: 'https://files.test/t/f1.json?exp=1&sig=a' })
     const { container, rerender } = render(ui(stale))
     await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['films'] }))
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['review-queue'] })
     expect(container.querySelector('canvas')).not.toBeInTheDocument()
 
     rerender(ui({ ...stale, timeline_url: 'https://files.test/t/f1.json?exp=2&sig=b' }))

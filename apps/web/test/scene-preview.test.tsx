@@ -90,6 +90,13 @@ describe('ScenePreview', () => {
     expect(drawFrame).not.toHaveBeenCalled()
   })
 
+  test('a preview below the fold draws one still frame and does not loop until it is on screen', async () => {
+    render(<ScenePreview timeline={timeline} trigger="view" interactive={false} />)
+    await act(async () => {})
+    expect(drawFrame).toHaveBeenCalledTimes(1)
+    expect(frames).toHaveLength(0)
+  })
+
   test('a drawing error stops the loop and warns once with the title', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.mocked(drawFrame).mockImplementation(() => { throw new Error('boom') })

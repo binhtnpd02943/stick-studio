@@ -13,7 +13,7 @@ export const ok = (data: unknown, meta: Record<string, unknown> = {}) => json(20
 
 export const film = (over: Partial<FilmListItem> = {}): FilmListItem => ({
   id: 'f1', channel_id: 'c1', topic_id: null, source_type: 'manual', title: 'Phân số là gì?', brief: null, status: 'running',
-  current_version: 1, cost_usd: 0.21, qa_score: null, created_by: 'u1', created_at: at, updated_at: at, timeline_url: null, ...over,
+  current_version: 1, cost_usd: 0.21, qa_score: null, created_by: 'u1', created_at: at, updated_at: at, timeline_url: null, final_url: null, ...over,
 })
 
 export const detail = (f: FilmListItem, steps: FilmDetail['steps'] = []): FilmDetail => ({

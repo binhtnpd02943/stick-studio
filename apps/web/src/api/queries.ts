@@ -4,12 +4,11 @@ import { z } from 'zod/v4'
 import { ApiError, apiFetch, setCsrfToken } from './client'
 import { OWNS_UNAUTHORIZED } from './query-client'
 import {
-  AssetUrl, Channel, Character, Film, FilmDetail, FilmListItem, type FilmStatus, LoginResult, Me, ReviewItem, Usage, Version, Workspace,
+  AssetUrl, Channel, Character, Film, FilmDetail, FilmListItem, type FilmStatus, LoginResult, Me, Usage, Version, Workspace,
 } from './schemas'
 
 const PAGE = 'limit=100' // shortcut: first page only; only the films list (useFilmPages) pages by cursor.
 const FILMS_PAGE = 24
-export const REVIEW_PREVIEW = 20
 const ASSET_URL_STALE_MS = 10 * 60_000 // the signed url lives 900 s
 const FILM_POLL_MS = 5_000 // never faster than the rate budget allows
 
@@ -49,8 +48,8 @@ const filmsPath = (filter: FilmFilter, cursor?: string) => {
 }
 
 /** The first page of films (up to `filter.limit`, default 100). */
-export const useFilms = (filter: FilmFilter = {}) =>
-  useQuery({ queryKey: ['films', filter], queryFn: read(filmsPath(filter), z.array(FilmListItem)) })
+export const useFilms = (filter: FilmFilter = {}, enabled = true) =>
+  useQuery({ queryKey: ['films', filter], queryFn: read(filmsPath(filter), z.array(FilmListItem)), enabled })
 
 const nextCursor = (meta: Record<string, unknown>) => (typeof meta.next_cursor === 'string' ? meta.next_cursor : undefined)
 
@@ -84,18 +83,6 @@ export function useFilm(id: string, enabled = true) {
 
 export const useVersions = (id: string) =>
   useQuery({ queryKey: ['film', id, 'versions'], queryFn: read(`/v1/films/${id}/versions`, z.array(Version)) })
-export const useReviewQueue = () => useQuery({ queryKey: ['review-queue'], queryFn: read(`/v1/review-queue?${PAGE}`, z.array(ReviewItem)) })
-
-/** The head of the queue for the overview: `more` is true when the queue goes past this page. */
-export const useReviewPreview = () =>
-  useQuery({
-    queryKey: ['review-queue', 'preview'],
-    queryFn: async () => {
-      const { data, meta } = await apiFetch(`/v1/review-queue?limit=${REVIEW_PREVIEW}`, z.array(ReviewItem))
-      return { items: data, more: nextCursor(meta) !== undefined }
-    },
-  })
-
 export function useUsageToday() {
   const day = new Date().toISOString().slice(0, 10) // the API's days are UTC
   return useQuery({ queryKey: ['usage', day], queryFn: read(`/v1/usage?from=${day}&to=${day}`, Usage) })
@@ -134,7 +121,7 @@ function useWrite<V, T>(mutationFn: (vars: V) => Promise<T>, keys: (vars: V) => 
 const write = async <T>(path: string, schema: z.ZodType<T>, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown, headers?: Record<string, string>) =>
   (await apiFetch(path, schema, { method, body, headers })).data
 
-const filmKeys = ({ id }: { id: string }): QueryKey[] => [['film', id], ['films'], ['review-queue']]
+const filmKeys = ({ id }: { id: string }): QueryKey[] => [['film', id], ['films']]
 const filmAction = (id: string, action: string, body?: unknown) => write(`/v1/films/${id}/${action}`, FilmDetail, 'POST', body)
 
 export interface NewFilm { channel_id: string; title: string; brief?: string; idempotencyKey?: string }
@@ -149,12 +136,6 @@ export const useRedoFilm = () =>
   useWrite(({ id, ...body }: { id: string; from_step: string; reason: string }) => filmAction(id, 'redo', body), filmKeys)
 export const useEditScreenplay = () =>
   useWrite(({ id, screenplay }: { id: string; screenplay: unknown }) => write(`/v1/films/${id}/screenplay`, FilmDetail, 'PATCH', { screenplay }), filmKeys)
-
-export type ReviewDecision =
-  | { id: string; decision: 'approved'; reason?: string }
-  | { id: string; decision: 'redo'; reason: string; redo_from_step?: string }
-export const useReviewFilm = () =>
-  useWrite(({ id, ...body }: ReviewDecision) => filmAction(id, 'review', body), filmKeys)
 
 export interface CharacterInput { name: string; look: { ink: string; hair?: string }; voice_id: string; description?: string | null }
 export const useSaveCharacter = () =>

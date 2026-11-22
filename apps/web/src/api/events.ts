@@ -56,7 +56,7 @@ export function useFilmEvents(filmId: string): { live: LiveState } {
     on('film', (data) => {
       const e = FilmEvent.parse(data)
       qc.setQueryData<FilmDetail>(['film', filmId], (d) => (d ? applyFilmEvent(d, e) : d))
-      refresh(['film', filmId], ['film', filmId, 'versions'], ['films'], ['review-queue'])
+      refresh(['film', filmId], ['film', filmId, 'versions'], ['films'])
     })
     es.onerror = () => { if (es.readyState === EventSource.CLOSED) setLive('offline') }
     return () => es.close()

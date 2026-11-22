@@ -201,6 +201,25 @@ describe('film routes', () => {
     expect(got.rawPayload.equals(body)).toBe(true)
   })
 
+  test('film list items carry a final_url that downloads the final video once it exists, else null', async () => {
+    const id = await newFilm()
+    const list = () => t.app.inject({ method: 'GET', url: '/v1/films', headers: auth() }).then((r) => r.json().data[0])
+    expect((await list()).final_url).toBeNull()
+
+    const { version } = (await filmDetail(t.db, ws(), id))!
+    const body = Buffer.from('fake mp4')
+    const storageKey = `ws/${ws()}/films/${id}/v1/final.mp4`
+    mkdirSync(dirname(t.storage.localPath(storageKey)), { recursive: true })
+    writeFileSync(t.storage.localPath(storageKey), body)
+    await replaceAsset(t.db, ws(), { filmVersionId: version.id, kind: 'final', path: 'final.mp4', storageKey, mime: 'video/mp4', bytes: body.length, sha256: 'x' })
+
+    const { final_url } = await list()
+    expect(final_url).toMatch(/^\/v1\/assets\/[^/]+\/content\?exp=\d+&sig=[0-9a-f]{64}$/)
+    const got = await t.app.inject({ method: 'GET', url: final_url })
+    expect(got.statusCode).toBe(200)
+    expect(got.rawPayload.equals(body)).toBe(true)
+  })
+
   test('cancel a queued film → cancelled; cancel again → 409', async () => {
     const id = await newFilm()
     const res = await t.app.inject({ method: 'POST', url: `/v1/films/${id}/cancel`, headers: auth() })

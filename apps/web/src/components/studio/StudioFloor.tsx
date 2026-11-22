@@ -5,7 +5,7 @@ import { vi } from '../../i18n/vi'
 import { useReducedMotion } from '../../stick/use-reduced-motion'
 import { type Act, type FloorState, type Say, actFrames, deriveFloor, handoffsBetween } from './floor-state'
 import { Furniture } from './Furniture'
-import { SCENE, headOf } from './layout'
+import { SCENE, VIEW, headOf } from './layout'
 import { Person } from './Person'
 import { type MemberKey, TEAM, memberOf } from './team'
 import { Walker } from './Walker'
@@ -135,8 +135,11 @@ export function StudioFloor({ detail, collapsible = false }: Props) {
         <>
           <p className="studio-title">{vi.studio.title}</p>
           <p role="status" className="sr-only">{statusLine(floor, failedLabel)}</p>
-          <div className="studio-frame" style={{ height: SCENE.height * (width / SCENE.width) }}>
-            <div className="studio-scene" aria-hidden="true" style={{ width: SCENE.width, height: SCENE.height, transform: `scale(${width / SCENE.width})` }}>
+          <div className="studio-frame" style={{ height: VIEW.height * (width / SCENE.width) }}>
+            <div
+              className="studio-scene" aria-hidden="true"
+              style={{ width: SCENE.width, height: SCENE.height, transform: `scale(${width / SCENE.width}) translateY(${-VIEW.top}px)` }}
+            >
               <Furniture working={working} final={final} motion={motion} />
               {TEAM.map((m, i) => (
                 <Person

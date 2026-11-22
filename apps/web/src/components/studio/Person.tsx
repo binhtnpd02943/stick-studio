@@ -1,5 +1,5 @@
 import { INK } from './Furniture'
-import { HEAD, figureAt } from './layout'
+import { HEAD, figureAt, tagAt } from './layout'
 import type { Member } from './team'
 
 const HANG = 'M40 42 L32 58 L36 70'
@@ -68,7 +68,7 @@ export function Person({ member: m, index, working, cheer, away, motion }: Props
           </g>
         )}
       </svg>
-      <div className="studio-tag"><span><b>{m.name}</b> <span>· {m.role}</span></span></div>
+      <span className="studio-tag" style={{ left: tagAt(m.key).x - at.x, top: tagAt(m.key).y - at.y }}><b>{m.name}</b><span>{m.role}</span></span>
     </div>
   )
 }

@@ -3,16 +3,19 @@
 .studio-title { margin: 0 0 8px; font-family: var(--mono); font-size: 12px; color: var(--body); }
 .studio-toggle { margin-bottom: 12px; }
 .studio-frame { position: relative; width: 100%; overflow: hidden; }
-.studio-scene { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+.studio-scene { position: absolute; left: 0; top: 0; transform-origin: top left; background: var(--bg); color: var(--ink); font-family: var(--sans); }
 .studio-scene svg * { transform-box: fill-box; }
 .studio-furniture { position: absolute; left: 0; top: 0; }
 .studio-person { position: absolute; width: 80px; }
-.studio-tag, .studio-you { width: 160px; margin-left: -40px; text-align: center; font-size: 13px; line-height: 1.2; white-space: nowrap; }
-.studio-you { position: absolute; left: 150px; top: 860px; width: 120px; margin-left: 0; }
-.studio-tag > span, .studio-you > span { border-radius: 99px; padding: 2px 8px; background: var(--bg); }
-.studio-tag b, .studio-you b { font-weight: 600; }
-.studio-tag span span, .studio-you span span { font-family: var(--mono); font-size: 11px; }
-.studio-person.is-working .studio-tag > span, .studio-you.is-final > span { background: var(--accent); }
+.studio-tag { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; padding: 2px 8px; border-radius: 8px; background: var(--bg); font-size: 13px; line-height: 1.2; white-space: nowrap; }
+.studio-tag b { font-weight: 600; }
+.studio-tag span { font-family: var(--mono); font-size: 11px; }
+.studio-person.is-working .studio-tag { background: var(--accent); }
+.studio-you { position: absolute; left: 150px; top: 860px; width: 120px; text-align: center; font-size: 13px; line-height: 1.2; white-space: nowrap; }
+.studio-you > span { border-radius: 99px; padding: 2px 8px; background: var(--bg); }
+.studio-you b { font-weight: 600; }
+.studio-you span span { font-family: var(--mono); font-size: 11px; }
+.studio-you.is-final > span { background: var(--accent); }
 .studio-walker { position: absolute; width: 50px; height: 96px; }
 .studio-bubble { position: absolute; width: 170px; height: 80px; box-sizing: border-box; background: var(--bg); border: 1.5px solid var(--ink); border-radius: 14px; padding: 6px 4px; animation: studio-pop .35s ease-out both; transform-origin: 30% 100%; }
 .studio-bubble::after { content: ""; position: absolute; left: 52px; bottom: -7px; width: 12px; height: 12px; background: var(--bg); border-right: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); transform: rotate(45deg); }

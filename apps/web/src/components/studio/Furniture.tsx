@@ -1,4 +1,5 @@
 import { vi } from '../../i18n/vi'
+import { ROOM_LABELS } from './layout'
 import type { MemberKey } from './team'
 
 export const INK = 'var(--ink)'
@@ -23,7 +24,7 @@ export function Furniture({ working, final, motion }: { working: MemberKey | nul
     <path d="M280 560 L24 560 L24 900 L380 900 L380 560 L360 560"></path>
     <path d="M440 560 L400 560 L400 900 L1256 900 L1256 560 L1060 560 M980 560 L520 560"></path>
     </g>
-    <g fontFamily={MONO} fontSize="11" fill={BODY}><text x="40" y="102">{vi.studio.rooms.creative}</text><text x="736" y="102">{vi.studio.rooms.studio}</text><text x="40" y="582">{vi.studio.rooms.review}</text><text x="416" y="582">{vi.studio.rooms.post}</text><text x="100" y="440">{vi.studio.rooms.entrance}</text><text x="1000" y="440">{vi.studio.rooms.coffee}</text><text x="580" y="440">{vi.studio.rooms.corridor}</text></g>
+    <g fontFamily={MONO} fontSize="11" fill={BODY}>{ROOM_LABELS.map((l) => <text key={l.key} x={l.x} y={l.y}>{vi.studio.rooms[l.key]}</text>)}</g>
     <g fill={BG} stroke={INK} strokeWidth="2"><rect x="240" y="116" width="120" height="56" rx="2"></rect><rect x="380" y="116" width="120" height="56" rx="2"></rect><rect x="760" y="116" width="80" height="56" rx="2"></rect><rect x="60" y="604" width="100" height="50" rx="2"></rect><rect x="600" y="604" width="100" height="50" rx="2"></rect><rect x="760" y="604" width="100" height="50" rx="2"></rect></g>
     <g stroke={INK} strokeWidth="1.5"><path d="M300 116 L300 172 M440 116 L440 172 M800 116 L800 172 M110 604 L110 654 M650 604 L650 654 M810 604 L810 654"></path></g>
     <circle cx="590" cy="140" r="16" fill={BG} stroke={INK} strokeWidth="2"></circle><path d="M590 140 L590 130 M590 140 L597 144" stroke={INK} strokeWidth="2" strokeLinecap="round"></path>

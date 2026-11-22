@@ -1,6 +1,7 @@
 import { FILM_STEPS } from '@stick/core'
 import { describe, expect, test } from 'vitest'
-import { doorOf, route, spot, walkMs } from '../src/components/studio/layout'
+import { ROOMS, ROOM_LABELS, VIEW, doorOf, route, spot, tagAt, walkMs } from '../src/components/studio/layout'
+import { vi } from '../src/i18n/vi'
 import { TEAM } from '../src/components/studio/team'
 
 describe('studio layout', () => {
@@ -38,5 +39,40 @@ describe('studio layout', () => {
     expect(walkMs(a, { x: 10, y: 0 })).toBe(450)
     expect(walkMs(a, { x: 200, y: 100 })).toBe(900)
     expect(walkMs(a, { x: 400, y: 100 })).toBeGreaterThan(walkMs(a, { x: 200, y: 100 }))
+  })
+
+  // Rough glyph widths: name 13px semibold, role 11px mono; the tag stacks the role under the name.
+  const TAG_HEIGHT = 36
+  const tagWidth = (key: (typeof TEAM)[number]['key']) => Math.max(vi.studio.team[key].name.length * 9, vi.studio.team[key].role.length * 7) + 16
+  const tagBox = (key: (typeof TEAM)[number]['key']) => {
+    const t = tagAt(key)
+    const w = tagWidth(key)
+    return { left: t.x - w / 2, right: t.x + w / 2, top: t.y, bottom: t.y + TAG_HEIGHT }
+  }
+
+  test('name tags of neighbours never overlap', () => {
+    const keys = TEAM.map((m) => m.key)
+    for (const a of keys) {
+      for (const b of keys) {
+        if (a >= b) continue
+        const A = tagBox(a)
+        const B = tagBox(b)
+        const overlap = A.left < B.right && B.left < A.right && A.top < B.bottom && B.top < A.bottom
+        expect(overlap, `${a} / ${b}`).toBe(false)
+      }
+    }
+    expect(Object.keys(ROOMS)).toContain('corridor')
+  })
+
+  test('room labels never collide with a name tag and sit inside the visible view', () => {
+    for (const label of ROOM_LABELS) {
+      const box = { left: label.x, right: label.x + vi.studio.rooms[label.key].length * 7, top: label.y - 11, bottom: label.y + 3 }
+      expect(box.top).toBeGreaterThanOrEqual(VIEW.top)
+      for (const m of TEAM) {
+        const t = tagBox(m.key)
+        const overlap = box.left < t.right && t.left < box.right && box.top < t.bottom && t.top < box.bottom
+        expect(overlap, `${label.key} / ${m.key}`).toBe(false)
+      }
+    }
   })
 })

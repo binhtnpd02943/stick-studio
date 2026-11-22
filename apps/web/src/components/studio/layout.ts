@@ -3,6 +3,9 @@ import { type MemberKey, memberOf } from './team'
 // Geometry ported from docs/superpowers/mockups/studio-floor.html.
 export const SCENE = { width: 1280, height: 1000 } as const
 
+/** The drawn part of the scene: the mockup's header band (0–64) and footer below the rooms are not rendered. */
+export const VIEW = { top: 64, height: 848 } as const
+
 export type Point = { x: number; y: number }
 export type SpotKey = MemberKey | 'review'
 
@@ -29,6 +32,21 @@ const FIGURE_LEFT: Record<MemberKey, number> = {
 }
 /** Head centre inside the 80×130 figure box, per pose. */
 export const HEAD = { sit: { x: 30, y: 40 }, stand: { x: 40, y: 22 } } as const
+
+/** Name tags hang under each figure box (80×130), centred on it. */
+const TAG_TOP = 130
+export const tagAt = (key: MemberKey): Point => ({ x: figureAt(key).x + 40, y: figureAt(key).y + TAG_TOP })
+
+/** Room labels; the corridor ones sit below the top room's name tags and clear of Hùng's head. */
+export const ROOM_LABELS = [
+  { key: 'creative', x: 40, y: 102 },
+  { key: 'studio', x: 736, y: 102 },
+  { key: 'review', x: 210, y: 582 }, // right of Hùng's tag, which hangs over the wall
+  { key: 'post', x: 416, y: 582 },
+  { key: 'entrance', x: 160, y: 456 },
+  { key: 'coffee', x: 1000, y: 456 },
+  { key: 'corridor', x: 580, y: 456 },
+] as const
 
 export function roomOf(key: SpotKey): Room {
   return (Object.keys(ROOMS) as Room[]).find((r) => (ROOMS[r] as readonly SpotKey[]).includes(key))!

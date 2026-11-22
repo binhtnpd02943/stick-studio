@@ -48,6 +48,18 @@ describe('make-film CLI', () => {
     expect(statSync(join(out, 'film.mp4')).mtimeMs).toBe(mtime)
   }, SLOW)
 
+  test('a reused voice step warns about WAVs that match no spoken beat', () => {
+    const audio = join(out, 'audio')
+    writeFileSync(join(audio, 'zz.wav'), readFileSync(join(audio, 's1.b0.wav')))
+    try {
+      const r = make(['Phân số là gì?', '--fake', '--out', out], { STICK_FAKE_EMPTY: '1' })
+      expect(r.status, r.stdout + r.stderr).toBe(0)
+      expect(r.stderr).toContain(`warning: zz.wav in ${audio} matches no spoken beat id`)
+    } finally {
+      rmSync(join(audio, 'zz.wav'))
+    }
+  }, SLOW)
+
   test('a run dir holding another topic is refused, not silently resumed', () => {
     const r = make(['Chủ đề khác hẳn', '--fake', '--out', out], { STICK_FAKE_EMPTY: '1' })
     expect(r.status).toBe(1)

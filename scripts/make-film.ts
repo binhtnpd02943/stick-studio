@@ -1,19 +1,16 @@
-import { existsSync, renameSync, rmSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { defaultCatalog } from '@stick/library'
-import { solveTimeline } from '@stick/pipeline'
+import { runFilmStep, ScreenplayRejectedError, type FilmInput, type StepEnv } from '@stick/pipeline'
 import { SCREENPLAY_PROMPT_VERSION, STORY_PROMPT_VERSION } from '@stick/prompts'
-import { renderContactSheet } from '@stick/render'
 import { CliError } from './lib/cli-error.js'
 import { describeFailure } from './lib/make-errors.js'
 import { loadDotEnv, makeProviders } from './lib/make-providers.js'
-import { assertValid, screenplayStep, storyStep, voiceStep } from './lib/make-steps.js'
-import { gateMotion } from './lib/motion-gate.js'
+import { readStory, screenplayReusable, storyReusable, voiceReusable } from './lib/make-steps.js'
 import { readMusic } from './lib/music.js'
-import { renderMixed } from './lib/render-steps.js'
-import { slugify } from './lib/run-dir.js'
-import { budgeted, RunState } from './lib/run-state.js'
+import { recentStories, slugify } from './lib/run-dir.js'
+import { budgeted, RunState, type RunJson, type StepName } from './lib/run-state.js'
 
 const USAGE = 'usage: npm run make -- "<topic>" [--genre story|explainer] [--out out/<slug>] [--fake] [--skip-motion] [--fresh] [--music <file>]'
 
@@ -48,45 +45,50 @@ async function main(): Promise<void> {
   const { llm, tts, model, maxCostUsd } = makeProviders(opts.fake, join(outRoot, '.tts-cache'), !opts.fresh && existsSync(join(opts.out, 'story.json')))
   const promptVersions = { story: STORY_PROMPT_VERSION, screenplay: SCREENPLAY_PROMPT_VERSION }
   const run = RunState.open(opts.out, opts.topic, model, opts.fresh, promptVersions)
-  const ctx = { dir: opts.out, run, fresh: opts.fresh }
-  const paid = budgeted(llm, run, maxCostUsd)
+  const env: StepEnv = {
+    dir: opts.out, llm: budgeted(llm, run, maxCostUsd), tts, catalog: defaultCatalog,
+    sfxCacheDir: join(outRoot, '.sfx-cache'), music: music?.path, skipGates: opts.skipMotion,
+  }
+  const input: FilmInput = { topic: opts.topic, genre: opts.genre, recent: recentStories(outRoot) }
+  /** A marked step: clear its marker and every later one, run it, record its report, then mark it done. */
+  const runMarked = async (step: StepName, patch: Partial<RunJson> = {}): Promise<void> => {
+    run.clearFrom(step)
+    const { libraryRequests, repairRounds } = await runFilmStep(step, env, input)
+    run.update({ ...(libraryRequests && { libraryRequests }), ...(repairRounds !== undefined && { repairRounds }), ...patch })
+    run.markStep(step)
+  }
 
-  const story = await storyStep(ctx, paid, opts.topic, opts.genre, outRoot)
-  for (const w of story.value.content_warnings) console.error(`warning: ${w}`) // the human review gate decides
-  const screenplay = await screenplayStep({ ...ctx, fresh: opts.fresh || story.ran }, paid, story.value)
-  assertValid(screenplay.value)
-  const voice = await voiceStep(ctx, screenplay.value, tts)
-  const tl = solveTimeline(screenplay.value, voice.value, defaultCatalog)
-  gateMotion(tl, opts.skipMotion)
-  run.update({ durationSec: tl.duration })
+  const storyRan = !storyReusable(opts.out, opts.fresh)
+  if (storyRan) await runMarked('story')
+  for (const w of readStory(opts.out)!.content_warnings) console.error(`warning: ${w}`) // the human review gate decides
+  if (!screenplayReusable(opts.out, opts.fresh || storyRan)) {
+    try {
+      await runMarked('screenplay')
+    } catch (e) {
+      if (e instanceof ScreenplayRejectedError) run.update({ libraryRequests: e.libraryRequests })
+      throw e
+    }
+  }
+  await runFilmStep('validate', env, input) // a hand-edited screenplay.json must pass the same checks as a generated one
+  if (!voiceReusable(opts.out, run)) await runMarked('voice')
+  const { durationSec } = await runFilmStep('timeline', env, input)
+  await runFilmStep('gate', env, input)
+  run.update({ durationSec })
 
   const film = join(opts.out, 'film.mp4')
   // shortcut: a changed music file with an identical sidecar is not noticed; pass --fresh then.
   const sameMusic = JSON.stringify(run.snapshot().music) === JSON.stringify(music?.license)
-  if (!run.snapshot().steps.render || !existsSync(film) || !sameMusic) {
-    run.clearFrom('render')
-    const partial = join(opts.out, 'film.partial.mp4') // renamed only when complete, so film.mp4 is never truncated
+  if (!run.snapshot().steps.render || !existsSync(film) || !sameMusic) await runMarked('render', { music: music?.license })
+  if (!run.snapshot().steps.contact || !existsSync(join(opts.out, 'contact.png'))) {
     try {
-      await renderMixed(tl, join(opts.out, 'audio'), join(outRoot, '.sfx-cache'), music?.path, partial)
-      renameSync(partial, film)
-    } finally {
-      rmSync(partial, { force: true })
-    }
-    run.update({ music: music?.license })
-    run.markStep('render')
-  }
-  const contact = join(opts.out, 'contact.png')
-  if (!run.snapshot().steps.contact || !existsSync(contact)) {
-    try {
-      await renderContactSheet(tl, contact)
-      run.markStep('contact')
+      await runMarked('contact')
     } catch (e) {
       console.error(`warning: contact sheet failed, film.mp4 is complete: ${(e as Error).message}`) // a review aid must not fail a finished film
     }
   }
   const done = run.snapshot()
   console.log(`out path: ${film}`)
-  console.log(`duration: ${tl.duration.toFixed(2)}s`)
+  console.log(`duration: ${durationSec!.toFixed(2)}s`)
   console.log(`cost: $${done.costUsd.toFixed(4)}`)
   console.log(`repair rounds: ${done.repairRounds ?? 0}`)
   console.log(`library requests: ${done.libraryRequests.join(', ') || 'none'}`)

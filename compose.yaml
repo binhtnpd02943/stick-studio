@@ -1,0 +1,41 @@
+# Local Postgres 16 + Redis 7 for `npm run api` / `npm run worker`.
+# Start: npm run infra:up   then   DATABASE_URL=postgres://stick:stick@127.0.0.1:5432/stick
+# Dev-only credentials; ports bind to localhost only.
+name: stick-studio
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: stick
+      POSTGRES_PASSWORD: stick
+      POSTGRES_DB: stick
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stick -d stick"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

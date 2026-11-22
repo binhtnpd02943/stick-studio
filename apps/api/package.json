@@ -1,0 +1,31 @@
+{
+  "name": "@stick/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "11.1.5",
+    "@fastify/rate-limit": "11.3.0",
+    "@fastify/static": "10.1.12",
+    "@fastify/swagger": "9.9.5",
+    "@stick/core": "0.0.0",
+    "@stick/db": "0.0.0",
+    "@stick/library": "0.0.0",
+    "@stick/pipeline": "0.0.0",
+    "@stick/providers": "0.0.0",
+    "@stick/worker": "0.0.0",
+    "drizzle-orm": "0.45.4",
+    "fastify": "5.12.8",
+    "fastify-type-provider-zod": "~5.1.0",
+    "ioredis": "6.0.0",
+    "openapi-types": "12.1.3",
+    "pino": "10.4.0",
+    "uuid": "14.0.3",
+    "zod": "~3.25.76"
+  }
+}

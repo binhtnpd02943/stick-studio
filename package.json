@@ -3,17 +3,30 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "worker": "tsx apps/worker/src/main.ts",
     "render": "tsx scripts/render-film.ts",
     "make": "tsx scripts/make-film.ts",
-    "preview": "tsx scripts/preview-action.ts"
+    "preview": "tsx scripts/preview-action.ts",
+    "db:generate": "drizzle-kit generate --config packages/db/drizzle.config.ts",
+    "coverage:db": "vitest run --project unit packages/db --coverage.enabled --coverage.include='packages/db/src/**' --coverage.thresholds.lines=80 --coverage.thresholds.functions=80",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down",
+    "test:db:pg": "STICK_TEST_DATABASE_URL=postgres://stick:stick@127.0.0.1:5432/stick_test vitest run packages/db",
+    "test:e2e:pg": "STICK_TEST_DATABASE_URL=postgres://stick:stick@127.0.0.1:5432/stick_test vitest run --project server apps/api/test/e2e.test.ts",
+    "api": "tsx apps/api/src/main.ts",
+    "dev": "tsx apps/api/src/dev.ts",
+    "seed": "tsx scripts/seed.ts",
+    "token": "tsx scripts/create-token.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.1.1"

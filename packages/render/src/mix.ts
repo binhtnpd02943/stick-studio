@@ -11,6 +11,8 @@ const DUCK = 'sidechaincompress=threshold=0.05:ratio=8:attack=20:release=300'
 const LOUDNORM = 'loudnorm=I=-14:TP=-1.5:LRA=11'
 const LOUDNORM_KEYS = ['input_i', 'input_tp', 'input_lra', 'input_thresh', 'target_offset'] as const
 const RATE = 48000
+const LOUDNESS_TIMEOUT_MS = 120_000
+const STDERR_TAIL_LINES = 10
 const MONO = `aformat=sample_fmts=fltp:sample_rates=${RATE}:channel_layouts=mono`
 
 export interface FilmAudio {
@@ -33,9 +35,17 @@ async function videoSeconds(videoPath: string, ffprobePath: string): Promise<num
  * Single-pass loudnorm is dynamic and lands several LU off on sparse or steady material, so the mix is measured first and
  * then normalised with those measurements (linear when the material allows). Silence has nothing to measure: plain loudnorm.
  */
-async function loudnormFor(ffmpegPath: string, videoPath: string, files: string[], graph: (norm: string) => string): Promise<string> {
+async function loudnormFor(ffmpegPath: string, videoPath: string, files: string[], graph: (norm: string) => string, timeoutMs: number): Promise<string> {
   const args = ['-hide_banner', '-nostats', '-i', videoPath, ...files.flatMap((f) => ['-i', f]), '-filter_complex', graph(`${LOUDNORM}:print_format=json`), '-map', '[aout]', '-f', 'null', '-']
-  const { stderr } = await execFileP(ffmpegPath, args, { maxBuffer: 1 << 24 })
+  let stderr: string
+  try {
+    ;({ stderr } = await execFileP(ffmpegPath, args, { maxBuffer: 1 << 24, timeout: timeoutMs, killSignal: 'SIGKILL' }))
+  } catch (e) {
+    // Rethrown as a fresh Error: execFile's own message embeds the whole command line, filtergraph included.
+    const err = e as NodeJS.ErrnoException & { killed?: boolean; code?: number | string; stderr?: string }
+    if (err.killed) throw new Error(`mixFilm: loudness pass timed out after ${timeoutMs} ms`)
+    throw new Error(`mixFilm: loudness pass failed (exit ${err.code})\n${String(err.stderr ?? '').trimEnd().split('\n').slice(-STDERR_TAIL_LINES).join('\n')}`)
+  }
   const json = stderr.match(/\{[^{}]*\}/g)?.at(-1)
   if (!json) throw new Error(`mixFilm: no loudness measurement in ffmpeg output\n${stderr.split('\n').slice(-10).join('\n')}`)
   const m = JSON.parse(json) as Record<(typeof LOUDNORM_KEYS)[number], string>
@@ -76,11 +86,11 @@ export async function mixFilm(
   videoPath: string,
   audio: FilmAudio,
   outPath: string,
-  opts: { ffmpegPath?: string; ffprobePath?: string } = {},
+  opts: { ffmpegPath?: string; ffprobePath?: string; loudnessTimeoutMs?: number } = {},
 ): Promise<void> {
   // Checked first: the failure path below deletes outPath, which would delete the source.
   if (resolve(outPath) === resolve(videoPath)) throw new Error('mixFilm: outPath must differ from videoPath')
-  const { ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe' } = opts
+  const { ffmpegPath = 'ffmpeg', ffprobePath = 'ffprobe', loudnessTimeoutMs = LOUDNESS_TIMEOUT_MS } = opts
   const seconds = await videoSeconds(videoPath, ffprobePath)
   const files: string[] = []
   const inputOf = (path: string): number => {
@@ -106,7 +116,7 @@ export async function mixFilm(
     parts.push('mduck')
   }
   const graph = (norm: string) => [...g, `${parts.map((p) => `[${p}]`).join('')}amix=inputs=${parts.length}:normalize=0:duration=first,${norm},aresample=${RATE}[aout]`].join(';')
-  const norm = await loudnormFor(ffmpegPath, videoPath, files, graph)
+  const norm = await loudnormFor(ffmpegPath, videoPath, files, graph, loudnessTimeoutMs)
   const args = [
     '-y', '-i', videoPath, ...files.flatMap((f) => ['-i', f]),
     '-filter_complex', graph(norm), '-map', '0:v', '-map', '[aout]',

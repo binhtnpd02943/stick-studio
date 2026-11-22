@@ -1,16 +1,11 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { parseScreenplay, StorySchema, type LlmProvider, type Screenplay, type Story, type TtsProvider } from '@stick/core'
-import { defaultCatalog } from '@stick/library'
-import { draftScreenplay, ScreenplayRejectedError, validateScreenplay, voiceScreenplay, writeStory } from '@stick/pipeline'
-import { audioDurations, spokenBeatIds } from './audio-clips.js'
-import { CliError } from './cli-error.js'
-import { readArtifact, recentStories, writeArtifact, type ArtifactSchema } from './run-dir.js'
+import { parseScreenplay, StorySchema, type Screenplay, type Story } from '@stick/core'
+import { spokenBeatIds } from '@stick/render'
+import { readArtifact, type ArtifactSchema } from './run-dir.js'
 import type { RunState } from './run-state.js'
 
-/** Each step returns what it produced and whether it actually ran, so later steps know their inputs are stale. */
-export interface StepResult<T> { value: T; ran: boolean }
-interface Ctx { dir: string; run: RunState; fresh: boolean }
+/** The reuse checks: the steps themselves live in @stick/pipeline (runFilmStep). */
 
 const screenplayArtifact: ArtifactSchema<Screenplay> = {
   safeParse(raw) {
@@ -19,44 +14,23 @@ const screenplayArtifact: ArtifactSchema<Screenplay> = {
   },
 }
 
-export async function storyStep(ctx: Ctx, llm: LlmProvider, topic: string, genre: Story['genre'] | undefined, outRoot: string): Promise<StepResult<Story>> {
-  const cached = ctx.fresh ? undefined : readArtifact(ctx.dir, 'story.json', StorySchema)
-  if (cached) return { value: cached, ran: false }
-  ctx.run.clearFrom('story')
-  const { story } = await writeStory(llm, { topic, genre, recent: recentStories(outRoot) })
-  writeArtifact(ctx.dir, 'story.json', story)
-  ctx.run.markStep('story')
-  return { value: story, ran: true }
-}
+/** The story in `dir`, or undefined if absent; a present but invalid file is exit 1, never overwritten. */
+export const readStory = (dir: string): Story | undefined => readArtifact(dir, 'story.json', StorySchema)
 
-export async function screenplayStep(ctx: Ctx, llm: LlmProvider, story: Story): Promise<StepResult<Screenplay>> {
-  const cached = ctx.fresh ? undefined : readArtifact(ctx.dir, 'screenplay.json', screenplayArtifact)
-  if (cached) return { value: cached, ran: false }
-  ctx.run.clearFrom('screenplay')
-  try {
-    const { screenplay, libraryRequests, rounds } = await draftScreenplay(llm, story, defaultCatalog)
-    writeArtifact(ctx.dir, 'screenplay.json', screenplay)
-    ctx.run.update({ libraryRequests, repairRounds: rounds })
-    ctx.run.markStep('screenplay')
-    return { value: screenplay, ran: true }
-  } catch (e) {
-    if (e instanceof ScreenplayRejectedError) ctx.run.update({ libraryRequests: e.libraryRequests })
-    throw e
+/** story.json and screenplay.json are reused whenever they exist and parse, so a hand edit survives a rerun. */
+export const storyReusable = (dir: string, fresh: boolean): boolean => !fresh && readStory(dir) !== undefined
+export const screenplayReusable = (dir: string, fresh: boolean): boolean => !fresh && readArtifact(dir, 'screenplay.json', screenplayArtifact) !== undefined
+
+/** Voice is reused when its marker is set and every spoken beat has its WAV; reusing warns about WAVs no spoken beat claims. */
+export function voiceReusable(dir: string, run: RunState): boolean {
+  if (!run.snapshot().steps.voice) return false
+  const sp = readArtifact(dir, 'screenplay.json', screenplayArtifact)
+  if (sp === undefined) return false
+  const audio = join(dir, 'audio')
+  const spoken = new Set(spokenBeatIds(sp))
+  if (![...spoken].every((id) => existsSync(join(audio, `${id}.wav`)))) return false
+  for (const f of readdirSync(audio).filter((f) => f.endsWith('.wav'))) {
+    if (!spoken.has(f.slice(0, -'.wav'.length))) console.error(`warning: ${f} in ${audio} matches no spoken beat id`)
   }
-}
-
-/** A hand-edited screenplay.json must pass the same checks as a generated one. */
-export function assertValid(sp: Screenplay): void {
-  const issues = validateScreenplay(sp, defaultCatalog)
-  if (issues.length) throw new CliError(2, issues.map((i) => `${i.code} ${i.path} ${i.message}`).join('\n'))
-}
-
-export async function voiceStep(ctx: Ctx, sp: Screenplay, tts: TtsProvider): Promise<StepResult<Record<string, number>>> {
-  const audio = join(ctx.dir, 'audio')
-  const done = ctx.run.snapshot().steps.voice && spokenBeatIds(sp).every((id) => existsSync(join(audio, `${id}.wav`)))
-  if (done) return { value: audioDurations(sp, audio), ran: false }
-  ctx.run.clearFrom('voice')
-  const value = await voiceScreenplay(sp, tts, audio)
-  ctx.run.markStep('voice')
-  return { value, ran: true }
+  return true
 }

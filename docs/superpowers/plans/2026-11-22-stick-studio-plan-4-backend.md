@@ -664,7 +664,7 @@ Pick the `fastify-type-provider-zod` version whose peer range accepts zod 3.25.x
 **Interfaces:**
 - Consumes: `buildApp`, `startWorker`, `createQueues`/`enqueueStep`, `redisPublisher`, `createEventHub`, `createTestDb`, `seedWorkspace`, `FsStorage`. They are wired exactly as `dev.ts` does, with `cfg.fake = true`, and share one PGlite instance.
 
-- [ ] **Step 1: Write the E2E test.** `api creates a film, the worker makes it with fakes, the owner approves it`:
+- [x] **Step 1: Write the E2E test.** `api creates a film, the worker makes it with fakes, the owner approves it`:
   1. `POST /v1/films` with the seeded bearer token and channel, title `Phân số là gì?` → 201.
   2. Open `GET /v1/films/:id/events` on a listening app and collect events.
   3. Poll `GET /v1/films/:id` every 500 ms until `awaiting_review`, timeout 280 s.
@@ -673,15 +673,15 @@ Pick the `fastify-type-provider-zod` version whose peer range accepts zod 3.25.x
   6. The SSE log holds `step succeeded` for each of the 8 steps in `FILM_STEPS` order, then `film awaiting_review`.
   7. `GET /v1/review-queue` contains the film.
   8. `POST /v1/films/:id/review { decision: 'approved' }` → 200. `GET` shows `approved`. `usage_events` has rows for the TTS calls, and `cost_usd` is 0.
-- [ ] **Step 2: Run it.** Run `npx vitest run --project server apps/api/test/e2e.test.ts`. Expected: PASS. If it fails, fix the owning task's code, not the test.
-- [ ] **Step 3: Run everything.** Run `npm test && npm run typecheck && npm run coverage:db`. Then run `npx vitest run packages/core packages/pipeline --coverage.enabled --coverage.include='packages/{core,pipeline}/src/**'` and report the numbers. Spec §13 wants 80%; a shortfall is reported, not hidden.
-- [ ] **Step 4: Smoke-test the dev loop by hand.**
+- [x] **Step 2: Run it.** Run `npx vitest run --project server apps/api/test/e2e.test.ts`. Expected: PASS. If it fails, fix the owning task's code, not the test.
+- [x] **Step 3: Run everything.** Run `npm test && npm run typecheck && npm run coverage:db`. Then run `npx vitest run packages/core packages/pipeline --coverage.enabled --coverage.include='packages/{core,pipeline}/src/**'` and report the numbers. Spec §13 wants 80%; a shortfall is reported, not hidden.
+- [x] **Step 4: Smoke-test the dev loop by hand.**
   1. `STICK_URL_SIGNING_KEY=$(openssl rand -hex 32) STICK_FAKE=1 STICK_PGLITE_DIR=out/plan4-smoke/pglite STICK_SEED_PASSWORD=<12+ chars> npm run seed -- --email owner@example.com --name Owner`
   2. `npm run token -- --email owner@example.com --name smoke`
   3. Start `npm run dev` with the same env and Redis running (`redis-server --port 6379 --save ''`).
   4. Create a film with `curl` + bearer, and watch `/v1/films/:id/events` until `awaiting_review`.
   5. Stop dev and delete `out/plan4-smoke`.
-- [ ] **Step 5: Commit.** Message: `test: end-to-end film through API and worker with fake providers`.
+- [x] **Step 5: Commit.** Message: `test: end-to-end film through API and worker with fake providers`.
 
 ---
 

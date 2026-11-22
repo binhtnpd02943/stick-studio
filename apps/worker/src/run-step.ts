@@ -172,7 +172,7 @@ async function runLive(
 
   try {
     const ledger = ledgerFor(deps, job)
-    const { llm, tts } = (deps.providers ?? stepProviders)(cfg, job.step, ledger)
+    const { llm, tts } = (deps.providers ?? stepProviders)(cfg, job.step, ledger, film.title)
     const recent = job.step === 'story' ? await recentStories(db, job.workspaceId, film.channelId) : []
     const env = { dir, llm, tts, catalog: defaultCatalog, sfxCacheDir: join(cfg.cacheDir, 'sfx') }
     const report = await (deps.runStep ?? runFilmStep)(job.step, env, { topic, recent })

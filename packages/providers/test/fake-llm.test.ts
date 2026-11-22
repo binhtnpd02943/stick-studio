@@ -1,7 +1,7 @@
 import { LlmSchemaError, type LlmRequest } from '@stick/core'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, test } from 'vitest'
 import { z } from 'zod/v4'
-import { FakeLlm } from '../src/index.js'
+import { FakeLlm, fakeFilmResponses } from '../src/index.js'
 
 const req = (): LlmRequest<{ n: number }> => ({
   system: 's', cacheSystem: false, messages: [{ role: 'user', content: 'x' }], schema: z.object({ n: z.number() }), effort: 'low', maxTokens: 10,
@@ -27,5 +27,25 @@ describe('FakeLlm', () => {
   it('reports zero usage', async () => {
     const { usage } = await new FakeLlm([{ n: 1 }]).generate(req())
     expect(usage).toEqual({ model: 'fake', inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 })
+  })
+})
+
+describe('fakeFilmResponses', () => {
+  test('without a title it is the canned phan-so film', () => {
+    const { story, screenplay } = fakeFilmResponses() as { story: { title: string }; screenplay: { title: string } }
+    expect(story.title).toBe('Phân số là gì?')
+    expect(screenplay.title).toBe('Phân số là gì?')
+  })
+
+  test('a title becomes the story and screenplay title and the opening question, deterministically', () => {
+    type Sp = { title: string; scenes: { beats: { say?: { text: string } }[] }[] }
+    type St = { title: string; hook: string; scenes: { beats: { line: string }[] }[] }
+    const a = fakeFilmResponses('Vì sao lá rụng?') as { story: St; screenplay: Sp }
+    expect(a.story.title).toBe('Vì sao lá rụng?')
+    expect(a.story.hook).toBe('Lan ơi, vì sao lá rụng?')
+    expect(a.story.scenes[0]!.beats[0]!.line).toBe('Lan ơi, vì sao lá rụng?')
+    expect(a.screenplay.title).toBe('Vì sao lá rụng?')
+    expect(a.screenplay.scenes[0]!.beats[0]!.say!.text).toBe('Lan ơi, vì sao lá rụng?')
+    expect(fakeFilmResponses('Vì sao lá rụng?')).toEqual(a)
   })
 })

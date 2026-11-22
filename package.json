@@ -9,6 +9,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "worker": "tsx apps/worker/src/main.ts",
     "render": "tsx scripts/render-film.ts",
     "make": "tsx scripts/make-film.ts",
     "preview": "tsx scripts/preview-action.ts",

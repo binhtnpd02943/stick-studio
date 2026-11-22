@@ -92,7 +92,7 @@ export function ReviewCard({ item, onApprove, onRedo, busy, onExpired, onSwipe, 
       <div className="review-stage" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { swipeStart.current = null }}>
         <FilmPlayer src={item.final_url} assetId={item.final_asset_id} onExpired={onExpired} autoPlay />
         <div className="review-top">
-          <h2>{film.title}</h2>
+          <h2 tabIndex={-1}>{film.title}</h2>
           {failed && (
             <details className="review-qa">
               <summary>{vi.review.qaFailed(findings.length)}</summary>

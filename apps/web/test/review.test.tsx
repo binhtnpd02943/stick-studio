@@ -63,6 +63,31 @@ describe('review page', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Đã duyệt')
   })
 
+  test('after approving, focus moves to the next card heading; after the last one, to the empty-state caption', async () => {
+    api()
+    renderRoutes(routes, '/review')
+    await screen.findByText('Phim một')
+    await userEvent.click(screen.getByRole('button', { name: 'Duyệt' }))
+    const next = await screen.findByRole('heading', { name: 'Phim hai' })
+    await waitFor(() => expect(next).toHaveFocus())
+
+    await userEvent.click(screen.getByRole('button', { name: 'Duyệt' }))
+    const empty = await screen.findByText('Hết phim chờ duyệt')
+    await waitFor(() => expect(empty).toHaveFocus())
+  })
+
+  test('after sending a redo, focus moves to the next card heading', async () => {
+    api()
+    renderRoutes(routes, '/review')
+    await screen.findByText('Phim một')
+    await userEvent.click(screen.getByRole('button', { name: 'Làm lại' }))
+    const sheet = await screen.findByRole('dialog')
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Sai kiến thức' }))
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Gửi' }))
+    const next = await screen.findByRole('heading', { name: 'Phim hai' })
+    await waitFor(() => expect(next).toHaveFocus())
+  })
+
   test('Làm lại needs one quick reason and posts the mapped step: Giọng -> voice with reason Giọng: <note>', async () => {
     const { posts } = api()
     renderRoutes(routes, '/review')

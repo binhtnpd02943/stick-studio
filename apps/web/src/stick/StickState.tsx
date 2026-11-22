@@ -7,7 +7,7 @@ export function StickState({ kind, label }: { kind: keyof typeof STICK_STATES; l
   return (
     <figure className="stick-state">
       <ScenePreview timeline={timeline} idle={timeline} trigger="view" interactive={false} />
-      <figcaption>{label}</figcaption>
+      <figcaption tabIndex={-1}>{label}</figcaption>
     </figure>
   )
 }

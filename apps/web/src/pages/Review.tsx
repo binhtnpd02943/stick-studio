@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { type ReviewDecision, useFilm, useReviewFilm, useReviewQueue } from '../api/queries'
@@ -9,6 +9,8 @@ import { ReviewCard } from '../components/ReviewCard'
 import { vi } from '../i18n/vi'
 import { StickState } from '../stick/StickState'
 
+// ReviewCard's title and StickState's caption are tabIndex -1, so a decision can land focus on them.
+const FOCUS_TARGET = '.review-card h2, .stick-state figcaption'
 const REVIEWABLE: readonly string[] = ['awaiting_review', 'qa_failed']
 
 /** A film outside the loaded queue page, shaped like a queue item; its video is fetched by asset id, so it has no signed url. */
@@ -38,10 +40,17 @@ function ReviewSession({ queued, refetch }: { queued: ReviewItem[]; refetch: () 
   const extra = useFilm(startId ?? '', outside)
   const pinned = extra.data && REVIEWABLE.includes(extra.data.film.status) ? itemFromDetail(extra.data) : null
   const items = pinned ? [pinned, ...queued] : queued
-  if (outside && extra.isPending) return <p>{vi.loading}</p>
 
   const index = Math.min(picked ?? initial, items.length - 1)
   const current = items[index]
+  // The decided card unmounts with the focused button on it; hand focus to whatever replaces it (WCAG 2.4.3).
+  const decidedId = useRef<string | null>(null)
+  useEffect(() => {
+    if (decidedId.current === null || decidedId.current === current?.film.id) return
+    decidedId.current = null
+    document.querySelector<HTMLElement>(FOCUS_TARGET)?.focus()
+  })
+  if (outside && extra.isPending) return <p>{vi.loading}</p>
   if (!current) return <StickState kind="done" label={vi.review.empty} />
 
   const busy = review.isPending
@@ -56,6 +65,7 @@ function ReviewSession({ queued, refetch }: { queued: ReviewItem[]; refetch: () 
     setToast(null)
     review.mutate(decision, {
       onSuccess: () => {
+        decidedId.current = decision.id
         qc.setQueryData<ReviewItem[]>(['review-queue'], (old) => old?.filter((i) => i.film.id !== decision.id))
         setToast(message)
       },

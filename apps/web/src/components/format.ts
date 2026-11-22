@@ -16,6 +16,6 @@ export function relativeTime(iso: string, now = Date.now()): string {
 
 /** Seconds as m:ss. */
 export function formatDuration(seconds: number): string {
-  const s = Math.max(0, Math.round(seconds))
+  const s = Math.max(0, Math.floor(seconds)) // floored like a video player's clock
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }

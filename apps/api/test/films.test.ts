@@ -282,6 +282,64 @@ describe('film routes', () => {
     expect(t.jobs.at(-1)).toEqual({ workspaceId: ws(), filmId: id, filmVersionId: v2.id, step: 'validate' })
   })
 
+  describe('film events', () => {
+    const post = (id: string, path: string, payload?: unknown) =>
+      t.app.inject({ method: 'POST', url: `/v1/films/${id}/${path}`, headers: auth(), payload: payload as object })
+    const iso = expect.stringMatching(/^\d{4}-\d\d-\d\dT[\d:.]+Z$/)
+
+    test('cancel publishes a film event with status cancelled', async () => {
+      const id = await newFilm()
+      expect((await post(id, 'cancel')).statusCode).toBe(200)
+      expect(t.events).toEqual([{ type: 'film', filmId: id, status: 'cancelled', at: iso }])
+    })
+
+    test('redo, review redo and a screenplay edit publish status queued; approve publishes approved', async () => {
+      const id = await newFilm()
+      await moveTo(id, 'running', 'failed')
+      expect((await post(id, 'redo', { from_step: 'voice', reason: 'x' })).statusCode).toBe(202)
+      await moveTo(id, 'running', 'qa_failed')
+      expect((await post(id, 'review', { decision: 'redo', reason: 'y' })).statusCode).toBe(202)
+      await moveTo(id, 'running', 'awaiting_review')
+      const patch = await t.app.inject({ method: 'PATCH', url: `/v1/films/${id}/screenplay`, headers: auth(), payload: { screenplay: specExample() } })
+      expect(patch.statusCode).toBe(202)
+      await moveTo(id, 'running', 'awaiting_review')
+      expect((await post(id, 'review', { decision: 'approved' })).statusCode).toBe(200)
+      expect(t.events).toEqual(['queued', 'queued', 'queued', 'approved'].map((status) => ({ type: 'film', filmId: id, status, at: iso })))
+    })
+
+    test('a keyless create whose enqueue fails publishes status failed', async () => {
+      await t.close()
+      t = await testApi({ enqueueFailures: 1 })
+      expect((await create()).statusCode).toBe(500)
+      expect(t.events).toEqual([{ type: 'film', filmId: expect.any(String), status: 'failed', at: iso }])
+    })
+
+    test('a redo whose enqueue fails publishes queued then failed', async () => {
+      await t.close()
+      t = await testApi({ enqueueFailures: 1 })
+      const { film } = await createFilm(t.db, ws(), { channelId: t.seeded.channel.id, title: 'f', createdBy: t.seeded.user.id })
+      await moveTo(film.id, 'running', 'failed')
+      expect((await post(film.id, 'redo', { from_step: 'story', reason: 'again' })).statusCode).toBe(500)
+      expect(t.events.map((e) => e.type === 'film' && e.status)).toEqual(['queued', 'failed'])
+    })
+
+    test('a publish failure is logged and the action still succeeds', async () => {
+      await t.close()
+      const lines: string[] = []
+      t = await testApi({ logStream: { write: (l) => { lines.push(l) } }, publish: async () => { throw new Error('redis down') } })
+      const id = await newFilm()
+      expect((await post(id, 'cancel')).statusCode).toBe(200)
+      expect(lines.map((l) => JSON.parse(l) as { msg?: string }).some((l) => l.msg === 'could not publish film event')).toBe(true)
+    })
+
+    test('a rejected transition publishes nothing', async () => {
+      const id = await newFilm()
+      expect((await post(id, 'cancel')).statusCode).toBe(200)
+      expect((await post(id, 'cancel')).statusCode).toBe(409)
+      expect(t.events).toHaveLength(1)
+    })
+  })
+
   test('list filters by status and pages', async () => {
     const a = await newFilm()
     const b = await newFilm()

@@ -10,6 +10,7 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { v7 } from 'uuid'
 import { z } from 'zod/v4'
+import { announce } from '../announce.js'
 import { ok } from '../envelope.js'
 import { ApiError, conflict, notFound } from '../errors.js'
 import { IdParams } from '../schemas.js'
@@ -27,7 +28,7 @@ const REVIEW_REDO_FROM = ['awaiting_review', 'qa_failed'] as const
 
 const invalidScreenplay = (issues: unknown[]) => new ApiError(422, 'invalid_screenplay', 'invalid screenplay', { issues })
 
-export function filmActionRoutes(app: FastifyInstance, { db, storage, enqueue }: ApiDeps): void {
+export function filmActionRoutes(app: FastifyInstance, { db, storage, enqueue, publish }: ApiDeps): void {
   const r = app.withTypeProvider<ZodTypeProvider>()
   const tags = ['films']
 
@@ -39,8 +40,9 @@ export function filmActionRoutes(app: FastifyInstance, { db, storage, enqueue }:
     try {
       await enqueue({ workspaceId, filmId, filmVersionId: version.id, step })
     } catch (err) {
-      await setFilmStatus(db, workspaceId, filmId, 'failed', version.version)
-        .catch((e: unknown) => log.error({ err: e, filmId }, 'could not fail a film whose enqueue failed'))
+      const failed = await setFilmStatus(db, workspaceId, filmId, 'failed', version.version)
+        .catch((e: unknown) => { log.error({ err: e, filmId }, 'could not fail a film whose enqueue failed'); return false })
+      if (failed) await announce(log, publish, filmId, 'failed')
       throw err
     }
   }
@@ -60,6 +62,7 @@ export function filmActionRoutes(app: FastifyInstance, { db, storage, enqueue }:
       await audit(tx, workspaceId, { actorId: userId, action: 'film.redo', target: `film:${id}`, data: req.body })
       return v
     })
+    await announce(req.log, publish, id, 'queued')
     await start(req.log, workspaceId, id, version, req.body.from_step)
     return ok(reply.status(202), toDetailWire(await detailOr404(db, workspaceId, id)))
   })
@@ -71,6 +74,7 @@ export function filmActionRoutes(app: FastifyInstance, { db, storage, enqueue }:
     // Compare-and-set; queued jobs then stop at the worker's live-film check.
     if (!(await setFilmStatus(db, workspaceId, id, 'cancelled'))) throw conflict()
     await audit(db, workspaceId, { actorId: userId, action: 'film.cancel', target: `film:${id}` })
+    await announce(req.log, publish, id, 'cancelled')
     return ok(reply, toDetailWire(await detailOr404(db, workspaceId, id)))
   })
 
@@ -88,6 +92,7 @@ export function filmActionRoutes(app: FastifyInstance, { db, storage, enqueue }:
         await insertReview(tx, { filmVersionId: reviewed.id, reviewerId: userId, decision: 'approved', reason: body.reason })
         await audit(tx, workspaceId, record)
       })
+      await announce(req.log, publish, id, 'approved')
       return ok(reply, toDetailWire(await detailOr404(db, workspaceId, id)))
     }
 
@@ -98,6 +103,7 @@ export function filmActionRoutes(app: FastifyInstance, { db, storage, enqueue }:
       await audit(tx, workspaceId, record)
       return v
     })
+    await announce(req.log, publish, id, 'queued')
     await start(req.log, workspaceId, id, version, step)
     return ok(reply.status(202), toDetailWire(await detailOr404(db, workspaceId, id)))
   })
@@ -137,6 +143,7 @@ export function filmActionRoutes(app: FastifyInstance, { db, storage, enqueue }:
       await storage.delete(key).catch((e: unknown) => req.log.error({ err: e, key }, 'could not delete an unused screenplay file'))
       throw err
     }
+    await announce(req.log, publish, id, 'queued')
     await start(req.log, workspaceId, id, version, 'validate')
     return ok(reply.status(202), toDetailWire(await detailOr404(db, workspaceId, id)))
   })

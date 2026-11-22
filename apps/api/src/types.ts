@@ -10,5 +10,7 @@ export interface ApiDeps {
   /** Rate-limit store and readiness probe. */
   redis: Redis
   enqueue(job: StepJob): Promise<void>
+  /** Announces a film status change to SSE listeners; best effort, see announce(). */
+  publish(e: FilmEvent): Promise<void>
   subscribe(filmId: string, onEvent: (e: FilmEvent) => void): () => void
 }

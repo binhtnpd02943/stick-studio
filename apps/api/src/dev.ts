@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs'
 import { createDb } from '@stick/db'
 import { FsStorage, loadServerConfig } from '@stick/providers'
-import { createQueues, enqueueStep, startWorker, urlTarget } from '@stick/worker'
+import { createQueues, enqueueStep, redisPublisher, startWorker, urlTarget } from '@stick/worker'
 import { Redis } from 'ioredis'
 import pino from 'pino'
 import { buildApp } from './app.js'
@@ -23,15 +23,18 @@ async function main(): Promise<void> {
     .on('error', (err) => console.error('redis error:', err.message))
   const queues = createQueues(cfg.redisUrl)
   const hub = createEventHub(cfg.redisUrl)
+  const publisher = redisPublisher(cfg.redisUrl, (err) => console.error('redis error:', err.message))
   const app = await buildApp({
     db, storage, cfg, redis,
     enqueue: (job) => enqueueStep(queues, job),
+    publish: publisher.publish,
     subscribe: hub.subscribe,
   })
   await serve(app, cfg.host, cfg.port, async () => {
     await worker.close()
     await queues.close()
     await hub.close()
+    await publisher.close()
     await redis.quit()
     await closeDb()
   })

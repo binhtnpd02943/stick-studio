@@ -26,7 +26,14 @@ export function createEventHub(redisUrl: string, onError: (err: Error) => void =
       onError(err instanceof Error ? err : new Error(String(err)))
       return
     }
-    for (const cb of set) cb(event)
+    // One bad subscriber (e.g. a closed SSE socket) must not starve the others.
+    for (const cb of set) {
+      try {
+        cb(event)
+      } catch (err) {
+        onError(err instanceof Error ? err : new Error(String(err)))
+      }
+    }
   })
   const ready = sub.psubscribe(filmEventChannel('*')).then(() => undefined)
   ready.catch(onError)

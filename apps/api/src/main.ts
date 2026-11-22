@@ -1,6 +1,6 @@
 import { createDb } from '@stick/db'
 import { FsStorage, loadServerConfig } from '@stick/providers'
-import { createQueues, enqueueStep, urlTarget } from '@stick/worker'
+import { createQueues, enqueueStep, redisPublisher, urlTarget } from '@stick/worker'
 import { Redis } from 'ioredis'
 import { buildApp } from './app.js'
 import { createEventHub } from './events-hub.js'
@@ -20,17 +20,20 @@ async function main(): Promise<void> {
     .on('error', (err) => console.error('redis error:', err.message))
   const queues = createQueues(cfg.redisUrl)
   const hub = createEventHub(cfg.redisUrl)
+  const publisher = redisPublisher(cfg.redisUrl, (err) => console.error('redis error:', err.message))
   const app = await buildApp({
     db,
     storage: new FsStorage({ root: cfg.storageDir }),
     cfg,
     redis,
     enqueue: (job) => enqueueStep(queues, job),
+    publish: publisher.publish,
     subscribe: hub.subscribe,
   })
   await serve(app, cfg.host, cfg.port, async () => {
     await queues.close()
     await hub.close()
+    await publisher.close()
     await redis.quit()
     await closeDb()
   })

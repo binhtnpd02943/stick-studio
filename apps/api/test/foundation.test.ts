@@ -60,7 +60,7 @@ describe('envelope and errors', () => {
   })
 
   test('buildApp refuses an empty or short url signing key', async () => {
-    const deps = { db: t.db, storage: {} as never, redis: {} as never, enqueue: async () => {}, subscribe: () => () => {} }
+    const deps = { db: t.db, storage: {} as never, redis: {} as never, enqueue: async () => {}, publish: async () => {}, subscribe: () => () => {} }
     for (const urlSigningKey of ['', 'short']) {
       await expect(buildApp({ ...deps, cfg: { urlSigningKey } as never })).rejects.toThrow(/STICK_URL_SIGNING_KEY must be at least 32/)
     }

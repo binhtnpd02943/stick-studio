@@ -3,6 +3,7 @@ import { type Db, type Film, audit, createFilm, filmDetail, getChannel, listFilm
 import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod/v4'
+import { announce } from '../announce.js'
 import { ok, okList } from '../envelope.js'
 import { notFound } from '../errors.js'
 import { IdParams, ListQuery } from '../schemas.js'
@@ -37,7 +38,7 @@ const FilmBody = z.strictObject({
 const CreateHeaders = z.object({ 'idempotency-key': z.string().min(1).max(200).optional() })
 const FilmListQuery = ListQuery.extend({ status: z.enum(FILM_STATUSES).optional(), channel_id: z.uuid().optional() })
 
-export function filmRoutes(app: FastifyInstance, { db, enqueue }: ApiDeps): void {
+export function filmRoutes(app: FastifyInstance, { db, enqueue, publish }: ApiDeps): void {
   const r = app.withTypeProvider<ZodTypeProvider>()
   const tags = ['films']
 
@@ -56,8 +57,9 @@ export function filmRoutes(app: FastifyInstance, { db, enqueue }: ApiDeps): void
         // A keyed create stays queued: the client's retry with the same key heals it below. Without a key nothing can
         // heal it, so fail it (guarded by the version) rather than leave a queued film with no job.
         if (!req.headers['idempotency-key']) {
-          await setFilmStatus(db, workspaceId, film.id, 'failed', version.version)
-            .catch((e: unknown) => req.log.error({ err: e, filmId: film.id }, 'could not fail a film whose enqueue failed'))
+          const failed = await setFilmStatus(db, workspaceId, film.id, 'failed', version.version)
+            .catch((e: unknown) => { req.log.error({ err: e, filmId: film.id }, 'could not fail a film whose enqueue failed'); return false })
+          if (failed) await announce(req.log, publish, film.id, 'failed')
         }
         throw err
       }

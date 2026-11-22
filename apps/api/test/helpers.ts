@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { type StepJob, stepJobId } from '@stick/core'
+import { type FilmEvent, type StepJob, stepJobId } from '@stick/core'
 import type { Db } from '@stick/db'
 import { createTestDb, seedWorkspace } from '@stick/db/testing'
 import { FsStorage, type ServerConfig, loadServerConfig } from '@stick/providers'
@@ -26,6 +26,8 @@ export interface TestApiOptions {
   ssePingMs?: number
   /** Replaces the recording enqueue, e.g. with a real BullMQ queue; `jobs` then stays empty. */
   enqueue?: ApiDeps['enqueue']
+  /** Replaces the recording publish, e.g. with one that rejects; `events` then stays empty. */
+  publish?: ApiDeps['publish']
 }
 
 export interface TestApi {
@@ -35,6 +37,8 @@ export interface TestApi {
   storage: FsStorage
   cfg: ServerConfig
   jobs: StepJob[]
+  /** Film events the API published, in order. */
+  events: FilmEvent[]
   close(): Promise<void>
 }
 
@@ -56,6 +60,7 @@ export async function testApi(opts: TestApiOptions = {}): Promise<TestApi> {
     const id = stepJobId(job.filmVersionId, job.step)
     if (!jobs.some((j) => stepJobId(j.filmVersionId, j.step) === id)) jobs.push(job)
   }
+  const events: FilmEvent[] = []
   const storage = new FsStorage({ root: cfg.storageDir })
   const app = await buildApp({
     db,
@@ -63,10 +68,11 @@ export async function testApi(opts: TestApiOptions = {}): Promise<TestApi> {
     cfg,
     redis: opts.redis ?? ownRedis!,
     enqueue: opts.enqueue ?? enqueue,
+    publish: opts.publish ?? (async (e) => { events.push(e) }),
     subscribe: opts.subscribe ?? (() => () => {}),
   }, { logStream: opts.logStream ?? { write: () => {} }, ssePingMs: opts.ssePingMs, rateLimitNamespace: `test-rl-${process.pid}-${Date.now()}-${counter++}:` })
   return {
-    app, db, seeded, storage, cfg, jobs,
+    app, db, seeded, storage, cfg, jobs, events,
     async close() {
       await app.close()
       await ownRedis?.quit()

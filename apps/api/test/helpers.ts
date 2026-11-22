@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { type StepJob, stepJobId } from '@stick/core'
 import type { Db } from '@stick/db'
 import { createTestDb, seedWorkspace } from '@stick/db/testing'
-import { FsStorage, loadServerConfig } from '@stick/providers'
+import { FsStorage, type ServerConfig, loadServerConfig } from '@stick/providers'
 import type { FastifyInstance } from 'fastify'
 import { Redis } from 'ioredis'
 import { inject } from 'vitest'
@@ -24,6 +24,8 @@ export interface TestApiOptions {
   /** Film event source for SSE; a no-op by default. */
   subscribe?: ApiDeps['subscribe']
   ssePingMs?: number
+  /** Replaces the recording enqueue, e.g. with a real BullMQ queue; `jobs` then stays empty. */
+  enqueue?: ApiDeps['enqueue']
 }
 
 export interface TestApi {
@@ -31,6 +33,7 @@ export interface TestApi {
   db: Db
   seeded: Awaited<ReturnType<typeof seedWorkspace>>
   storage: FsStorage
+  cfg: ServerConfig
   jobs: StepJob[]
   close(): Promise<void>
 }
@@ -59,11 +62,11 @@ export async function testApi(opts: TestApiOptions = {}): Promise<TestApi> {
     storage,
     cfg,
     redis: opts.redis ?? ownRedis!,
-    enqueue,
+    enqueue: opts.enqueue ?? enqueue,
     subscribe: opts.subscribe ?? (() => () => {}),
   }, { logStream: opts.logStream ?? { write: () => {} }, ssePingMs: opts.ssePingMs, rateLimitNamespace: `test-rl-${process.pid}-${Date.now()}-${counter++}:` })
   return {
-    app, db, seeded, storage, jobs,
+    app, db, seeded, storage, cfg, jobs,
     async close() {
       await app.close()
       await ownRedis?.quit()
@@ -79,4 +82,43 @@ export async function login(app: FastifyInstance, email: string, password: strin
   if (res.statusCode !== 200) throw new Error(`login failed: ${res.statusCode} ${res.body}`)
   const sid = res.cookies.find((c) => c.name === 'sid')!
   return { cookie: `sid=${sid.value}`, csrf: res.json().data.csrf_token }
+}
+
+export interface SseFrame { event?: string; data?: string; comment?: string }
+
+/** Opens an SSE stream and parses frames as they arrive. */
+export async function openSse(url: string, token: string) {
+  const ctrl = new AbortController()
+  const res = await fetch(url, { headers: { authorization: `Bearer ${token}` }, signal: ctrl.signal })
+  const frames: SseFrame[] = []
+  const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader()
+  let buf = ''
+  const pump = (async () => {
+    try {
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) return
+        buf += value
+        let i: number
+        while ((i = buf.indexOf('\n\n')) >= 0) {
+          const frame: SseFrame = {}
+          for (const line of buf.slice(0, i).split('\n')) {
+            if (line.startsWith(':')) frame.comment = line.slice(1).trim()
+            else if (line.startsWith('event: ')) frame.event = line.slice(7)
+            else if (line.startsWith('data: ')) frame.data = line.slice(6)
+          }
+          frames.push(frame)
+          buf = buf.slice(i + 2)
+        }
+      }
+    } catch { /* aborted */ }
+  })()
+  const until = async (pred: () => boolean, ms = 5000) => {
+    const end = Date.now() + ms
+    while (!pred()) {
+      if (Date.now() > end) throw new Error(`timed out; frames: ${JSON.stringify(frames)}`)
+      await new Promise((r) => setTimeout(r, 10))
+    }
+  }
+  return { res, frames, until, close: () => { ctrl.abort(); return pump } }
 }

@@ -3,7 +3,7 @@ import { redisPublisher } from '@stick/worker'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { inject } from 'vitest'
 import { type EventHub, createEventHub } from '../src/events-hub.js'
-import { type TestApi, testApi } from './helpers.js'
+import { type SseFrame, type TestApi, openSse, testApi } from './helpers.js'
 
 let t: TestApi
 let hub: EventHub
@@ -22,44 +22,7 @@ afterEach(async () => {
   await hub.close()
 })
 
-interface SseFrame { event?: string; data?: string; comment?: string }
-
-/** Opens the film's event stream and parses frames as they arrive. */
-async function open(filmId: string) {
-  const ctrl = new AbortController()
-  const res = await fetch(`${base}/v1/films/${filmId}/events`, { headers: { authorization: `Bearer ${t.seeded.token}` }, signal: ctrl.signal })
-  const frames: SseFrame[] = []
-  const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader()
-  let buf = ''
-  const pump = (async () => {
-    try {
-      for (;;) {
-        const { value, done } = await reader.read()
-        if (done) return
-        buf += value
-        let i: number
-        while ((i = buf.indexOf('\n\n')) >= 0) {
-          const frame: SseFrame = {}
-          for (const line of buf.slice(0, i).split('\n')) {
-            if (line.startsWith(':')) frame.comment = line.slice(1).trim()
-            else if (line.startsWith('event: ')) frame.event = line.slice(7)
-            else if (line.startsWith('data: ')) frame.data = line.slice(6)
-          }
-          frames.push(frame)
-          buf = buf.slice(i + 2)
-        }
-      }
-    } catch { /* aborted */ }
-  })()
-  const until = async (pred: () => boolean, ms = 5000) => {
-    const end = Date.now() + ms
-    while (!pred()) {
-      if (Date.now() > end) throw new Error(`timed out; frames: ${JSON.stringify(frames)}`)
-      await new Promise((r) => setTimeout(r, 10))
-    }
-  }
-  return { res, frames, until, close: () => { ctrl.abort(); return pump } }
-}
+const open = (filmId: string) => openSse(`${base}/v1/films/${filmId}/events`, t.seeded.token)
 
 async function newFilm(): Promise<string> {
   const res = await t.app.inject({ method: 'POST', url: '/v1/films', headers: { authorization: `Bearer ${t.seeded.token}` }, payload: { channel_id: t.seeded.channel.id, title: 'SSE' } })

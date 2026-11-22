@@ -8,7 +8,8 @@
 - Backend first (Tasks 1–4). The API publishes the film events of its own transitions. A worker sweep fails runs left `running` by a dead worker. A few wire fields the UI needs are added, and the API serves the built SPA same-origin, so the `sid` cookie + `x-csrf-token` model is unchanged.
 - Browser-safe engine entry points (Task 5). `@stick/engine/core` builds the rig from source text. `@stick/render/frame` exports `drawFrame` and the timeline helpers without any Node import. The web `<ScenePreview>` draws with exactly these functions on a DOM `<canvas>`; the MP4 path draws with them on `@napi-rs/canvas`.
 - `apps/web` (Tasks 6–14) is a Vite + React + TypeScript SPA. TanStack Query holds server data, a small zod/v4-validated client talks to `/v1`, react-router does the routing, and plain CSS uses design-token variables. In dev, Vite proxies `/v1` to the API. In production, Fastify serves `apps/web/dist`.
-- Task 15 is a Playwright end-to-end run against the real API + worker with fakes, plus a contract check and axe accessibility checks.
+- Task 15 adds the "Đội sản xuất" floor: a live office scene where one stick-figure teammate per step works in their department's room and carries the file to the next room as real step events arrive.
+- Task 16 is a Playwright end-to-end run against the real API + worker with fakes, plus a contract check and axe accessibility checks.
 
 **Tech Stack:** Node 24 ESM, npm workspaces, TypeScript, React 19.3.1, react-dom 19.3.1, react-router 7.13.0, @tanstack/react-query 5.108.2, Vite 8.3.8 (already in the tree via vitest), @vitejs/plugin-react 6.3.0, zod `~3.25.76` (`zod/v4`), vitest 5 + @testing-library/react 16.3.3 + @testing-library/user-event 14.6.13 + @testing-library/jest-dom 8.0.0 + jsdom 31.0.1, @playwright/test 1.65.1, @axe-core/playwright 4.14.0. Fastify 5 + @fastify/static (existing) on the backend.
 
@@ -30,6 +31,8 @@ Read with it: [plan 4](2026-11-22-stick-studio-plan-4-backend.md) (API shapes, a
 | §10 "client generated from OpenAPI" | A hand-written zod/v4 client, checked by a contract spec | The routes declare no response schemas, so generated types would cover requests only. Parsing responses at the boundary is what catches drift, and `e2e/contract.spec.ts` runs every GET through the web schemas. |
 | §10 `<ScenePreview>` wraps `<stick-scene>` | Wraps `drawFrame` from `@stick/render/frame` | The vendored runtime defines no custom element (only its header comment names one). `drawFrame` is the function the MP4 render calls, which is the parity the spec asks for. |
 | §10 step bar "chi phí" per step | Film total only | `step_runs` carries no cost, and usage is booked per film. Per-step cost is a follow-up. |
+| §10 step bar only | Step bar plus the "Đội sản xuất" floor (Task 15) | The owner approved the office-floor mockup as the way to watch a film being made. The step bar stays the accessible source of truth; the floor is decoration over the same data. |
+| §15 system fonts | Be Vietnam Pro (sans) and JetBrains Mono (mono), self-hosted via `@fontsource` | The approved mockups use them, and Be Vietnam Pro covers Vietnamese diacritics cleanly. Self-hosted, so no request leaves the tailnet. |
 | §10 `/topics`, `/library`, TikTok connect, voice audition, default voice and style settings | Out of P1 | The API has no topics, library, TikTok or voice-preview endpoints (§14 puts topics and library in P2 and TikTok in P3). The cast form offers the voice id select only. |
 
 ## Global Constraints
@@ -40,7 +43,8 @@ Read with it: [plan 4](2026-11-22-stick-studio-plan-4-backend.md) (API shapes, a
 - **Same engine code.** `<ScenePreview>` draws only through `drawFrame(g, timeline, t, rig, defaultCatalog)` from `@stick/render/frame`, with a rig built by `rigFromSource` from the same `packages/engine/src/vendor/stick-rig.js`. No drawing code is copied into the web app.
 - **Fonts.** The rig font is `'Balsamiq Sans'`, which maps to `assets/fonts/PatrickHand-Regular.ttf` in the browser too (CSS `@font-face`). Canvases draw only after `document.fonts.load("400 60px 'Balsamiq Sans'")` resolves.
 - **Look.** Tokens on `:root` in `apps/web/src/styles/tokens.css`, copied from stick-scene except where AA needs a darker grey:
-  `--bg #ffffff`, `--ink oklch(0.2 0 0)`, `--body oklch(0.42 0 0)`, `--muted oklch(0.55 0 0)` (stick-scene uses 0.58, which is 4.3:1 on white and fails AA), `--faint oklch(0.74 0 0)` (decoration and disabled only, never text that must be read), `--line oklch(0.93 0 0)`, `--pill oklch(0.965 0 0)`, `--pill-hover oklch(0.935 0 0)`, `--accent #ff8c26`, `--accent-ink #b45309` (5.0:1 on white; the rig's `C.amber`), `--mono ui-monospace, SFMono-Regular, Menlo, monospace`, `--sans ui-sans-serif, system-ui, -apple-system, sans-serif`, `color-scheme: light`.
+  `--bg #ffffff`, `--ink oklch(0.2 0 0)`, `--body oklch(0.42 0 0)`, `--muted oklch(0.55 0 0)` (stick-scene uses 0.58, which is 4.3:1 on white and fails AA), `--faint oklch(0.74 0 0)` (decoration and disabled only, never text that must be read), `--line oklch(0.93 0 0)`, `--pill oklch(0.965 0 0)`, `--pill-hover oklch(0.935 0 0)`, `--accent #ff8c26`, `--accent-ink #b45309` (5.0:1 on white; the rig's `C.amber`), `--mono 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace`, `--sans 'Be Vietnam Pro', ui-sans-serif, system-ui, -apple-system, sans-serif`, `color-scheme: light`. Fonts come from `@fontsource/be-vietnam-pro` (weights 400, 500, 600) and `@fontsource/jetbrains-mono` (400, 500), imported in `main.tsx`.
+- **Mockups.** The approved visual reference is `docs/superpowers/mockups/*.html` (overview, film-detail, review, login, cast, studio-floor). Match their layout, spacing and copy. Where a mockup conflicts with this plan, the plan wins: the film-detail mockup's per-step cost is not built (see deviations), and mockup hex colours map to the tokens above.
   Body text is 15px/1.6 sans, and headings and numbers are mono. Buttons are pills (`border-radius: 99px`, height 36px, 48px on the review bar). The focus ring is `:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px }`.
 - **Accent rule.** `--accent` is a fill only. Text on it is `--ink` (7.8:1). Orange text on white uses `--accent-ink`. An accent fill that carries meaning (the cost meter) has a 1px `--ink` outline, which meets non-text contrast 3:1.
 - **Light theme only** (stick-scene is light on purpose; dark mode is out of P1).
@@ -212,7 +216,7 @@ Five conditions the spec implies but does not name, most likely first. Each has 
 
 **Interfaces:**
 - Produces:
-  - `@stick/web` dependencies (exact): `@stick/core`, `@stick/engine`, `@stick/library`, `@stick/render` (all `0.0.0`), `react`, `react-dom`, `react-router`, `@tanstack/react-query`, `zod ~3.25.76`. devDependencies: `vite 8.3.8`, `@vitejs/plugin-react 6.3.0`, `@types/react 19.3.0`, `@types/react-dom 19.3.0`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `jsdom`, `@napi-rs/canvas` (same version as engine; tests only). Before pinning, verify every version with `npm view <pkg>@<v> version` and record any substitution in the commit message.
+  - `@stick/web` dependencies (exact): `@stick/core`, `@stick/engine`, `@stick/library`, `@stick/render` (all `0.0.0`), `react`, `react-dom`, `react-router`, `@tanstack/react-query`, `zod ~3.25.76`. devDependencies: `vite 8.3.8`, `@vitejs/plugin-react 6.3.0`, `@types/react 19.3.0`, `@types/react-dom 19.3.0`, plus dependencies `@fontsource/be-vietnam-pro` and `@fontsource/jetbrains-mono`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `jsdom`, `@napi-rs/canvas` (same version as engine; tests only). Before pinning, verify every version with `npm view <pkg>@<v> version` and record any substitution in the commit message.
   - Scripts:
     - web: `dev` (vite, port 5173), `build` (`vite build`, out `dist`), `preview`.
     - root: `"web": "npm run dev -w @stick/web"`, `"web:build": "npm run build -w @stick/web"`, `"test:e2e:web": "npm run web:build && playwright test"`, and `typecheck` becomes `tsc -p tsconfig.base.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit`.
@@ -296,7 +300,7 @@ Five conditions the spec implies but does not name, most likely first. Each has 
   - `reduced motion shows the first action frame and does not loop until played`.
   - `idleTimeline keeps scene 0's backdrop, props and marks and glances from 5 to 6.5 s with no lines`.
   - `openingScene keeps only scene 0`.
-  - `every stick state and castTimeline draw at start, middle and end without throwing`, using `createCanvas(1080, 1920)` from `@napi-rs/canvas`, `registerFonts()` and the Node `loadRig()`. This proves the timelines are valid for the engine. The browser path is proven in Task 15.
+  - `every stick state and castTimeline draw at start, middle and end without throwing`, using `createCanvas(1080, 1920)` from `@napi-rs/canvas`, `registerFonts()` and the Node `loadRig()`. This proves the timelines are valid for the engine. The browser path is proven in Task 16.
   - `every action the web timelines use exists in defaultCatalog`: `wave`, `shrug`, `type_laptop`, `facepalm`, `cheer` and `look_around`.
   - `ScenePreview calls drawFrame from @stick/render/frame with the rig and defaultCatalog`: `vi.mock('@stick/render/frame', …)` spies on it, `getContext` is stubbed with a recording object, and fake rAF is advanced one frame.
   - `ScenePreview plays on pointerenter when trigger is hover`.
@@ -541,7 +545,49 @@ Five conditions the spec implies but does not name, most likely first. Each has 
 - [ ] **Step 4: Run** `npx vitest run --project web`. Expected: PASS.
 - [ ] **Step 5: Commit** `feat(web): settings for budget caps, channels and review policy`.
 
-### Task 15: End-to-end in a real browser, contract, accessibility, docs
+### Task 15: "Đội sản xuất" — the live studio floor
+
+The approved mockup is `docs/superpowers/mockups/studio-floor.html`. Its markup and `buildFrames`/`route` script are the geometry and choreography reference: port the coordinates, room layout, poses, bubbles and copy from it. Do not port its fake timer loop; this component is driven by real step events.
+
+**Files:**
+- Create: `apps/web/src/components/studio/team.ts`, `apps/web/src/components/studio/layout.ts`, `apps/web/src/components/studio/floor-state.ts`, `apps/web/src/components/studio/StudioFloor.tsx`, `apps/web/src/components/studio/Person.tsx`, `apps/web/src/components/studio/Walker.tsx`, `apps/web/src/components/studio/WorkBubble.tsx`, `apps/web/src/components/studio/Furniture.tsx`, `apps/web/src/components/studio/studio.css`
+- Modify: `apps/web/src/i18n/vi.ts` (team names, roles, handoff and chat lines), `apps/web/src/pages/Overview.tsx` (the floor for the first running film), `apps/web/src/pages/FilmDetail.tsx` (the floor above `StepTimeline`)
+- Test: `apps/web/test/studio-layout.test.ts`, `apps/web/test/studio-floor-state.test.ts`, `apps/web/test/studio-floor.test.tsx`
+
+**Interfaces:**
+- Consumes: `FilmDetail` and `useFilmEvents` (Task 9), `useReducedMotion` (Task 8), `FILM_STEPS` from `@stick/core`.
+- Produces:
+  - `team.ts`: `TEAM: readonly Member[]` with `Member = { key: 'intake' | FilmStep; name: string; role: string; ink: string; hair: 'short' | 'long' | 'ponytail' | 'none' | 'phones'; pose: 'sit' | 'stand'; flip: boolean; idle: 'rest' | 'hips' | 'chin' | 'phone' | 'stretch' | 'sip' }`. Exactly one member per `FILM_STEPS` entry plus `intake`, with the mockup's values: intake Hùng · trưởng nhóm, story Mai · ý tưởng, screenplay Tùng · biên kịch, validate Linh · kiểm duyệt, voice Khoa · lồng tiếng, timeline Vy · đạo diễn, gate Nam · QA, render Phúc · render, contact Thảo · ảnh bìa. Inks are the cast palette `#1b1b1b`, `#d97757`, `#3d6fb4`, `#8a4fb5`, `#2f8a5b`.
+  - `layout.ts`: `ROOMS` (sáng tạo: story/screenplay/validate; studio: voice/timeline; hậu kỳ: gate/render/contact; phòng duyệt: the owner; corridor: intake and the coffee corner), `SCENE = { width: 1280, height: 1000 }`, `spot(key | 'review'): Point`, `doorOf(room, towardRoom): number`, and `route(from, to): Point[]`. Same room → `[spot(to)]`. Different rooms → exit door at the room floor, the same door on the corridor floor, the target door on the corridor floor, the target door at its room floor, then `spot(to)`, skipping corridor door points for intake. `walkMs(a, b) = max(450, round(3 * manhattan(a, b)))`.
+  - `floor-state.ts`, pure:
+    - `deriveFloor(detail: FilmDetail): FloorState` with `FloorState = { working: Member['key'] | null; done: ReadonlySet<FilmStep>; failed: FilmStep | null; final: boolean; note: string | null }`. `queued` → working `intake`. A `running` step → that step. `awaiting_review`, `approved` or published → `final`. `qa_failed` → failed `gate`. A failed step → failed. `blocked_budget` → note "Chạm trần chi phí". `cancelled` → note "Đã huỷ".
+    - `handoffsBetween(prev: FloorState, next: FloorState): Handoff[]` with `Handoff = { from: Member['key']; to: Member['key'] | 'review' }`, one per step that became done, in `FILM_STEPS` order. Several at once (a reconnect snapshot after a gap) collapse to the last one, so the floor never replays a backlog.
+  - `<StudioFloor detail: FilmDetail />`:
+    - A 1280×1000 scene scaled to its container width with a `ResizeObserver` (`transform: scale(w / 1280)`, the box keeps the aspect ratio). It renders only when the container is ≥ 720px wide. Below that it renders nothing, and the page keeps `StepTimeline`.
+    - Rooms, walls, doors and furniture as in the mockup. Furniture glows `--accent` for the working member (screen, ON AIR sign, storyboard frame, softbox, render rack lights).
+    - The working member types and shows their `WorkBubble` (the mockup's per-step bubble art). Others play their idle loop with per-member `animation-delay` so nobody moves in sync.
+    - A handoff plays the mockup sequence: the sender stands ("Xong phần mình rồi!"), walks `route(from, to)` carrying an orange file, says "Gửi {name} nè!", the receiver answers "Ok, để mình lo!", and the sender walks back. Handoffs queue; a new one starts after the current finishes.
+    - `final` puts the film card on the owner's desk, and the team cheers once ("Ship it!"). `failed` shows that member's bubble with the step's status label and no walk. `note` shows Hùng saying the note.
+    - Light chatter: while a step is running for more than 6 s, one idle member says one line from `vi.ts` every 8 s at most.
+    - The scene is `aria-hidden="true"`. Next to it, a visually hidden `role="status"` line names who is doing what, e.g. "Tùng đang viết kịch bản".
+    - Reduced motion: no walking, no idle loops and no chatter; the working member and the final card still show.
+  - Overview: in "Đang chạy", the first running film shows a `StudioFloor` (it reuses that film's existing `useFilmEvents` stream, so the 3-stream cap holds). Film detail: the floor sits above `StepTimeline` while the film is `queued` or `running`, and collapses to a "Xem đội làm việc" toggle otherwise.
+
+- [ ] **Step 1: Write the failing tests.**
+  - layout: `every FILM_STEP has exactly one member and a spot`, `a route inside one room goes straight to the target`, `a route between rooms passes the exit door and the target door on the corridor floor`, `walkMs grows with distance and is at least 450`.
+  - floor-state: `queued means Hùng is working`, `a running screenplay means Tùng works and story is done`, `awaiting_review is final`, `qa_failed fails the gate`, `one step finishing yields one handoff to the next member`, `a snapshot that skips several steps yields only the last handoff`, `contact finishing hands off to review`.
+  - component (fake `ResizeObserver` at 1280px, fake timers):
+    - `the floor is aria-hidden and the status line names the working member in Vietnamese`.
+    - `a step event that finishes story makes Mai walk to Tùng and Tùng start working`: assert the walker appears with Mai's ink, the "Gửi Tùng nè!" line shows, and after the timers Tùng's bubble is visible.
+    - `reduced motion renders no walker and no idle animation classes but still highlights the worker`.
+    - `below 720px the floor is not rendered`.
+    - `qa_failed shows Nam's bubble with Trượt QA and no final card`.
+- [ ] **Step 2: Run** `npx vitest run --project web`. Expected: FAIL.
+- [ ] **Step 3: Implement** to the interfaces, porting geometry and art from the mockup.
+- [ ] **Step 4: Run** `npx vitest run --project web` and `npm run typecheck`. Expected: PASS and clean.
+- [ ] **Step 5: Commit** `feat(web): live studio floor, one teammate per step carrying the film between rooms`.
+
+### Task 16: End-to-end in a real browser, contract, accessibility, docs
 
 **Files:**
 - Create: `playwright.config.ts`, `e2e/serve.ts`, `e2e/film-flow.spec.ts`, `e2e/contract.spec.ts`, `e2e/a11y.spec.ts`
@@ -600,9 +646,9 @@ Five conditions the spec implies but does not name, most likely first. Each has 
   - §10 pages: login (T7), `/` (T10), `/films` (T10), `/films/[id]` with the player, step bar, screenplay tab with edit, QA tab, versions, redo from step X and cancel (T11), `/review` (T12), `/cast` (T13), `/settings` (T14).
   - Shared components: `<FilmPlayer>`, `<StepTimeline>` and `<CostBadge>` (T9), `<ScenePreview>` (T8), `<ReviewCard>` (T12).
   - `/topics`, `/library`, TikTok connect and voice audition are deviations with a reason.
-  - §9: cookie + CSRF unchanged (T4 same-origin, T7), `Idempotency-Key` (T10), Tailscale (runbook in T15).
-  - §5 shared engine: T5 + T8, proven in a real browser in T15.
-  - Plan-4 "Before plan 5": publish dep and hub try/catch (T1), stale sweep plus the cheap `finishRun` CAS (T2). The asset unique index (it needs a migration), contact-sheet semantics, redo-past-gate and the queue-helper move stay deferred and are listed in the T15 follow-ups.
+  - §9: cookie + CSRF unchanged (T4 same-origin, T7), `Idempotency-Key` (T10), Tailscale (runbook in T16).
+  - §5 shared engine: T5 + T8, proven in a real browser in T16.
+  - Plan-4 "Before plan 5": publish dep and hub try/catch (T1), stale sweep plus the cheap `finishRun` CAS (T2). The asset unique index (it needs a migration), contact-sheet semantics, redo-past-gate and the queue-helper move stay deferred and are listed in the T16 follow-ups.
 - **Types.**
   - `FilmDetail.version.id` is introduced in T3 and consumed in T7 and T9.
   - `timeline_url` (T3) is used by `FilmCard` (T10) and `ReviewItem` (T12).
@@ -611,5 +657,5 @@ Five conditions the spec implies but does not name, most likely first. Each has 
   - `useFilmEvents` (T9) is used in T10 and T11.
   - `castTimeline` (T8) is used in T13.
   - `STICK_STATES` keys `empty`, `rendering`, `error` and `done` are used in T9, T10 and T12 (T8 swaps one into T7's loading state).
-  - `startRedis` (T15) replaces the inline global-setup body.
+  - `startRedis` (T16) replaces the inline global-setup body.
 - **Proportion.** The steps carry signatures, exact values and test names, not component bodies.

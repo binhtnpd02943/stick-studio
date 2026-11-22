@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Stick Studio — Tổng quan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#1b1b1b}a:hover{color:#000000}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+@keyframes type{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-8deg)}}
+.breathe{animation:breathe 3.2s ease-in-out infinite}
+.typing{animation:type .5s ease-in-out infinite;transform-origin:30px 40px}
+@media (prefers-reduced-motion: reduce){.breathe,.typing{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 1040px; background: #ffffff; color: #1b1b1b; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 15px; line-height: 1.5;">
+  <header style="border-bottom: 1px solid #ebebeb;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
+      <a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+        <svg width="22" height="34" viewBox="0 0 60 100" aria-hidden="true"><g fill="none" stroke="#1b1b1b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="16" r="11"></circle><path d="M30 27 L30 62 M30 38 L14 54 M30 38 L46 26 M30 62 L18 92 M30 62 L42 92"></path></g></svg>
+        <span style="font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 15px;">stick studio</span>
+      </a>
+      <nav aria-label="Chính" style="display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1;">
+        <a href="#" aria-current="page" style="padding: 8px 14px; border-radius: 99px; background: #1b1b1b; color: #ffffff; text-decoration: none; font-size: 14px;">Tổng quan</a>
+        <a href="#" style="padding: 8px 14px; border-radius: 99px; text-decoration: none; font-size: 14px;">Phim</a>
+        <a href="#" style="padding: 8px 14px; border-radius: 99px; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 6px;">Duyệt <span style="background: #ff8c26; color: #1b1b1b; border-radius: 99px; padding: 0 7px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500;">2</span></a>
+        <a href="#" style="padding: 8px 14px; border-radius: 99px; text-decoration: none; font-size: 14px;">Nhân vật</a>
+        <a href="#" style="padding: 8px 14px; border-radius: 99px; text-decoration: none; font-size: 14px;">Cài đặt</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 10px; background: #f4f4f4; border-radius: 99px; padding: 6px 14px;" aria-label="Chi phí hôm nay">
+        <span style="font-size: 13px; color: #555555;">hôm nay</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500;">$0.42 / $10</span>
+        <span style="width: 60px; height: 6px; background: #e2e2e2; border-radius: 99px; overflow: hidden; display: block;"><span style="display: block; width: 5%; height: 6px; background: #1b1b1b;"></span></span>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 32px 32px 64px; display: flex; flex-direction: column; gap: 40px;">
+    <section aria-labelledby="new-film" style="display: flex; flex-wrap: wrap; align-items: center; gap: 32px; border: 1px solid #ebebeb; border-radius: 16px; padding: 28px 32px;">
+      <svg width="96" height="120" viewBox="0 0 120 150" aria-hidden="true" class="breathe"><g fill="none" stroke="#1b1b1b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="50" cy="30" r="14"></circle><path d="M50 44 L50 92 M50 58 L32 78 M50 58 L72 42 M50 92 L38 136 M50 92 L62 136"></path><path d="M72 42 L80 30"></path></g><g fill="none" stroke="#ff8c26" stroke-width="3.5" stroke-linecap="round"><path d="M84 18 L88 10 M92 24 L100 20 M90 32 L98 34"></path></g></svg>
+      <div style="flex: 999 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 14px;">
+        <h1 id="new-film" style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.01em;">Hôm nay làm phim gì?</h1>
+        <form style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <label for="topic" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Chủ đề phim</label>
+          <input id="topic" type="text" placeholder="Ví dụ: Phân số là gì?" style="flex: 1 1 280px; min-width: 0; height: 48px; box-sizing: border-box; border: 1.5px solid #1b1b1b; border-radius: 12px; padding: 0 16px; font: inherit; font-size: 16px;">
+          <label for="channel" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Kênh</label>
+          <select id="channel" style="height: 48px; border: 1.5px solid #ebebeb; border-radius: 12px; padding: 0 14px; font: inherit; background: #ffffff;"><option>@hocvui.que</option></select>
+          <button type="button" style="height: 48px; padding: 0 22px; border: 0; border-radius: 99px; background: #ff8c26; color: #1b1b1b; font: inherit; font-weight: 600; cursor: pointer;">Làm phim</button>
+        </form>
+        <p style="margin: 0; color: #555555; font-size: 14px;">Khoảng 3–5 phút cho một phim. Bạn sẽ được báo khi phim chờ duyệt.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="running" style="display: flex; flex-direction: column; gap: 14px;">
+      <h2 id="running" style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #555555;">Đang làm · 1</h2>
+      <a href="FilmDetail.dc.html" style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center; border: 1px solid #ebebeb; border-radius: 16px; padding: 20px 24px; text-decoration: none;">
+        <div style="width: 120px; height: 90px; background: #fafafa; border-radius: 12px; display: flex; align-items: flex-end; justify-content: center;">
+          <svg width="110" height="84" viewBox="0 0 110 84" aria-hidden="true"><g fill="none" stroke="#1b1b1b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="34" cy="20" r="9"></circle><path d="M34 29 L36 56 M36 56 L54 58 L54 78 M36 56 L30 78"></path><g class="typing"><path d="M35 38 L56 46"></path></g><path d="M48 50 L92 50 M86 50 L86 80 M54 50 L54 80"></path><path d="M60 50 L66 38 L84 38 L80 50"></path></g></svg>
+        </div>
+        <div style="flex: 999 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;">
+            <span style="font-size: 18px; font-weight: 600;">Phân số là gì?</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; border: 1.5px solid #1b1b1b; border-radius: 99px; padding: 1px 9px;">đang chạy</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #555555;">render · 1:12</span>
+          </div>
+          <ol aria-label="Các bước" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px;">
+            <li style="display: flex; flex-direction: column; gap: 6px;"><span style="height: 6px; border-radius: 99px; background: #1b1b1b; display: block;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555555;">truyện</span></li>
+            <li style="display: flex; flex-direction: column; gap: 6px;"><span style="height: 6px; border-radius: 99px; background: #1b1b1b; display: block;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555555;">kịch bản</span></li>
+            <li style="display: flex; flex-direction: column; gap: 6px;"><span style="height: 6px; border-radius: 99px; background: #1b1b1b; display: block;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555555;">kiểm tra</span></li>
+            <li style="display: flex; flex-direction: column; gap: 6px;"><span style="height: 6px; border-radius: 99px; background: #1b1b1b; display: block;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555555;">giọng</span></li>
+            <li style="display: flex; flex-direction: column; gap: 6px;"><span style="height: 6px; border-radius: 99px; background: #1b1b1b; display: block;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555555;">dựng cảnh</span></li>
+            <li style="display: flex; flex-direction: column; gap: 6px;"><span style="height: 6px; border-radius: 99px; background: #1b1b1b; display: block;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555555;">QA</span></li>
+            <li aria-current="step" style="display: flex; flex-direction: column; gap: 6px;"><span style="height: 6px; border-radius: 99px; background: linear-gradient(90deg, #ff8c26 60%, #ebebeb 60%); display: block;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;">render</span></li>
+            <li style="display: flex; flex-direction: column; gap: 6px;"><span style="height: 6px; border-radius: 99px; background: #ebebeb; display: block;"></span><span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555555;">ảnh tóm tắt</span></li>
+          </ol>
+        </div>
+      </a>
+    </section>
+
+    <section aria-labelledby="waiting" style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <h2 id="waiting" style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #555555;">Chờ duyệt · 2</h2>
+        <a href="Review.dc.html" style="font-size: 14px; font-weight: 500;">Duyệt trên điện thoại →</a>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
+        <a href="FilmDetail.dc.html" style="display: flex; flex-direction: column; gap: 10px; text-decoration: none;">
+          <div style="aspect-ratio: 9 / 16; background: #fafafa; border: 1px solid #ebebeb; border-radius: 12px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 28px; box-sizing: border-box; position: relative;">
+            <svg width="120" height="140" viewBox="0 0 120 140" aria-hidden="true" class="breathe"><g fill="none" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="40" cy="26" r="11"></circle><path d="M40 37 L40 80 M40 50 L24 66 M40 50 L58 38 M40 80 L30 120 M40 80 L50 120"></path></g><g fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="88" cy="30" r="11"></circle><path d="M88 41 L88 84 M88 54 L74 70 M88 54 L100 70 M88 84 L80 120 M88 84 L96 120"></path></g><circle cx="60" cy="30" r="8" fill="#ff8c26"></circle><path d="M60 22 L60 38 M52 30 L68 30" stroke="#1b1b1b" stroke-width="2"></path></svg>
+            <span style="position: absolute; top: 10px; left: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: #ffffff; border-radius: 99px; padding: 2px 8px;">0:26</span>
+          </div>
+          <span style="font-weight: 600;">Phân số là gì?</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #ff8c26; border-radius: 99px; padding: 2px 9px; align-self: flex-start;">chờ duyệt</span>
+        </a>
+        <a href="FilmDetail.dc.html" style="display: flex; flex-direction: column; gap: 10px; text-decoration: none;">
+          <div style="aspect-ratio: 9 / 16; background: #fafafa; border: 1px solid #ebebeb; border-radius: 12px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 28px; box-sizing: border-box; position: relative;">
+            <svg width="120" height="140" viewBox="0 0 120 140" aria-hidden="true"><g fill="none" stroke="#1b1b1b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="60" cy="26" r="11"></circle><path d="M60 37 L60 80 M60 50 L44 64 M60 50 L76 64 M60 80 L50 120 M60 80 L70 120"></path><path d="M20 120 L100 120"></path></g></svg>
+            <span style="position: absolute; top: 10px; left: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; background: #ffffff; border-radius: 99px; padding: 2px 8px;">0:31</span>
+          </div>
+          <span style="font-weight: 600;">Vì sao trời mưa?</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #1b1b1b; color: #ffffff; border-radius: 99px; padding: 2px 9px; align-self: flex-start;">QA lỗi · đứng yên 3,1s</span>
+        </a>
+      </div>
+    </section>
+
+    <section aria-labelledby="recent" style="display: flex; flex-direction: column; gap: 6px;">
+      <h2 id="recent" style="margin: 0 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: #555555;">Gần đây</h2>
+      <a href="FilmDetail.dc.html" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #ebebeb; text-decoration: none;"><span style="flex: 1 1 240px; font-weight: 500;">Số nguyên tố là gì?</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #f4f4f4; border-radius: 99px; padding: 2px 9px;">✓ đã duyệt</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #555555; width: 64px; text-align: right;">$0.21</span><span style="font-size: 13px; color: #555555; width: 90px; text-align: right;">hôm qua</span></a>
+      <a href="FilmDetail.dc.html" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #ebebeb; text-decoration: none;"><span style="flex: 1 1 240px; font-weight: 500;">Trọng lực hoạt động thế nào?</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #f4f4f4; border-radius: 99px; padding: 2px 9px;">✓ đã duyệt</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #555555; width: 64px; text-align: right;">$0.19</span><span style="font-size: 13px; color: #555555; width: 90px; text-align: right;">2 ngày trước</span></a>
+      <a href="FilmDetail.dc.html" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #ebebeb; border-bottom: 1px solid #ebebeb; text-decoration: none;"><span style="flex: 1 1 240px; font-weight: 500;">Cây quang hợp ra sao?</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; border: 1.5px dashed #1b1b1b; border-radius: 99px; padding: 1px 9px;">đã hủy</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #555555; width: 64px; text-align: right;">$0.03</span><span style="font-size: 13px; color: #555555; width: 90px; text-align: right;">3 ngày trước</span></a>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Stick Studio — Đội sản xuất</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#ffffff}
+button:focus-visible{outline:3px solid #1b1b1b;outline-offset:2px}
+svg *{transform-box:fill-box}
+@keyframes legA{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes legB{0%,100%{opacity:0}50%{opacity:1}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes type{0%,100%{transform:translate(0,0)}50%{transform:translate(-1px,-2px)}}
+@keyframes sip{0%,72%,100%{transform:rotate(0deg)}80%,90%{transform:rotate(-80deg)}}
+@keyframes stretch{0%,78%,100%{transform:rotate(0deg)}84%,94%{transform:rotate(-150deg)}}
+@keyframes scroll{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+@keyframes think{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-6deg)}}
+@keyframes lean{0%,100%{transform:rotate(0deg)}50%{transform:rotate(4deg)}}
+@keyframes wave{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-25deg)}}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}70%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+@keyframes fadein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes squash{0%,15%{transform:scaleY(1)}70%,100%{transform:scaleY(.18)}}
+@keyframes open{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes bounce{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes clap{0%,100%{transform:rotate(0deg)}40%{transform:rotate(-30deg)}}
+@keyframes slideL{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes slideR{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinR{to{transform:rotate(-360deg)}}
+@keyframes draw{from{stroke-dashoffset:200}to{stroke-dashoffset:0}}
+@keyframes film{from{transform:translateX(0)}to{transform:translateX(-16px)}}
+@keyframes flash{0%,70%,100%{opacity:0;transform:scale(.6)}78%{opacity:1;transform:scale(1.2)}}
+@keyframes drop{from{opacity:0;transform:translateY(-14px) rotate(-12deg)}to{opacity:1;transform:none}}
+@keyframes clockhand{to{transform:rotate(360deg)}}
+@keyframes steam{0%{opacity:0;transform:translateY(4px)}50%{opacity:.7}100%{opacity:0;transform:translateY(-8px)}}
+.legA{animation:legA .3s steps(1) infinite}
+.legB{animation:legB .3s steps(1) infinite}
+.bob{animation:bob 3.4s ease-in-out infinite}
+.hop{animation:hop .3s ease-in-out infinite}
+.lean{animation:lean 4.6s ease-in-out infinite;transform-origin:50% 100%}
+.type{animation:type .22s steps(2) infinite}
+.sip{animation:sip 7s ease-in-out infinite;transform-origin:0% 0%}
+.stretch{animation:stretch 9s ease-in-out infinite;transform-origin:0% 0%}
+.scroll{animation:scroll 1.1s ease-in-out infinite}
+.think{animation:think 2.6s ease-in-out infinite;transform-origin:0% 0%}
+.wave{animation:wave .35s ease-in-out infinite;transform-origin:0% 100%}
+.blinky{animation:blink .5s ease-in-out infinite}
+.bubble{animation:pop .35s ease-out both;transform-origin:30% 100%}
+.say{animation:pop .3s ease-out both;transform-origin:0% 100%}
+.pop{animation:pop .4s ease-out both}
+.clock{animation:clockhand 12s linear infinite;transform-origin:50% 100%}
+.steam{animation:steam 2.4s ease-out infinite}
+.a-note{animation:fadein .35s both}
+.a-bulb{animation:blink .7s ease-in-out infinite}
+.a-squash{animation:squash 1.8s ease-in-out infinite;transform-origin:50% 0%}
+.a-card{animation:fadein .35s both}
+.a-open{animation:open .45s both;transform-origin:0% 50%}
+.a-hl{animation:open .6s .45s both;transform-origin:0% 50%}
+.a-stamp{animation:pop .3s 1.1s both}
+.a-bar{animation:bounce .5s ease-in-out infinite;transform-origin:50% 100%}
+.a-clap{animation:clap .5s ease-in-out infinite;transform-origin:0% 100%}
+.a-slideL{animation:slideL .8s both}
+.a-slideR{animation:slideR .8s .25s both}
+.a-draw{animation:draw 1.2s both}
+.a-gear{animation:spin 1.6s linear infinite;transform-origin:center}
+.a-gearR{animation:spinR 1.1s linear infinite;transform-origin:center}
+.a-film{animation:film .5s linear infinite}
+.a-flash{animation:flash .9s ease-out infinite}
+.a-drop{animation:drop .4s both}
+.d2{animation-delay:.3s}
+.d3{animation-delay:.6s}
+.d4{animation-delay:.9s}
+.bubble-box{position:absolute;width:170px;height:80px;box-sizing:border-box;background:#ffffff;border:1.5px solid #1b1b1b;border-radius:14px;padding:6px 4px}
+.bubble-box::after{content:"";position:absolute;left:52px;bottom:-7px;width:12px;height:12px;background:#ffffff;border-right:1.5px solid #1b1b1b;border-bottom:1.5px solid #1b1b1b;transform:rotate(45deg)}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+<section aria-labelledby="team-h" style="width: 1280px; height: 1000px; box-sizing: border-box; background: #ffffff; color: #1b1b1b; font-family: 'Be Vietnam Pro', system-ui, sans-serif; position: relative; overflow: hidden;">
+  <div style="position: absolute; left: 40px; right: 40px; top: 14px; height: 44px; display: flex; align-items: center; gap: 10px;">
+    <h2 id="team-h" style="margin: 0; font-size: 18px; font-weight: 600;">Đội sản xuất</h2>
+    <span role="status" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #555555;">{{progress}}</span>
+    <span style="flex-grow: 1;"></span>
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #f4f4f4; border-radius: 99px; padding: 4px 10px;">hôm nay · 3 phim</span>
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; background: #f4f4f4; border-radius: 99px; padding: 4px 10px;">$0.42 / $10</span>
+    <svg width="30" height="30" viewBox="0 0 34 34" role="img" aria-label="Đồng hồ"><circle cx="17" cy="17" r="14" fill="#ffffff" stroke="#1b1b1b" stroke-width="2"></circle><path d="M17 17 L17 9" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"></path><path class="clock" d="M17 17 L17 6" stroke="#ff8c26" stroke-width="1.5" stroke-linecap="round"></path></svg>
+    <button type="button" onClick="{{toggle}}" style="height: 40px; padding: 0 14px; border: 1.5px solid #ebebeb; border-radius: 99px; background: #ffffff; font: inherit; font-size: 13px; cursor: pointer;">{{toggleLabel}}</button>
+  </div>
+
+  <svg aria-hidden="true" width="1280" height="1000" viewBox="0 0 1280 1000" style="position: absolute; left: 0; top: 0;">
+    <g fill="#fafafa"><rect x="24" y="80" width="676" height="340"></rect><rect x="720" y="80" width="536" height="340"></rect><rect x="24" y="560" width="356" height="340"></rect><rect x="400" y="560" width="856" height="340"></rect></g>
+    <g fill="none" stroke="#ebebeb" stroke-width="1.5"><path d="M24 400 L700 400 M720 400 L1256 400 M24 540 L1256 540 M24 880 L380 880 M400 880 L1256 880"></path></g>
+    <g fill="none" stroke="#1b1b1b" stroke-width="2.5" stroke-linecap="round">
+      <path d="M600 420 L24 420 L24 80 L700 80 L700 420 L680 420"></path>
+      <path d="M740 420 L720 420 L720 80 L1256 80 L1256 420 L820 420"></path>
+      <path d="M280 560 L24 560 L24 900 L380 900 L380 560 L360 560"></path>
+      <path d="M440 560 L400 560 L400 900 L1256 900 L1256 560 L1060 560 M980 560 L520 560"></path>
+    </g>
+    <g font-family="JetBrains Mono, monospace" font-size="11" fill="#555555"><text x="40" y="102">phòng sáng tạo</text><text x="736" y="102">studio</text><text x="40" y="582">phòng duyệt · bạn</text><text x="416" y="582">phòng hậu kỳ</text><text x="100" y="440">lối vào · kho</text><text x="1000" y="440">góc cà phê</text><text x="580" y="440">hành lang</text></g>
+    <g fill="#ffffff" stroke="#1b1b1b" stroke-width="2"><rect x="240" y="116" width="120" height="56" rx="2"></rect><rect x="380" y="116" width="120" height="56" rx="2"></rect><rect x="760" y="116" width="80" height="56" rx="2"></rect><rect x="60" y="604" width="100" height="50" rx="2"></rect><rect x="600" y="604" width="100" height="50" rx="2"></rect><rect x="760" y="604" width="100" height="50" rx="2"></rect></g>
+    <g stroke="#1b1b1b" stroke-width="1.5"><path d="M300 116 L300 172 M440 116 L440 172 M800 116 L800 172 M110 604 L110 654 M650 604 L650 654 M810 604 L810 654"></path></g>
+    <circle cx="590" cy="140" r="16" fill="#ffffff" stroke="#1b1b1b" stroke-width="2"></circle><path d="M590 140 L590 130 M590 140 L597 144" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"></path>
+
+    <rect x="60" y="190" width="110" height="140" rx="3" fill="#ffffff" stroke="#1b1b1b" stroke-width="2.5"></rect>
+    <g stroke="#1b1b1b" stroke-width="1.5"><rect x="70" y="202" width="22" height="22" fill="#fafafa"></rect><rect x="98" y="202" width="22" height="22" fill="{{glow0}}"></rect><rect x="126" y="202" width="22" height="22" fill="#ff8c26"></rect><rect x="70" y="230" width="22" height="22" fill="#ff8c26"></rect><rect x="98" y="230" width="22" height="22" fill="#fafafa"></rect><rect x="126" y="230" width="22" height="22" fill="{{glow0}}"></rect><rect x="70" y="258" width="22" height="22" fill="#fafafa"></rect><rect x="126" y="258" width="22" height="22" fill="#fafafa"></rect><rect x="98" y="286" width="22" height="22" fill="{{glow0}}"></rect></g>
+    <g fill="none" stroke="#1b1b1b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M70 330 L70 400 M160 330 L160 400"></path>
+      <path d="M378 354 Q440 344 502 354 Q440 362 378 354 Z" fill="#ffffff"></path><path d="M440 360 L440 400 M422 400 L458 400 M408 352 L438 352 M446 352 L474 352"></path>
+      <path d="M950 304 L950 400 M938 400 L962 400"></path>
+      <path d="M1104 320 L1104 400 M1226 320 L1226 400"></path>
+      <path d="M40 440 L84 440 L84 540 M40 440 L40 540 M40 474 L84 474 M40 508 L84 508"></path>
+      <path d="M160 494 L264 494 M166 494 L166 540 M258 494 L258 540 M237 486 L237 494"></path>
+      <path d="M1000 540 L1000 500 Q1000 490 1010 490 L1130 490 Q1140 490 1140 500 L1140 540 M996 516 L1144 516 M1070 492 L1070 516"></path>
+      <path d="M1180 450 L1220 450 L1220 540 L1180 540 Z M1186 464 L1214 464 M1192 496 L1208 496 L1206 510 L1194 510 Z"></path>
+      <path d="M150 834 L270 834 M156 834 L156 880 M264 834 L264 880 M227 828 L227 834 M110 852 L140 852 M112 852 L110 822 M125 852 L125 880 M115 880 L135 880"></path>
+      <path d="M1136 812 L1210 812 M1142 812 L1142 880 M1204 812 L1204 880 M1170 806 L1170 812"></path>
+      <path d="M840 834 L960 834 M846 834 L846 880 M954 834 L954 880 M878 828 L878 834 M922 828 L922 834"></path>
+      <path d="M600 800 L584 880 M600 800 L616 880 M600 800 L600 880 M680 780 L680 880 M668 880 L692 880"></path>
+    </g>
+    <rect x="412" y="332" width="22" height="18" rx="2" fill="{{glow1}}" stroke="#1b1b1b" stroke-width="2"></rect>
+    <rect x="448" y="332" width="22" height="18" rx="2" fill="{{glow2}}" stroke="#1b1b1b" stroke-width="2"></rect>
+    <rect x="860" y="200" width="150" height="200" rx="6" fill="#ffffff" fill-opacity=".6" stroke="#1b1b1b" stroke-width="2"></rect>
+    <path d="M970 220 L996 246 M978 212 L1000 234" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round"></path>
+    <rect x="900" y="176" width="70" height="20" rx="4" fill="{{air}}" stroke="#1b1b1b" stroke-width="2"></rect><text x="935" y="190" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#1b1b1b">ON AIR</text>
+    <rect x="945" y="286" width="10" height="18" rx="5" fill="#1b1b1b"></rect>
+    <rect x="1090" y="210" width="150" height="110" rx="3" fill="#ffffff" stroke="#1b1b1b" stroke-width="2.5"></rect>
+    <g stroke="#1b1b1b" stroke-width="1.5"><rect x="1098" y="222" width="42" height="32" fill="#fafafa"></rect><rect x="1144" y="222" width="42" height="32" fill="{{glow4}}"></rect><rect x="1190" y="222" width="42" height="32" fill="#fafafa"></rect><path d="M1100 272 L1136 272 M1146 272 L1180 272 M1192 272 L1228 272 M1100 288 L1124 288 M1146 288 L1170 288" fill="none"></path></g>
+    <g fill="#ff8c26" stroke="#1b1b1b" stroke-width="1.5"><rect x="46" y="458" width="14" height="14"></rect><rect x="64" y="492" width="14" height="14"></rect><rect x="46" y="524" width="16" height="14"></rect></g>
+    <g fill="#ffffff" stroke="#1b1b1b" stroke-width="1.5"><rect x="62" y="460" width="12" height="12"></rect><rect x="48" y="492" width="14" height="14"></rect><rect x="168" y="484" width="20" height="10"></rect></g>
+    <rect x="220" y="460" width="34" height="26" rx="3" fill="{{glowL}}" stroke="#1b1b1b" stroke-width="2.5"></rect>
+    <circle cx="1210" cy="457" r="3" fill="#ff8c26"></circle><path class="steam" d="M1198 490 Q1201 486 1198 482" fill="none" stroke="#8a8a8a" stroke-width="1.5" stroke-linecap="round"></path>
+    <g fill="none" stroke="#1b1b1b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M640 380 L664 380 L660 400 L644 400 Z"></path><g class="lean"><path d="M652 380 L652 344 M652 364 Q636 358 634 342 Q648 344 652 358 M652 356 Q668 348 672 332 Q656 334 652 350"></path></g></g>
+    <rect x="210" y="800" width="34" height="28" rx="3" fill="#fafafa" stroke="#1b1b1b" stroke-width="2.5"></rect>
+    <g class="pop" style="display: {{finalDisp}};"><rect x="164" y="816" width="16" height="18" rx="2" fill="#ff8c26" stroke="#1b1b1b" stroke-width="2"></rect><path d="M170 821 L170 829 L176 825 Z" fill="#1b1b1b"></path></g>
+    <rect x="1152" y="778" width="36" height="28" rx="3" fill="{{glow5}}" stroke="#1b1b1b" stroke-width="2.5"></rect>
+    <rect x="860" y="800" width="36" height="28" rx="3" fill="{{glow6}}" stroke="#1b1b1b" stroke-width="2.5"></rect>
+    <rect x="904" y="800" width="36" height="28" rx="3" fill="{{glow6}}" stroke="#1b1b1b" stroke-width="2.5"></rect>
+    <rect x="970" y="780" width="30" height="100" rx="3" fill="#ffffff" stroke="#1b1b1b" stroke-width="2.5"></rect>
+    <g class="{{rackCls}}" fill="{{glow6}}" stroke="#1b1b1b" stroke-width="1"><circle cx="978" cy="794" r="3"></circle><circle cx="978" cy="808" r="3"></circle><circle cx="978" cy="822" r="3"></circle></g>
+    <rect x="588" y="786" width="26" height="16" rx="2" fill="#ffffff" stroke="#1b1b1b" stroke-width="2.5"></rect><circle cx="618" cy="794" r="5" fill="#ffffff" stroke="#1b1b1b" stroke-width="2"></circle>
+    <path d="M662 752 L698 752 L692 780 L668 780 Z" fill="{{glow7}}" stroke="#1b1b1b" stroke-width="2.5" stroke-linejoin="round"></path>
+  </svg>
+
+  <sc-for list="{{people}}" as="p" hint-placeholder-count="9">
+    <div style="position: absolute; left: {{p.left}}; top: {{p.top}}; width: 80px;">
+      <svg aria-hidden="true" width="80" height="130" viewBox="0 0 80 130" style="transform: {{p.flip}}; overflow: visible;">
+        <path style="display: {{p.chairDisp}};" d="M8 92 L38 92 M10 92 L8 62 M23 92 L23 126 M13 126 L33 126" fill="none" stroke="#1b1b1b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <g class="{{p.bodyCls}}" style="display: {{p.seatDisp}}; animation-delay: {{p.delay}};" fill="none" stroke="{{p.ink}}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <g class="{{p.headCls}}" style="animation-delay: {{p.delay}};"><circle cx="{{p.hx}}" cy="{{p.hy}}" r="9"></circle><path d="{{p.hair}}"></path></g>
+          <path d="{{p.body}}"></path>
+          <path class="type" style="display: {{p.workDisp}};" d="{{p.workArm}}"></path>
+          <path style="display: {{p.workDisp}};" d="{{p.workOther}}"></path>
+          <g class="{{p.idleCls}}" style="display: {{p.idleDisp}}; animation-delay: {{p.delay}};"><path d="{{p.idleArm}}"></path><path d="{{p.prop}}" fill="{{p.propFill}}" stroke="#1b1b1b" stroke-width="1.5"></path></g>
+          <path style="display: {{p.idleDisp}};" d="{{p.idleOther}}"></path>
+          <g class="{{p.cheerCls}}" style="display: {{p.cheerDisp}};"><path d="{{p.cheerArms}}"></path></g>
+        </g>
+      </svg>
+      <div style="width: 160px; margin-left: -40px; text-align: center; font-size: 13px; line-height: 1.2; white-space: nowrap;"><span style="border-radius: 99px; padding: 2px 8px; {{p.tagStyle}}"><b style="font-weight: 600;">{{p.name}}</b> <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">· {{p.role}}</span></span></div>
+    </div>
+  </sc-for>
+
+  <div style="position: absolute; left: 150px; top: 860px; width: 120px; text-align: center; font-size: 13px; line-height: 1.2;"><span style="border-radius: 99px; padding: 2px 8px; background: #ffffff; {{youTag}}"><b style="font-weight: 600;">Bạn</b> <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">· duyệt</span></span></div>
+
+  <div class="bubble bubble-box" aria-hidden="true" style="left: {{bubLeft}}; top: {{bubTop}}; display: {{bubDisp}};">
+    <svg style="display: {{bL}};" width="160" height="64" viewBox="0 0 160 64"><g class="a-card"><rect x="22" y="4" width="116" height="56" rx="4" fill="#ffffff" stroke="#1b1b1b" stroke-width="2"></rect><rect x="22" y="4" width="116" height="14" rx="4" fill="#ff8c26" stroke="#1b1b1b" stroke-width="2"></rect><text x="80" y="37" text-anchor="middle" font-family="Be Vietnam Pro, sans-serif" font-size="12" font-weight="600" fill="#1b1b1b">Phân số là gì?</text><text x="80" y="52" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#555555">đơn mới · 30 giây</text></g></svg>
+    <svg style="display: {{b0}};" width="160" height="64" viewBox="0 0 160 64"><g class="a-bulb"><circle cx="20" cy="24" r="10" fill="#ff8c26" stroke="#1b1b1b" stroke-width="2"></circle><path d="M15 38 L25 38 M16 44 L24 44" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"></path></g><rect class="a-note" x="44" y="6" width="22" height="22" fill="#ff8c26" stroke="#1b1b1b" stroke-width="1.5"></rect><rect class="a-note d2" x="72" y="6" width="22" height="22" fill="#fafafa" stroke="#1b1b1b" stroke-width="1.5"></rect><rect class="a-note d3" x="100" y="6" width="22" height="22" fill="#ff8c26" stroke="#1b1b1b" stroke-width="1.5"></rect><rect class="a-note d4" x="128" y="6" width="22" height="22" fill="#fafafa" stroke="#1b1b1b" stroke-width="1.5"></rect><path class="a-note d4" d="M44 42 L148 42 M44 54 L118 54" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"></path></svg>
+    <svg style="display: {{b1}};" width="160" height="64" viewBox="0 0 160 64"><g class="a-squash"><rect x="8" y="2" width="40" height="60" rx="3" fill="#fafafa" stroke="#1b1b1b" stroke-width="2"></rect><path d="M14 10 L42 10 M14 18 L36 18 M14 26 L42 26 M14 34 L32 34 M14 42 L40 42 M14 50 L36 50" stroke="#1b1b1b" stroke-width="1.5" stroke-linecap="round"></path></g><path d="M54 32 L62 32 M58 28 L62 32 L58 36" fill="none" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><g class="a-card"><rect x="68" y="12" width="26" height="40" rx="3" fill="#ffffff" stroke="#1b1b1b" stroke-width="2"></rect><path d="M73 22 L89 22 M73 30 L85 30" stroke="#1b1b1b" stroke-width="1.5"></path></g><g class="a-card d2"><rect x="99" y="12" width="26" height="40" rx="3" fill="#ffffff" stroke="#1b1b1b" stroke-width="2"></rect><path d="M104 22 L120 22 M104 30 L116 30" stroke="#1b1b1b" stroke-width="1.5"></path></g><g class="a-card d3"><rect x="130" y="12" width="26" height="40" rx="3" fill="#ff8c26" stroke="#1b1b1b" stroke-width="2"></rect><path d="M135 22 L151 22 M135 30 L147 30" stroke="#1b1b1b" stroke-width="1.5"></path></g></svg>
+    <svg style="display: {{b2}};" width="160" height="64" viewBox="0 0 160 64"><g class="a-open"><rect x="16" y="2" width="104" height="60" rx="3" fill="#ffffff" stroke="#1b1b1b" stroke-width="2"></rect><rect class="a-hl" x="22" y="22" width="84" height="10" fill="#ff8c26"></rect><path d="M24 12 L104 12 M24 27 L100 27 M24 42 L96 42 M24 52 L84 52" stroke="#1b1b1b" stroke-width="1.5" stroke-linecap="round"></path></g><g class="a-stamp"><circle cx="138" cy="44" r="13" fill="#1b1b1b"></circle><path d="M131 44 L136 49 L145 39" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></g></svg>
+    <svg style="display: {{b3}};" width="160" height="64" viewBox="0 0 160 64"><rect x="6" y="6" width="54" height="20" rx="4" fill="#ff8c26" stroke="#1b1b1b" stroke-width="2"></rect><text x="33" y="20" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#1b1b1b">ON AIR</text><path d="M14 38 L14 52 Q14 58 22 58 L44 58 Q52 58 52 52 L52 38" fill="none" stroke="#1b1b1b" stroke-width="2"></path><g fill="#1b1b1b"><rect class="a-bar" x="72" y="8" width="8" height="50" rx="3"></rect><rect class="a-bar d2" x="86" y="8" width="8" height="50" rx="3"></rect><rect class="a-bar d3" x="100" y="8" width="8" height="50" rx="3"></rect><rect class="a-bar d4" x="114" y="8" width="8" height="50" rx="3"></rect><rect class="a-bar d2" x="128" y="8" width="8" height="50" rx="3"></rect><rect class="a-bar" x="142" y="8" width="8" height="50" rx="3"></rect></g></svg>
+    <svg style="display: {{b4}};" width="160" height="64" viewBox="0 0 160 64"><g class="a-clap"><path d="M8 30 L40 22 L38 16 L6 24 Z" fill="#1b1b1b"></path></g><rect x="8" y="30" width="32" height="22" rx="2" fill="none" stroke="#1b1b1b" stroke-width="2"></rect><path d="M54 60 L156 60" stroke="#1b1b1b" stroke-width="2"></path><path d="M78 56 L84 62 M84 56 L78 62 M126 56 L132 62 M132 56 L126 62" stroke="#ff8c26" stroke-width="2"></path><g fill="none" stroke-width="2" stroke-linecap="round"><g class="a-slideL" stroke="#1b1b1b"><circle cx="81" cy="18" r="5"></circle><path d="M81 23 L81 42 M81 28 L74 36 M81 28 L88 36 M81 42 L76 56 M81 42 L86 56"></path></g><g class="a-slideR" stroke="#d97757"><circle cx="129" cy="18" r="5"></circle><path d="M129 23 L129 42 M129 28 L122 36 M129 28 L136 36 M129 42 L124 56 M129 42 L134 56"></path></g></g></svg>
+    <svg style="display: {{b5}};" width="160" height="64" viewBox="0 0 160 64"><g fill="none" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="22" cy="34" r="14"></circle><path d="M22 18 L22 16 M17 15 L27 15"></path><path class="a-gear" d="M22 34 L22 24"></path><path d="M48 60 L156 60 M48 60 L48 4"></path><path class="a-draw" d="M52 50 L72 36 L88 44 L104 18 L120 28 L150 8" stroke="#ff8c26" stroke-width="3" stroke-dasharray="200"></path></g><g class="a-stamp"><rect x="110" y="34" width="42" height="20" rx="4" fill="#1b1b1b"></rect><text x="131" y="48" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" font-weight="500" fill="#ffffff">ĐẠT</text></g></svg>
+    <svg style="display: {{b6}};" width="160" height="64" viewBox="0 0 160 64"><circle class="a-gear" cx="34" cy="32" r="18" fill="none" stroke="#1b1b1b" stroke-width="7" stroke-dasharray="6 4"></circle><circle class="a-gearR" cx="70" cy="24" r="11" fill="none" stroke="#ff8c26" stroke-width="6" stroke-dasharray="5 3"></circle><svg x="92" y="30" width="62" height="22" viewBox="0 0 62 22" overflow="hidden"><g class="a-film"><rect x="0" y="2" width="84" height="18" fill="#1b1b1b"></rect><g fill="#ffffff"><rect x="3" y="6" width="10" height="10"></rect><rect x="19" y="6" width="10" height="10"></rect><rect x="35" y="6" width="10" height="10"></rect><rect x="51" y="6" width="10" height="10"></rect><rect x="67" y="6" width="10" height="10"></rect></g></g></svg></svg>
+    <svg style="display: {{b7}};" width="160" height="64" viewBox="0 0 160 64"><g class="a-flash" fill="#ff8c26"><path d="M24 8 L28 18 L38 18 L30 24 L34 34 L24 28 L14 34 L18 24 L10 18 L20 18 Z"></path></g><rect x="10" y="40" width="28" height="18" rx="3" fill="none" stroke="#1b1b1b" stroke-width="2"></rect><circle cx="24" cy="49" r="5" fill="none" stroke="#1b1b1b" stroke-width="2"></circle><g class="a-drop"><rect x="56" y="8" width="28" height="32" fill="#ffffff" stroke="#1b1b1b" stroke-width="2"></rect><circle cx="70" cy="21" r="5" fill="none" stroke="#1b1b1b" stroke-width="2"></circle></g><g class="a-drop d2"><rect x="92" y="12" width="28" height="32" fill="#ffffff" stroke="#1b1b1b" stroke-width="2"></rect><path d="M98 36 L114 20" stroke="#1b1b1b" stroke-width="2"></path></g><g class="a-drop d3"><rect x="126" y="20" width="28" height="32" fill="#ff8c26" stroke="#1b1b1b" stroke-width="2"></rect></g></svg>
+  </div>
+
+  <div style="position: absolute; left: {{walkerLeft}}; top: {{walkerTop}}; width: 50px; height: 96px; display: {{walkerDisp}}; transition: left {{walkerDur}} linear, top {{walkerDur}} linear;">
+    <svg role="img" aria-label="{{walkerLabel}}" width="50" height="96" viewBox="0 0 50 96" style="transform: {{walkerFlip}};"><g class="{{walkerBody}}" fill="none" stroke="{{walkerInk}}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="25" cy="14" r="8"></circle><path d="{{walkerHair}}"></path><path d="M25 22 L25 58 M25 32 L38 40"></path><path style="display: {{walkerArmDown}};" d="M25 32 L14 44"></path><g class="wave" style="display: {{walkerWave}};"><path d="M25 32 L14 18"></path></g><g style="display: {{walkDisp}};"><path class="legA" d="M25 58 L15 88 M25 58 L35 88"></path><path class="legB" d="M25 58 L22 88 M25 58 L28 88"></path></g><path style="display: {{standDisp}};" d="M25 58 L18 88 M25 58 L32 88"></path></g><g style="display: {{carryDisp}};"><rect x="30" y="32" width="18" height="13" rx="2" fill="#ff8c26" stroke="#1b1b1b" stroke-width="2"></rect></g></svg>
+  </div>
+
+  <sc-for list="{{talk}}" as="t" hint-placeholder-count="0">
+    <span class="say" style="position: absolute; left: {{t.left}}; top: {{t.top}}; white-space: nowrap; background: #ffffff; border: 1.5px solid #1b1b1b; border-radius: 12px 12px 12px 2px; padding: 3px 10px; font-size: 12px;">{{t.text}}</span>
+  </sc-for>
+
+  <p style="position: absolute; left: 40px; right: 40px; bottom: 30px; margin: 0; font-size: 13px; color: #555555;">Mỗi phòng ban một phòng riêng, có cửa mở ra hành lang chung. Hùng ở lối vào cạnh kho nhận đơn; file đi qua cửa từng phòng: sáng tạo → studio → hậu kỳ → phòng duyệt của bạn. Trong phòng, người đang làm có bóng nghĩ hiện việc của họ, người rảnh làm việc riêng của mình. Góc cà phê cuối hành lang.</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const HANG = 'M40 42 L32 58 L36 70';
+    const REST = 'M29 58 L38 74 L50 80';
+    this.poses = {
+      sit: { hx: 30, hy: 40, body: 'M30 49 L26 86 L52 88 L54 122 M26 86 L46 93 L48 122', work: 'M29 58 L44 70 L64 74', workOther: '', cheer: 'M29 58 L20 30 M29 58 L42 30' },
+      stand: { hx: 40, hy: 22, body: 'M40 31 L40 76 L32 124 M40 76 L48 124', work: 'M40 42 L56 48 L72 42', workOther: HANG, cheer: 'M40 42 L30 14 M40 42 L52 14' }
+    };
+    this.team = [
+      { id: -1, name: 'Hùng', role: 'trưởng nhóm', ink: '#1b1b1b', hair: 'short', pose: 'sit', left: 110, idle: { arm: REST, cls: '' } },
+      { id: 0, name: 'Mai', role: 'ý tưởng', ink: '#d97757', hair: 'ponytail', pose: 'stand', left: 160, flip: true, idle: { arm: 'M40 42 L28 52 L38 62 M40 42 L52 52 L42 62', cls: 'think' } },
+      { id: 1, name: 'Tùng', role: 'biên kịch', ink: '#3d6fb4', hair: 'short', pose: 'sit', left: 350, idle: { arm: 'M29 58 L42 68 L37 50', cls: 'think', head: 'think' } },
+      { id: 2, name: 'Linh', role: 'kiểm duyệt', ink: '#8a4fb5', hair: 'long', pose: 'sit', left: 452, flip: true, idle: { arm: 'M29 58 L38 70 L42 56', cls: 'scroll', prop: 'M40 44 L47 44 L47 56 L40 56 Z', fill: '#ff8c26' } },
+      { id: 3, name: 'Khoa', role: 'lồng tiếng', ink: '#2f8a5b', hair: 'phones', pose: 'stand', left: 870, work: 'M40 42 L52 44 L49 24', idle: { arm: 'M40 42 L48 58 L46 70', other: HANG, cls: 'stretch' } },
+      { id: 4, name: 'Vy', role: 'đạo diễn', ink: '#d97757', hair: 'long', pose: 'stand', left: 1020, idle: { arm: 'M40 42 L50 52 L50 38', other: HANG, cls: 'scroll', prop: 'M47 28 L54 28 L54 40 L47 40 Z', fill: '#ff8c26' } },
+      { id: 5, name: 'Nam', role: 'QA', ink: '#1b1b1b', hair: 'short', pose: 'stand', left: 1080, idle: { arm: 'M40 42 L50 56 L58 54', other: HANG, cls: 'sip', prop: 'M56 48 L63 48 L62 58 L57 58 Z', fill: '#ffffff' } },
+      { id: 6, name: 'Phúc', role: 'render', ink: '#3d6fb4', hair: 'none', pose: 'sit', left: 790, idle: { arm: REST, cls: 'stretch' } },
+      { id: 7, name: 'Thảo', role: 'ảnh bìa', ink: '#8a4fb5', hair: 'ponytail', pose: 'stand', left: 520, work: 'M40 42 L54 46 L64 44', idle: { arm: 'M40 42 L52 50 L46 30', other: HANG, cls: 'think' } }
+    ];
+    this.spot = { '-1': 92, 0: 250, 1: 320, 2: 560, 3: 840, 4: 1012, 5: 1072, 6: 772, 7: 512, 8: 290 };
+    this.figY = { top: 274, mid: 414, bot: 754 };
+    this.walkY = { top: 304, mid: 444, bot: 784 };
+    this.state = { i: 0, paused: false };
+    this.frames = this.buildFrames();
+  }
+  floorOf(id) { return id === -1 ? 'mid' : id <= 4 ? 'top' : 'bot'; }
+  room(id) { return id === -1 ? 'corr' : id <= 2 ? 'sang' : id <= 4 ? 'studio' : id <= 7 ? 'hauky' : 'duyet'; }
+  door(room, other) { return { sang: 640, studio: 780, duyet: 320, hauky: other === 'duyet' ? 480 : 1020 }[room]; }
+  spotPos(id) { return { x: this.spot[id], f: this.floorOf(id) }; }
+  route(a, b) {
+    const ra = this.room(a), rb = this.room(b), pts = [];
+    if (ra !== rb) {
+      if (ra !== 'corr') { const d = this.door(ra, rb); pts.push({ x: d, f: this.floorOf(a) }, { x: d, f: 'mid' }); }
+      if (rb !== 'corr') { const d = this.door(rb, ra); pts.push({ x: d, f: 'mid' }, { x: d, f: this.floorOf(b) }); }
+    }
+    pts.push(this.spotPos(b));
+    return pts;
+  }
+  member(id) { return this.team.find((p) => p.id === id); }
+  head(p) {
+    const pose = this.poses[p.pose];
+    return { x: p.left + (p.flip ? 80 - pose.hx : pose.hx), y: this.figY[this.floorOf(p.id)] + pose.hy };
+  }
+  faceDir(id) { return id === 8 ? -1 : (this.head(this.member(id)).x < this.spot[id] ? -1 : 1); }
+  hairAt(key, x, y) {
+    const cap = 'M' + (x - 9) + ' ' + (y - 4) + ' Q' + x + ' ' + (y - 14) + ' ' + (x + 9) + ' ' + (y - 4);
+    if (key === 'short') return cap;
+    if (key === 'ponytail') return cap + ' M' + (x - 9) + ' ' + (y - 3) + ' Q' + (x - 16) + ' ' + y + ' ' + (x - 14) + ' ' + (y + 10);
+    if (key === 'long') return cap + ' M' + (x - 9) + ' ' + (y - 3) + ' L' + (x - 11) + ' ' + (y + 14);
+    if (key === 'phones') return 'M' + (x - 9) + ' ' + y + ' Q' + (x - 9) + ' ' + (y - 13) + ' ' + x + ' ' + (y - 13) + ' Q' + (x + 9) + ' ' + (y - 13) + ' ' + (x + 9) + ' ' + y;
+    return '';
+  }
+  buildFrames() {
+    const STEPS = ['ý tưởng', 'kịch bản', 'kiểm tra', 'giọng', 'dựng cảnh', 'QA', 'render', 'ảnh bìa'];
+    const CHAT = ['Ai uống cà phê không?', 'Trưa nay ăn bún nha', 'Nhạc này hay ghê', 'Đẹp đó!', 'Sắp xong rồi', 'Cố lên team!', 'Tối nay đi ăn nha', '+1 nha'];
+    const REPLY = ['Cho mình 1 ly!', 'Okela', 'Bài gì vậy?', 'Cảm ơn nha', 'Nhanh ghê', 'Yeah!', 'Đi đi!', 'Hehe'];
+    const name = (id) => (id === 8 ? 'bạn' : this.member(id).name);
+    const F = [];
+    const add = (o) => F.push(Object.assign({ work: null, walker: null, talk: [], cheer: false, final: false, label: '', ms: 1100 }, o));
+    const walk = (who, from, to, carry, dir0, extra) => {
+      let prev = this.spotPos(from), dir = dir0;
+      this.route(from, to).forEach((pt) => {
+        const dx = pt.x - prev.x;
+        if (dx) dir = dx < 0 ? -1 : 1;
+        const dist = Math.abs(dx) + Math.abs(this.walkY[pt.f] - this.walkY[prev.f]);
+        add(Object.assign({ walker: { who, pos: pt, dir, carry, moving: true }, ms: Math.max(450, Math.round(dist * 3)) }, extra));
+        prev = pt;
+      });
+    };
+    add({ work: -1, label: 'Hùng nhận đơn mới' });
+    add({ work: -1, label: 'Hùng nhận đơn mới' });
+    for (let a = -1; a < 8; a++) {
+      const b = a + 1;
+      const d0 = this.route(a, b)[0].x < this.spot[a] ? -1 : 1;
+      const fd = this.faceDir(b);
+      const hand = a < 0 ? 'giao việc cho ' + name(b) : STEPS[a] + ' xong → ' + (b < 8 ? STEPS[b] : 'duyệt');
+      add({ walker: { who: a, pos: this.spotPos(a), dir: d0, carry: true }, talk: [{ w: true, text: a < 0 ? 'Có đơn mới nè!' : 'Xong phần mình rồi!' }], label: hand });
+      walk(a, a, b, true, d0, { label: hand });
+      if (b < 8) {
+        const lbl = STEPS[b] + ' · ' + (b + 1) + '/8';
+        const chatter = (b + 4) % 8;
+        const replier = (chatter + 1) % 8 === b ? (chatter + 2) % 8 : (chatter + 1) % 8;
+        add({ walker: { who: a, pos: this.spotPos(b), dir: fd, carry: true }, talk: [{ w: true, text: 'Gửi ' + name(b) + ' nè!' }], label: hand });
+        add({ walker: { who: a, pos: this.spotPos(b), dir: fd, wave: true }, talk: [{ p: b, text: 'Ok, để mình lo!' }], label: hand });
+        walk(a, b, a, false, -fd, { work: b, label: lbl });
+        add({ work: b, label: lbl });
+        add({ work: b, label: lbl, talk: [{ p: chatter, text: CHAT[b] }] });
+        add({ work: b, label: lbl, talk: [{ p: replier, text: REPLY[b] }] });
+      } else {
+        const done = 'xong 8/8 · chờ bạn duyệt';
+        add({ walker: { who: a, pos: this.spotPos(8), dir: fd, carry: true }, talk: [{ w: true, text: 'Phim xong rồi, mời bạn duyệt!' }], final: true, label: done });
+        add({ walker: { who: a, pos: this.spotPos(8), dir: fd, wave: true }, cheer: true, final: true, talk: [{ p: 6, text: 'Ship it!' }, { p: 0, text: 'Yeah!' }], label: done });
+        add({ walker: { who: a, pos: this.spotPos(8), dir: 1, wave: true }, cheer: true, final: true, talk: [{ p: 3, text: 'Cả team giỏi quá!' }], label: done });
+        walk(a, 8, a, false, 1, { final: true, label: done });
+        add({ final: true, label: done });
+        add({ final: true, label: done });
+      }
+    }
+    return F;
+  }
+  componentDidMount() {
+    const tick = () => {
+      this.timer = setTimeout(() => {
+        if (!this.state.paused) this.setState({ i: (this.state.i + 1) % this.frames.length });
+        tick();
+      }, this.frames[this.state.i].ms);
+    };
+    tick();
+  }
+  componentWillUnmount() { clearTimeout(this.timer); }
+  renderVals() {
+    const f = this.frames[this.state.i];
+    const w = f.walker;
+    const show = (on) => (on ? 'inline' : 'none');
+    const people = this.team.map((p, idx) => {
+      const pose = this.poses[p.pose];
+      const working = f.work === p.id;
+      const seated = !w || w.who !== p.id;
+      const cheer = f.cheer && seated;
+      return {
+        left: p.left + 'px',
+        top: this.figY[this.floorOf(p.id)] + 'px',
+        flip: p.flip ? 'scaleX(-1)' : 'none',
+        ink: p.ink,
+        hx: pose.hx,
+        hy: pose.hy,
+        hair: this.hairAt(p.hair, pose.hx, pose.hy),
+        body: pose.body,
+        chairDisp: show(p.pose === 'sit'),
+        bodyCls: cheer ? 'hop' : 'bob',
+        headCls: !working && p.idle.head ? p.idle.head : '',
+        seatDisp: show(seated),
+        workDisp: show(working && !cheer),
+        workArm: p.work || pose.work,
+        workOther: pose.workOther,
+        idleDisp: show(!working && !cheer),
+        idleArm: p.idle.arm,
+        idleOther: p.idle.other || '',
+        idleCls: p.idle.cls,
+        prop: p.idle.prop || '',
+        propFill: p.idle.fill || 'none',
+        cheerDisp: show(cheer),
+        cheerCls: cheer ? 'wave' : '',
+        cheerArms: pose.cheer,
+        delay: (-idx * 1.3) + 's',
+        name: p.name,
+        role: p.role,
+        tagStyle: working ? 'background:#ff8c26;' : 'background:#ffffff;'
+      };
+    });
+    const glow = (id) => (f.work === id ? '#ff8c26' : '#fafafa');
+    const bub = (id) => (f.work === id ? 'inline' : 'none');
+    let bubVals = { bubDisp: 'none', bubLeft: '0px', bubTop: '0px' };
+    if (f.work !== null) {
+      const h = this.head(this.member(f.work));
+      bubVals = { bubDisp: 'block', bubLeft: (h.x - 60) + 'px', bubTop: (h.y - 104) + 'px' };
+    }
+    let walkerVals = { walkerDisp: 'none', walkerLeft: '0px', walkerTop: '444px', walkerDur: '0ms', walkerInk: '#1b1b1b', walkerHair: '', walkerFlip: 'none', walkerBody: '', walkDisp: 'none', standDisp: 'inline', carryDisp: 'none', walkerArmDown: 'inline', walkerWave: 'none', walkerLabel: '' };
+    let wx = 0, wy = 0;
+    if (w) {
+      const m = this.member(w.who);
+      wx = w.pos.x;
+      wy = this.walkY[w.pos.f];
+      walkerVals = {
+        walkerDisp: 'block',
+        walkerLeft: (wx - 25) + 'px',
+        walkerTop: wy + 'px',
+        walkerDur: w.moving ? f.ms + 'ms' : '300ms',
+        walkerInk: m.ink,
+        walkerHair: this.hairAt(m.hair, 25, 14),
+        walkerFlip: w.dir < 0 ? 'scaleX(-1)' : 'none',
+        walkerBody: w.moving ? 'hop' : 'bob',
+        walkDisp: show(w.moving),
+        standDisp: show(!w.moving),
+        carryDisp: show(w.carry),
+        walkerArmDown: show(!w.wave),
+        walkerWave: show(w.wave),
+        walkerLabel: m.name + (w.carry ? ' đang mang file' : '')
+      };
+    }
+    const talk = f.talk.map((t) => {
+      if (t.w) return { left: (wx - 10) + 'px', top: (wy - 32) + 'px', text: t.text };
+      const h = this.head(this.member(t.p));
+      return { left: (h.x - 10) + 'px', top: (h.y - 42) + 'px', text: t.text };
+    });
+    return Object.assign({
+      people,
+      talk,
+      bL: bub(-1), b0: bub(0), b1: bub(1), b2: bub(2), b3: bub(3), b4: bub(4), b5: bub(5), b6: bub(6), b7: bub(7),
+      glowL: glow(-1), glow0: glow(0), glow1: glow(1), glow2: glow(2), glow4: glow(4), glow5: glow(5), glow6: glow(6), glow7: glow(7),
+      air: f.work === 3 ? '#ff8c26' : '#f4f4f4',
+      rackCls: f.work === 6 ? 'blinky' : '',
+      finalDisp: f.final ? 'inline' : 'none',
+      youTag: f.final ? 'background:#ff8c26;' : '',
+      progress: 'Phân số là gì? · ' + f.label,
+      toggleLabel: this.state.paused ? '▶ Chạy tiếp' : '❚❚ Tạm dừng',
+      toggle: () => this.setState({ paused: !this.state.paused })
+    }, bubVals, walkerVals);
+  }
+}
+</script>
+</body>
+</html>

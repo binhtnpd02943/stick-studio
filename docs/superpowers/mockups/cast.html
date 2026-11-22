@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Stick Studio — Nhân vật</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#1b1b1b}a:hover{color:#000000}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.breathe{animation:breathe 3.2s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.breathe{animation:none}}
+button:focus-visible{outline:3px solid #1b1b1b;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 844px; background: #ffffff; color: #1b1b1b; font-family: 'Be Vietnam Pro', system-ui, sans-serif; font-size: 15px; line-height: 1.5;">
+  <header style="border-bottom: 1px solid #ebebeb;">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+        <svg width="22" height="34" viewBox="0 0 60 100" aria-hidden="true"><g fill="none" stroke="#1b1b1b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="16" r="11"></circle><path d="M30 27 L30 62 M30 38 L14 54 M30 38 L46 26 M30 62 L18 92 M30 62 L42 92"></path></g></svg>
+        <span style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">stick studio</span>
+      </a>
+      <nav aria-label="Chính" style="display: flex; flex-wrap: wrap; gap: 4px; flex-grow: 1;">
+        <a href="Main.dc.html" style="padding: 8px 14px; border-radius: 99px; text-decoration: none; font-size: 14px;">Tổng quan</a>
+        <a href="FilmDetail.dc.html" style="padding: 8px 14px; border-radius: 99px; text-decoration: none; font-size: 14px;">Phim</a>
+        <a href="Review.dc.html" style="padding: 8px 14px; border-radius: 99px; text-decoration: none; font-size: 14px;">Duyệt</a>
+        <a href="#" aria-current="page" style="padding: 8px 14px; border-radius: 99px; background: #1b1b1b; color: #ffffff; text-decoration: none; font-size: 14px;">Nhân vật</a>
+        <a href="#" style="padding: 8px 14px; border-radius: 99px; text-decoration: none; font-size: 14px;">Cài đặt</a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;">
+    <section aria-labelledby="cast-h" style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <h1 id="cast-h" style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.01em;">Dàn nhân vật</h1>
+        <button type="button" style="height: 44px; padding: 0 18px; border: 1.5px solid #1b1b1b; border-radius: 99px; background: #ffffff; font: inherit; cursor: pointer;">+ Thêm nhân vật</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px;">
+        <sc-for list="{{cast}}" as="c" hint-placeholder-count="3">
+          <button type="button" onClick="{{c.pick}}" aria-pressed="{{c.pressed}}" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 12px 14px; border-radius: 16px; background: #ffffff; font: inherit; cursor: pointer; {{c.ring}}">
+            <svg width="70" height="100" viewBox="0 0 60 100" aria-hidden="true" class="breathe"><g fill="none" stroke="{{c.ink}}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="18" r="11"></circle><path d="M30 29 L30 62 M30 40 L16 56 M30 40 L44 56 M30 62 L20 92 M30 62 L40 92"></path><path d="{{c.hairPath}}"></path></g></svg>
+            <span style="font-weight: 600;">{{c.name}}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #555555;">{{c.voiceLabel}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-labelledby="edit-h" style="flex: 1 1 360px; min-width: 0; border: 1px solid #ebebeb; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 18px;">
+      <h2 id="edit-h" style="margin: 0; font-size: 18px; font-weight: 600;">Sửa: {{sel.name}}</h2>
+      <div style="height: 200px; background: #fafafa; border-radius: 12px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 12px; box-sizing: border-box;">
+        <svg width="110" height="170" viewBox="0 0 60 100" aria-hidden="true" class="breathe"><g fill="none" stroke="{{sel.ink}}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="30" cy="18" r="11"></circle><path d="M30 29 L30 62 M30 40 L16 50 M30 40 L44 30 M30 62 L20 92 M30 62 L40 92"></path><path d="{{sel.hairPath}}"></path></g></svg>
+      </div>
+      <label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500;">Tên
+        <input type="text" value="{{sel.name}}" style="height: 46px; box-sizing: border-box; border: 1.5px solid #ebebeb; border-radius: 12px; padding: 0 14px; font: inherit; font-weight: 400;">
+      </label>
+      <div role="group" aria-label="Màu nét" style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 14px; font-weight: 500;">Màu nét</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <sc-for list="{{inks}}" as="k" hint-placeholder-count="5">
+            <button type="button" onClick="{{k.pick}}" aria-label="{{k.label}}" aria-pressed="{{k.pressed}}" style="width: 44px; height: 44px; border-radius: 99px; background: {{k.hex}}; cursor: pointer; {{k.ring}}"></button>
+          </sc-for>
+        </div>
+      </div>
+      <div role="group" aria-label="Kiểu tóc" style="display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 14px; font-weight: 500;">Kiểu tóc</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <sc-for list="{{hairs}}" as="h" hint-placeholder-count="4">
+            <button type="button" onClick="{{h.pick}}" aria-pressed="{{h.pressed}}" style="min-height: 44px; padding: 0 14px; border-radius: 99px; font: inherit; font-size: 14px; cursor: pointer; {{h.style}}">{{h.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px;">
+        <label style="flex: 1 1 180px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 500;">Giọng
+          <select style="height: 46px; border: 1.5px solid #ebebeb; border-radius: 12px; padding: 0 12px; font: inherit; font-weight: 400; background: #ffffff;"><option>{{sel.voiceLabel}}</option></select>
+        </label>
+        <button type="button" style="height: 46px; padding: 0 16px; border: 1.5px solid #1b1b1b; border-radius: 99px; background: #ffffff; font: inherit; cursor: pointer;">▶ Nghe thử</button>
+      </div>
+      <button type="button" style="height: 50px; border: 0; border-radius: 99px; background: #ff8c26; color: #1b1b1b; font: inherit; font-weight: 600; cursor: pointer;">Lưu</button>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      selected: 0,
+      cast: [
+        { name: 'Minh', ink: '#1b1b1b', hair: 'short', voice: 'male_young' },
+        { name: 'Lan', ink: '#d97757', hair: 'ponytail', voice: 'female_young' },
+        { name: 'Ông Tư', ink: '#3d6fb4', hair: 'none', voice: 'male_old' }
+      ]
+    };
+  }
+  update(patch) {
+    const cast = this.state.cast.map((c, i) => (i === this.state.selected ? { ...c, ...patch } : c));
+    this.setState({ cast });
+  }
+  renderVals() {
+    const hairPaths = { short: 'M20 12 Q30 2 40 12', long: 'M19 14 Q30 0 41 14 M19 14 L17 32 M41 14 L43 32', ponytail: 'M20 12 Q30 2 40 12 M40 12 Q50 14 48 28', none: '' };
+    const hairLabels = { short: 'Ngắn', long: 'Dài', ponytail: 'Buộc đuôi', none: 'Không tóc' };
+    const voiceLabels = { male_young: 'nam trẻ', female_young: 'nữ trẻ', male_old: 'nam lớn tuổi', female_old: 'nữ lớn tuổi', narrator: 'người dẫn', child: 'trẻ em' };
+    const decorate = (c) => ({ ...c, hairPath: hairPaths[c.hair], voiceLabel: voiceLabels[c.voice] });
+    const sel = decorate(this.state.cast[this.state.selected]);
+    const cast = this.state.cast.map((c, i) => {
+      const on = i === this.state.selected;
+      return { ...decorate(c), pressed: on ? 'true' : 'false', ring: on ? 'border:2px solid #1b1b1b;' : 'border:1px solid #ebebeb;', pick: () => this.setState({ selected: i }) };
+    });
+    const inkList = [['#1b1b1b', 'Đen'], ['#d97757', 'Cam đất'], ['#3d6fb4', 'Xanh dương'], ['#2f8a5b', 'Xanh lá'], ['#8a4fb5', 'Tím']];
+    const inks = inkList.map(([hex, label]) => {
+      const on = sel.ink === hex;
+      return { hex, label, pressed: on ? 'true' : 'false', ring: on ? 'border:3px solid #ffffff;box-shadow:0 0 0 2px #1b1b1b;' : 'border:0;', pick: () => this.update({ ink: hex }) };
+    });
+    const hairs = Object.keys(hairLabels).map((key) => {
+      const on = sel.hair === key;
+      return { label: hairLabels[key], pressed: on ? 'true' : 'false', style: on ? 'border:0;background:#1b1b1b;color:#ffffff;' : 'border:1.5px solid #ebebeb;background:#ffffff;color:#1b1b1b;', pick: () => this.update({ hair: key }) };
+    });
+    return { cast, sel, inks, hairs };
+  }
+}
+</script>
+</body>
+</html>
